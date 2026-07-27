@@ -13,8 +13,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.ContentCachingRequestWrapper;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Enumeration;
 import java.util.UUID;
 
@@ -35,6 +37,8 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
     private static final String MCP_ENDPOINT = "/mcp";
     private static final String AUTHORIZATION = "Authorization";
     private static final String BEARER = "Bearer ";
+    private static final String MCP_SESSION_ID = "Mcp-Session-Id";
+    private static final int MAX_REQUEST_BODY_LOG_LENGTH = 20_000;
 
     private final TokenService tokenService;
 
@@ -45,10 +49,16 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
+        boolean mcpRequest = isMcpRequest(request);
+        ContentCachingRequestWrapper requestWrapper = mcpRequest
+                ? new ContentCachingRequestWrapper(request, MAX_REQUEST_BODY_LOG_LENGTH)
+                : null;
+        HttpServletRequest currentRequest = requestWrapper != null ? requestWrapper : request;
+
         try {
             // 只保护 MCP 协议入口。后面补 /admin、/share 页面时，它们会有自己的登录态校验。
-            if (isMcpRequest(request)) {
-                String token = extractToken(request);
+            if (mcpRequest) {
+                String token = extractToken(currentRequest);
                 TokenRecord tokenRecord = tokenService.validate(token).orElse(null);
                 if (tokenRecord == null) {
                     // MCP 客户端没有带 token，或者 token 不存在时，直接拒绝，不进入 Spring AI MCP Handler。
@@ -58,13 +68,11 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
                     return;
                 }
 
-                // 这里维护的是我们自己的轻量会话 ID，用于审计和请求关联。
-                // Spring AI Streamable HTTP 也会使用 Mcp-Session-Id 维护协议会话，两者可以后续统一。
-                String sessionId = request.getHeader("X-MCP-Session-Id");
+                // 复用 Spring AI MCP Streamable HTTP 协议会话 ID，用于审计和请求关联。
+                String sessionId = currentRequest.getHeader(MCP_SESSION_ID);
                 if (sessionId == null || sessionId.isBlank()) {
                     sessionId = UUID.randomUUID().toString();
                 }
-                response.setHeader("X-MCP-Session-Id", sessionId);
 
                 // 把 token 对应的用户、角色、可用工具等信息放入当前请求线程。
                 // 后续 Filter 和 @Tool 方法不需要反复查 token，直接从 McpUserContextHolder 读取。
@@ -75,11 +83,12 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
                         tokenRecord.roles(),
                         tokenRecord.allowedTools(),
                         sessionId,
-                        clientIp(request)
+                        clientIp(currentRequest)
                 ));
             }
-            filterChain.doFilter(request, response);
+            filterChain.doFilter(currentRequest, response);
         } finally {
+            logRequestBody(requestWrapper);
             // Tomcat 工作线程会复用。请求结束必须清理 ThreadLocal，
             // 避免下一个请求误读到上一个用户的身份信息。
             McpUserContextHolder.clear();
@@ -134,6 +143,25 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
             headers.append(name).append("=").append(maskHeaderValue(name, request.getHeaders(name)));
         }
         log.info("{}_extractToken requestHeaders=[{}]", LOG_PREFIX, headers);
+    }
+
+    /**
+     * 在下游处理完成后打印请求体，避免提前读取 body 导致 Spring AI MCP Handler 读不到内容。
+     */
+    private void logRequestBody(ContentCachingRequestWrapper requestWrapper) {
+        if (requestWrapper == null || !log.isInfoEnabled()) {
+            return;
+        }
+
+        byte[] content = requestWrapper.getContentAsByteArray();
+        if (content.length == 0) {
+            log.info("{}_doFilterInternal requestBody=<empty>", LOG_PREFIX);
+            return;
+        }
+
+        String body = new String(content, StandardCharsets.UTF_8);
+        boolean truncated = content.length >= MAX_REQUEST_BODY_LOG_LENGTH;
+        log.info("{}_doFilterInternal requestBody={}{}", LOG_PREFIX, body, truncated ? "...<truncated>" : "");
     }
 
     private String maskHeaderValue(String name, Enumeration<String> values) {
