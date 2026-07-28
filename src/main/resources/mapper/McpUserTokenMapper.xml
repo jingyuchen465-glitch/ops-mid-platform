@@ -21,7 +21,13 @@
         VALUES (#{userId}, #{tokenName}, #{tokenHash}, #{tokenPrefix}, #{permissions}, #{expireTime}, #{isActive})
     </insert>
     <update id="update" parameterType="com.bear.mcp.single.core.entity.McpUserTokenEntity">
-        UPDATE mcp_user_token SET token_name=#{tokenName}, permissions=#{permissions}, expire_time=#{expireTime}, is_active=#{isActive} WHERE id=#{id}
+        UPDATE mcp_user_token
+        SET user_id=#{userId},
+            token_name=#{tokenName},
+            permissions=#{permissions},
+            expire_time=#{expireTime},
+            is_active=#{isActive}
+        WHERE id=#{id}
     </update>
     <select id="countActive" resultType="int">SELECT COUNT(*) FROM mcp_user_token WHERE is_active=1</select>
 </mapper>

@@ -16,6 +16,11 @@ public interface McpUserRoleMapper {
     List<McpUserRoleEntity> findByUserId(@Param("userId") Long userId);
 
     /**
+     * 管理端查看全部用户角色关系。
+     */
+    List<McpUserRoleEntity> findAll();
+
+    /**
      * 重新分配用户角色前，先删除旧关系。
      */
     int deleteByUserId(@Param("userId") Long userId);

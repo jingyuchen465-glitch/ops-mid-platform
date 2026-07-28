@@ -2,6 +2,7 @@ package com.bear.mcp.single.admin.service;
 
 import com.bear.mcp.single.admin.req.AdminCodeListReq;
 import com.bear.mcp.single.admin.req.AdminUserSaveReq;
+import com.bear.mcp.single.admin.res.AdminUserRoleRes;
 import com.bear.mcp.single.admin.res.AdminUserRes;
 import com.bear.mcp.single.core.entity.McpUserEntity;
 import com.bear.mcp.single.core.entity.McpUserRoleEntity;
@@ -28,6 +29,10 @@ public class AdminUserService {
 
     public List<AdminUserRes> list() {
         return userMapper.findAll().stream().map(this::toRes).toList();
+    }
+
+    public List<AdminUserRoleRes> listRoles() {
+        return userRoleMapper.findAll().stream().map(this::toUserRoleRes).toList();
     }
 
     public AdminUserRes create(AdminUserSaveReq req) {
@@ -88,6 +93,15 @@ public class AdminUserService {
         res.setIsEnabled(entity.getIsEnabled());
         res.setCreateTime(entity.getCreateTime());
         res.setUpdateTime(entity.getUpdateTime());
+        return res;
+    }
+
+    private AdminUserRoleRes toUserRoleRes(McpUserRoleEntity entity) {
+        AdminUserRoleRes res = new AdminUserRoleRes();
+        res.setId(entity.getId());
+        res.setUserId(entity.getUserId());
+        res.setRoleCode(entity.getRoleCode());
+        res.setCreateTime(entity.getCreateTime());
         return res;
     }
 }

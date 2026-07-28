@@ -2,6 +2,7 @@ package com.bear.mcp.single.admin.controller;
 
 import com.bear.mcp.single.admin.req.AdminCodeListReq;
 import com.bear.mcp.single.admin.req.AdminUserSaveReq;
+import com.bear.mcp.single.admin.res.AdminUserRoleRes;
 import com.bear.mcp.single.admin.res.AdminUserRes;
 import com.bear.mcp.single.admin.service.AdminUserService;
 import com.bear.mcp.single.common.api.ApiResponse;
@@ -23,6 +24,11 @@ public class AdminUserController {
     @GetMapping
     public ApiResponse<List<AdminUserRes>> list() {
         return ApiResponse.success(userService.list());
+    }
+
+    @GetMapping("/role-relations")
+    public ApiResponse<List<AdminUserRoleRes>> listRoles() {
+        return ApiResponse.success(userService.listRoles());
     }
 
     @PostMapping

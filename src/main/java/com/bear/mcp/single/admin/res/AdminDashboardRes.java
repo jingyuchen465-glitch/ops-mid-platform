@@ -22,6 +22,9 @@ public class AdminDashboardRes {
     /** 启用中的动态工具数。 */
     private int enabledDynamicTools;
 
+    /** 今日 MCP 工具调用次数。 */
+    private int todayCalls;
+
     /** 最近审计日志。 */
     private List<AdminAuditLogRes> recentAudits;
 }

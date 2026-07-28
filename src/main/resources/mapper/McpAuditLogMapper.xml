@@ -18,4 +18,11 @@
         ORDER BY id DESC
         LIMIT 100
     </select>
+
+    <select id="countBetween" resultType="int">
+        SELECT COUNT(*)
+        FROM mcp_audit_log
+        WHERE create_time &gt;= #{startTime}
+          AND create_time &lt; #{endTime}
+    </select>
 </mapper>

@@ -127,6 +127,7 @@ public class DynamicToolService {
         String userName = context != null ? context.userName() : null;
         String status = "SUCCESS";
         String error = null;
+        String responseSummary = null;
         ScriptResult result;
         try {
             DynamicTool tool = findEnabledByName(toolName)
@@ -151,11 +152,13 @@ public class DynamicToolService {
                 status = "ERROR";
                 error = result.errorMessage();
             }
+            responseSummary = toResponseSummary(result);
             return result;
         } catch (Exception e) {
             status = "ERROR";
             error = e.getMessage();
             result = ScriptResult.failure(error, System.currentTimeMillis() - startedAt);
+            responseSummary = toResponseSummary(result);
             return result;
         } finally {
             auditLogService.recordToolCall(
@@ -165,10 +168,28 @@ public class DynamicToolService {
                     status,
                     System.currentTimeMillis() - startedAt,
                     toJson(params),
-                    null,
+                    responseSummary,
                     error
             );
         }
+    }
+
+    /**
+     * 审计响应摘要优先记录脚本真正 return 的结果。
+     *
+     * <p>失败时记录一个结构化摘要，方便管理后台看出是脚本失败还是网关拦截失败。</p>
+     */
+    private String toResponseSummary(ScriptResult result) {
+        if (result == null) {
+            return null;
+        }
+        if (result.success()) {
+            return toJson(result.result());
+        }
+        return toJson(Map.of(
+                "success", false,
+                "errorMessage", result.errorMessage() == null ? "" : result.errorMessage()
+        ));
     }
 
     /**
