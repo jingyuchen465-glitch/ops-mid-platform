@@ -4,7 +4,7 @@ import lombok.Data;
 
 import java.util.Date;
 
-/** 对应 mcp_request_config 表，承载 HTTP、SOA、Hessian 等企业请求配置。 */
+/** 对应 mcp_request_config 表，承载企业请求配置，当前课堂版主要接入 HTTP。 */
 @Data
 public class McpRequestConfigEntity {
     /** 主键。 */
@@ -15,9 +15,9 @@ public class McpRequestConfigEntity {
     private String configKey;
     /** 配置名称。 */
     private String name;
-    /** 协议类型：HTTP、SOA、HESSIAN、MOCK。 */
+    /** 协议类型，当前课堂版主要使用 HTTP。 */
     private String type;
-    /** HTTP 方法，例如 GET、POST；MOCK 类型可为 MOCK。 */
+    /** HTTP 方法，例如 GET、POST。 */
     private String method;
     /** HTTP 请求 URL。 */
     private String url;

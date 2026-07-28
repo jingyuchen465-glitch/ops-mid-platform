@@ -18,7 +18,7 @@ public class AdminRequestConfigSaveReq {
     @NotBlank(message = "配置名称不能为空")
     private String name;
 
-    /** 协议类型：HTTP、SOA、HESSIAN、MOCK。 */
+    /** 协议类型，当前课堂版主要使用 HTTP。 */
     @NotBlank(message = "协议类型不能为空")
     private String type;
 

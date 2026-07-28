@@ -14,7 +14,9 @@ export async function api(path, options = {}) {
     throw new Error('请先登录')
   }
 
-  const response = await fetch(`/api/admin${path}`, {
+  const url = path.startsWith('/api/') ? path : `/api/admin${path}`
+
+  const response = await fetch(url, {
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(options.headers || {}) },
     ...options,
     body: options.body ? JSON.stringify(options.body) : undefined
@@ -26,7 +28,12 @@ export async function api(path, options = {}) {
     throw new Error(payload?.message || '登录已过期，请重新登录')
   }
 
-  if (!response.ok || !payload || payload.code !== 200) throw new Error(payload?.message || '请求失败')
+  if (!response.ok || !payload || payload.code !== 200) {
+    const error = new Error(payload?.message || '请求失败')
+    error.code = payload?.code
+    error.data = payload?.data
+    throw error
+  }
   return payload.data
 }
 

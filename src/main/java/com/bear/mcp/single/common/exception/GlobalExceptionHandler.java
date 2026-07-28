@@ -11,9 +11,14 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.util.stream.Collectors;
 
-/** 仅处理管理端异常，不能干预标准 MCP JSON-RPC 响应。 */
+/**
+ * 统一处理管理后台和用户侧创作空间异常，不能干预标准 MCP JSON-RPC 响应。
+ */
 @Slf4j
-@RestControllerAdvice(basePackages = "com.bear.mcp.single.admin")
+@RestControllerAdvice(basePackages = {
+        "com.bear.mcp.single.admin",
+        "com.bear.mcp.single.share"
+})
 public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public ApiResponse<Void> handleBusiness(BusinessException exception) {

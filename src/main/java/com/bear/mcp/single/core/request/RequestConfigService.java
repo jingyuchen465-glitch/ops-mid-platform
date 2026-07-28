@@ -81,12 +81,27 @@ public class RequestConfigService {
 
         checkRateLimit(config);
 
-        /*
-         * MOCK 类型用于课堂演示和本地测试，不真正发起网络请求。
-         */
-        if ("MOCK".equalsIgnoreCase(config.type()) || "MOCK".equalsIgnoreCase(config.method())) {
-            return Map.of("key", key, "now", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()), "params", finalParams);
+        if (!"HTTP".equalsIgnoreCase(config.type())) {
+            throw new IllegalArgumentException("当前单体版未接入 " + config.type()
+                    + " 客户端，请先配置 HTTP 类型或补充对应协议客户端");
         }
+
+        return executeHttp(config, finalParams);
+    }
+
+    /**
+     * 执行一份还没有落库的临时 HTTP API 配置。
+     *
+     * <p>创作空间点击“发送”时使用这个方法：先验证当前表单能不能真实请求成功，
+     * 调试通过以后，用户再决定是否保存到 mcp_request_config。</p>
+     */
+    public Object executeTemporary(McpRequestConfigEntity entity, Map<String, Object> params) {
+        RequestConfig config = toRequestConfig(entity);
+        if (!config.enabled()) {
+            throw new IllegalArgumentException("请求配置已禁用: " + config.key());
+        }
+
+        Map<String, Object> finalParams = mergeParams(config.paramsDefault(), params);
 
         if (!"HTTP".equalsIgnoreCase(config.type())) {
             throw new IllegalArgumentException("当前单体版未接入 " + config.type()
@@ -109,6 +124,10 @@ public class RequestConfigService {
             return null;
         }
 
+        return toRequestConfig(entity);
+    }
+
+    private RequestConfig toRequestConfig(McpRequestConfigEntity entity) {
         return new RequestConfig(
                 entity.getRequestId(),
                 entity.getConfigKey(),

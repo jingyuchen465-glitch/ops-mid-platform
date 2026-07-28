@@ -1,10 +1,11 @@
 <script setup>
 import { computed, h, onMounted, onUnmounted, ref } from 'vue'
+import { message } from 'ant-design-vue'
 import { ADMIN_TOKEN_KEY, UNAUTHORIZED_EVENT, api } from './api'
 import LoginView from './LoginView.vue'
-import { AppstoreOutlined, AuditOutlined, KeyOutlined, RocketOutlined, SettingOutlined, TeamOutlined, ThunderboltOutlined, PlusOutlined, SearchOutlined, BellOutlined, UserOutlined, DatabaseOutlined, SafetyCertificateOutlined } from '@ant-design/icons-vue'
+import { AppstoreOutlined, AuditOutlined, KeyOutlined, RocketOutlined, SettingOutlined, TeamOutlined, ThunderboltOutlined, PlusOutlined, SearchOutlined, BellOutlined, DatabaseOutlined, SafetyCertificateOutlined, HomeOutlined, LogoutOutlined } from '@ant-design/icons-vue'
 
-const page = ref('dashboard')
+const page = ref(pageFromPath())
 const loggedIn = ref(Boolean(localStorage.getItem(ADMIN_TOKEN_KEY)))
 const loading = ref(false)
 const rows = ref([])
@@ -32,6 +33,16 @@ const dynamicToolDetailOpen = ref(false)
 const activeDynamicTool = ref(null)
 const auditDetailOpen = ref(false)
 const activeAuditLog = ref(null)
+const apiDebugOpen = ref(false)
+const activeStudioApi = ref(null)
+const debugParams = ref('{}')
+const debugResult = ref(null)
+const debugLoading = ref(false)
+const apiSaving = ref(false)
+const apiEditorTab = ref('body')
+const apiEditorDebugParams = ref('{}')
+const apiKeyword = ref('')
+const apiStatusFilter = ref('all')
 const builtinTools = [
   { name: 'hello', description: '问候工具' },
   { name: 'current_time', description: '当前时间' },
@@ -47,10 +58,7 @@ const activeStatusOptions = [
   { label: '禁用', value: 0 }
 ]
 const requestTypeOptions = [
-  { label: 'HTTP', value: 'HTTP' },
-  { label: 'MOCK', value: 'MOCK' },
-  { label: 'SOA', value: 'SOA' },
-  { label: 'HESSIAN', value: 'HESSIAN' }
+  { label: 'HTTP', value: 'HTTP' }
 ]
 const httpMethodOptions = [
   { label: 'GET', value: 'GET' },
@@ -67,10 +75,72 @@ const menu = [
   ['dashboard', '概览', AppstoreOutlined], ['users', '用户', TeamOutlined], ['roles', '角色与工具权限', TeamOutlined], ['tokens', 'Token 与工具选择', KeyOutlined],
   ['requests', '请求配置', SettingOutlined], ['tools', '动态工具', ThunderboltOutlined], ['audits', '审计日志', AuditOutlined]
 ]
-const navSections = { dashboard: '概览', users: '系统治理', roles: '系统治理', tokens: '访问控制', requests: '能力展示', tools: '能力展示', audits: '运行观测' }
-const title = computed(() => ({ dashboard:'运行概览', users:'用户', roles:'角色与工具权限', tokens:'Token 与工具选择', requests:'请求配置', tools:'动态工具', audits:'调用审计' })[page.value])
-const desc = computed(() => ({ dashboard:'当前数据库中的 MCP 治理状态', users:'角色是工具权限上限，用户通过角色获得资格', roles:'角色决定资格上限，实际工具权限由角色工具表维护', tokens:'每把 Token 单独选择要暴露和实际允许调用的工具', requests:'展示动态工具可引用的企业请求配置；完整创作在创作空间完成', tools:'这里只展示已发布的动态工具；创建与编辑在创作空间完成', audits:'保留每一次 MCP 工具调用的结果摘要与耗时' })[page.value])
-const drawerTitle = computed(() => `${model.value.id ? '编辑' : '新建'}${title.value.replace('与工具权限','').replace('与工具选择','')}`)
+const sharePages = ['shareHome', 'studioHome', 'studioApis', 'studioApiEdit']
+const isSharePage = computed(() => sharePages.includes(page.value))
+const navSections = { dashboard: '概览', users: '系统治理', roles: '系统治理', tokens: '访问控制', requests: '能力展示', tools: '能力展示', audits: '运行观测', shareHome: '首页', studioHome: '首页', studioApis: 'API 创作' }
+const title = computed(() => ({ dashboard:'运行概览', users:'用户', roles:'角色与工具权限', tokens:'Token 与工具选择', requests:'请求配置', tools:'动态工具', audits:'调用审计', shareHome:'Bear 社区', studioHome:'Bear 创作空间', studioApis:'API 创作', studioApiEdit:'新建 API' })[page.value])
+const desc = computed(() => ({ dashboard:'当前数据库中的 MCP 治理状态', users:'角色是工具权限上限，用户通过角色获得资格', roles:'角色决定资格上限，实际工具权限由角色工具表维护', tokens:'每把 Token 单独选择要暴露和实际允许调用的工具', requests:'展示动态工具可引用的企业请求配置；完整创作在创作空间完成', tools:'这里只展示已发布的动态工具；创建与编辑在创作空间完成', audits:'保留每一次 MCP 工具调用的结果摘要与耗时', shareHome:'发现优质 AI 能力，探索社区精选点赞排行', studioHome:'创作 Skills、Tools、Prompts、API，分享到社区', studioApis:'创建外部 HTTP API 配置，调试通过后发布给后续动态工具使用', studioApiEdit:'配置外部 HTTP API，保存并调试真实响应' })[page.value])
+const studioApiStats = computed(() => {
+  const all = rows.value.length
+  const online = rows.value.filter(item => Number(item.publishStatus) !== 0).length
+  const draft = rows.value.filter(item => Number(item.publishStatus) === 0).length
+
+  return { all, online, draft }
+})
+const debugSummary = computed(() => {
+  if (!debugResult.value) {
+    return null
+  }
+
+  return {
+    success: Boolean(debugResult.value.success),
+    status: debugResult.value.result?.status,
+    durationMs: debugResult.value.durationMs,
+    errorMessage: debugResult.value.errorMessage
+  }
+})
+const debugBodyText = computed(() => {
+  if (!debugResult.value) {
+    return '点击「发送」后显示响应体'
+  }
+  if (!debugResult.value.success) {
+    return debugResult.value.errorMessage || '调试失败，请检查请求配置'
+  }
+
+  const body = debugResult.value.result?.body
+  if (body == null || body === '') {
+    return '响应体为空'
+  }
+
+  return prettyJsonText(body)
+})
+const filteredStudioApis = computed(() => {
+  const keyword = apiKeyword.value.trim().toLowerCase()
+
+  return rows.value.filter(item => {
+    const publishStatus = Number(item.publishStatus)
+    const matchStatus =
+      apiStatusFilter.value === 'all'
+      || (apiStatusFilter.value === 'online' && publishStatus !== 0)
+      || (apiStatusFilter.value === 'draft' && publishStatus === 0)
+
+    const searchText = [
+      item.requestId,
+      item.configKey,
+      item.name,
+      item.url,
+      item.description
+    ].filter(Boolean).join(' ').toLowerCase()
+
+    return matchStatus && (!keyword || searchText.includes(keyword))
+  })
+})
+const drawerTitle = computed(() => {
+  if (page.value === 'studioApis') {
+    return model.value.id ? '编辑 HTTP API' : '新建 HTTP API'
+  }
+  return `${model.value.id ? '编辑' : '新建'}${title.value.replace('与工具权限','').replace('与工具选择','')}`
+})
 const userOptions = computed(() => users.value.map(user => ({
   label: `${user.displayName || user.username}（${user.username}）`,
   value: user.id
@@ -89,6 +159,33 @@ const dataColumns = computed(() => columns.value.map(([dataIndex,title]) => ({
   ellipsis:true,
   customRender: ({ text, record }) => formatTableCell(dataIndex, text, record)
 })))
+
+function pageFromPath() {
+  const path = window.location.pathname
+  if (path === '/share/studio/apis') {
+    return 'studioApis'
+  }
+  if (path === '/share/studio/apis/edit') {
+    return 'studioApiEdit'
+  }
+  if (path === '/share/studio') {
+    return 'studioHome'
+  }
+  if (path === '/share') {
+    return 'shareHome'
+  }
+  return 'dashboard'
+}
+
+function pathForPage(key) {
+  return {
+    shareHome: '/share',
+    studioHome: '/share/studio',
+    studioApis: '/share/studio/apis',
+    studioApiEdit: '/share/studio/apis/edit',
+    dashboard: '/admin'
+  }[key] || '/admin'
+}
 
 function formatTableCell(dataIndex, text, record) {
   if (dataIndex === 'roleCodes' && page.value === 'users') {
@@ -167,6 +264,18 @@ function compactText(value, maxLength) {
   return text.length > maxLength ? text.slice(0, maxLength) + '...' : text
 }
 
+function prettyJsonText(value) {
+  if (typeof value !== 'string') {
+    return JSON.stringify(value, null, 2)
+  }
+
+  try {
+    return JSON.stringify(JSON.parse(value), null, 2)
+  } catch (error) {
+    return value
+  }
+}
+
 function userRoleLabel(userId) {
   const codes = userRoles.value
     .filter(item => item.userId === userId)
@@ -185,7 +294,11 @@ function userRoleLabel(userId) {
 async function load() {
   loading.value = true
   try {
-    if (page.value === 'dashboard') { dashboard.value = await api('/dashboard'); rows.value = dashboard.value.recentAudits || [] }
+    if (page.value === 'shareHome') {
+      rows.value = []
+    }
+    else if (page.value === 'studioHome') rows.value = await api('/api/share/studio/apis')
+    else if (page.value === 'dashboard') { dashboard.value = await api('/dashboard'); rows.value = dashboard.value.recentAudits || [] }
     else if (page.value === 'users') {
       [rows.value, roles.value, userRoles.value] = await Promise.all([
         api('/users'),
@@ -204,6 +317,13 @@ async function load() {
       ])
     }
     else if (page.value === 'requests') rows.value = await api('/request-configs')
+    else if (page.value === 'studioApis') rows.value = await api('/api/share/studio/apis')
+    else if (page.value === 'studioApiEdit') {
+      if (!model.value.requestId) {
+        model.value = emptyApiModel()
+        apiEditorDebugParams.value = model.value.paramsDefault || '{}'
+      }
+    }
     else if (page.value === 'tools') {
       [rows.value, requestConfigs.value] = await Promise.all([
         api('/dynamic-tools'),
@@ -217,25 +337,58 @@ async function load() {
     }
   } finally { loading.value = false }
 }
-function changePage(key) { page.value = key; rawToken.value=''; load() }
+function changePage(key) {
+  page.value = key
+  rawToken.value = ''
+  const nextPath = pathForPage(key)
+  if (window.location.pathname !== nextPath) {
+    window.history.pushState({}, '', nextPath)
+  }
+  load()
+}
+function syncPageFromLocation() {
+  page.value = pageFromPath()
+  load()
+}
 function emptyModel() {
   if (page.value === 'users') return { username:'', displayName:'', password:'', isEnabled:1 }
   if (page.value === 'roles') return { roleCode:'', roleName:'', description:'', isEnabled:1 }
   if (page.value === 'tokens') return { userId: users.value[0]?.id, tokenName:'新建 Token', permissions:'["mcp:tools:read","mcp:tools:call"]', isActive:1 }
-  if (page.value === 'requests') return { requestId:'API' + Date.now(), configKey:'', name:'', type:'HTTP', method:'GET', url:'', headers:'{}', bodyTemplate:'', paramsDefault:'{}', connectTimeoutMs:5000, readTimeoutMs:15000, serviceName:'', methodName:'', argsSchema:'{}', creatorId: users.value[0]?.id, isEnabled:1, rateLimitPerMinute:0, publishStatus:0, description:'', category:'' }
+  if (page.value === 'requests' || page.value === 'studioApis' || page.value === 'studioApiEdit') return emptyApiModel()
   if (page.value === 'tools') return { toolName:'', toolDescription:'', inputSchema:'{"type":"object","properties":{}}', groovyScript:'return [message: params.message]', linkedRequestKeys:'[]', enabled:1 }
   return {}
 }
-function openCreate() { model.value = emptyModel(); drawer.value=true }
+function emptyApiModel() {
+  return { requestId:'API' + Date.now(), configKey:'', name:'', type:'HTTP', method:'GET', url:'', headers:'{}', bodyTemplate:'', paramsDefault:'{}', connectTimeoutMs:5000, readTimeoutMs:15000, serviceName:'', methodName:'', argsSchema:'{}', creatorId: users.value[0]?.id, isEnabled:1, rateLimitPerMinute:0, publishStatus:0, description:'', category:'' }
+}
+function openCreate() {
+  if (page.value === 'studioApis') {
+    openApiEditor()
+    return
+  }
+  model.value = emptyModel(); drawer.value=true
+}
+function openApiEditor(row) {
+  model.value = row ? { ...row } : emptyApiModel()
+  apiEditorDebugParams.value = model.value.paramsDefault || '{}'
+  debugResult.value = null
+  apiEditorTab.value = 'body'
+  page.value = 'studioApiEdit'
+  window.history.pushState({}, '', pathForPage('studioApiEdit'))
+}
 function edit(row) {
   model.value = { ...row }
   if (page.value === 'tokens') {
     model.value.permissions = normalizePermissions(model.value.permissions)
   }
+  if (page.value === 'studioApis') {
+    openApiEditor(row)
+    return
+  }
   drawer.value=true
 }
 async function save() {
-  const base = { users:'/users', roles:'/roles', tokens:'/tokens', requests:'/request-configs', tools:'/dynamic-tools' }[page.value]
+  const base = { users:'/users', roles:'/roles', tokens:'/tokens', requests:'/request-configs', tools:'/dynamic-tools', studioApis:'/api/share/studio/apis' }[page.value]
   const method = model.value.id ? 'PUT' : 'POST'
   const body = buildSaveBody()
   const result = await api(model.value.id ? `${base}/${model.value.id}` : base, { method, body })
@@ -252,6 +405,14 @@ function buildSaveBody() {
   }
   if (page.value === 'users' && body.id) {
     delete body.password
+  }
+  if (page.value === 'studioApis' || page.value === 'studioApiEdit') {
+    body.type = 'HTTP'
+    delete body.creatorId
+    delete body.serviceName
+    delete body.methodName
+    delete body.argsSchema
+    delete body.publishStatus
   }
   return body
 }
@@ -332,6 +493,116 @@ function showAuditDetail(log) {
   activeAuditLog.value = log
   auditDetailOpen.value = true
 }
+function publishLabel(status) {
+  return Number(status) === 0 ? '草稿' : '已上线'
+}
+function publishClass(status) {
+  return Number(status) === 0 ? 'draft' : 'online'
+}
+function visibilityLabel(status) {
+  return Number(status) === 2 ? '公开' : '不公开'
+}
+function visibilityClass(status) {
+  return Number(status) === 2 ? 'public' : 'private'
+}
+function onlineActionLabel(status) {
+  return Number(status) === 0 ? '上线' : '下线'
+}
+function visibilityActionLabel(status) {
+  return Number(status) === 2 ? '不公开' : '公开'
+}
+function openApiDebug(apiConfig) {
+  activeStudioApi.value = apiConfig
+  debugParams.value = apiConfig.paramsDefault || '{}'
+  debugResult.value = null
+  apiDebugOpen.value = true
+}
+async function runApiDebug() {
+  debugLoading.value = true
+  try {
+    const params = debugParams.value ? JSON.parse(debugParams.value) : {}
+    debugResult.value = await api(`/api/share/studio/apis/${activeStudioApi.value.id}/debug`, {
+      method: 'POST',
+      body: { params }
+    })
+    message.success('调试成功')
+  } catch (error) {
+    debugResult.value = error.data || { success: false, errorMessage: error.message }
+    message.error(debugResult.value.errorMessage || error.message || '调试失败')
+  } finally {
+    debugLoading.value = false
+  }
+}
+async function saveApiEditor() {
+  apiSaving.value = true
+  try {
+    const method = model.value.id ? 'PUT' : 'POST'
+    const url = model.value.id ? `/api/share/studio/apis/${model.value.id}` : '/api/share/studio/apis'
+    const result = await api(url, {
+      method,
+      body: buildSaveBody()
+    })
+    model.value = { ...model.value, ...result }
+    message.success(model.value.id ? 'API 已保存' : 'API 已创建')
+    return result
+  } catch (error) {
+    message.error(error.message || '保存失败')
+    throw error
+  } finally {
+    apiSaving.value = false
+  }
+}
+async function sendApiEditor() {
+  debugLoading.value = true
+  try {
+    const params = apiEditorDebugParams.value ? JSON.parse(apiEditorDebugParams.value) : {}
+    debugResult.value = await api('/api/share/studio/apis/debug', {
+      method: 'POST',
+      body: { ...buildSaveBody(), params }
+    })
+    message.success('调试成功')
+  } catch (error) {
+    debugResult.value = error.data || { success: false, errorMessage: error.message }
+    message.error(debugResult.value.errorMessage || error.message || '调试失败')
+  } finally {
+    debugLoading.value = false
+  }
+}
+async function publishApi(apiConfig) {
+  await api(`/api/share/studio/apis/${apiConfig.id}/publish`, { method: 'POST' })
+  message.success('已公开发布')
+  await load()
+}
+async function publishPrivateApi(apiConfig) {
+  await api(`/api/share/studio/apis/${apiConfig.id}/publish-private`, { method: 'POST' })
+  message.success('已设为不公开')
+  await load()
+}
+async function unpublishApi(apiConfig) {
+  await api(`/api/share/studio/apis/${apiConfig.id}/unpublish`, { method: 'POST' })
+  message.success('已下架为草稿')
+  await load()
+}
+async function toggleOnlineApi(apiConfig) {
+  if (Number(apiConfig.publishStatus) === 0) {
+    await publishPrivateApi(apiConfig)
+    return
+  }
+
+  await unpublishApi(apiConfig)
+}
+async function toggleVisibilityApi(apiConfig) {
+  if (Number(apiConfig.publishStatus) === 0) {
+    message.warning('先上线，再设置公开范围')
+    return
+  }
+  if (Number(apiConfig.publishStatus) === 2) {
+    await publishPrivateApi(apiConfig)
+    return
+  }
+
+  await publishApi(apiConfig)
+}
 function showLogin() {
   loggedIn.value = false
   rows.value = []
@@ -341,11 +612,13 @@ function showLogin() {
   tokenSelectionOpen.value = false
   dynamicToolDetailOpen.value = false
   auditDetailOpen.value = false
+  apiDebugOpen.value = false
   rawToken.value = ''
 }
 
 onMounted(() => {
   window.addEventListener(UNAUTHORIZED_EVENT, showLogin)
+  window.addEventListener('popstate', syncPageFromLocation)
 
   if (loggedIn.value) {
     load()
@@ -354,6 +627,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener(UNAUTHORIZED_EVENT, showLogin)
+  window.removeEventListener('popstate', syncPageFromLocation)
 })
 
 function loginSuccess() {
@@ -366,6 +640,338 @@ function loginSuccess() {
   <LoginView v-if="!loggedIn" @success="loginSuccess" />
   <template v-else>
   <a-config-provider :theme="{ token: { colorPrimary: '#8b5cf6', borderRadius: 8, fontFamily: 'Inter, PingFang SC, Microsoft YaHei, sans-serif' } }">
+  <template v-if="isSharePage">
+    <div class="share-shell">
+      <nav class="hub-nav">
+        <div class="hub-nav-inner">
+          <div v-if="page === 'shareHome'" class="hub-nav-tabs">
+            <a class="hub-logo" @click.prevent="changePage('shareHome')"><AppstoreOutlined />Bear 社区</a>
+            <a class="hub-nav-tab active" @click.prevent="changePage('shareHome')">首页</a>
+            <a class="hub-nav-tab">Skills 社区</a>
+            <a class="hub-nav-tab">MCP Tools</a>
+            <a class="hub-nav-tab">MCP Prompts</a>
+            <a class="hub-nav-tab">数据源</a>
+            <a class="hub-nav-tab">我的MCP配置</a>
+            <a class="hub-nav-tab">Token 管理</a>
+          </div>
+          <div v-else class="hub-nav-tabs">
+            <a class="hub-logo" @click.prevent="changePage('studioHome')"><RocketOutlined />Bear 创作空间</a>
+            <a :class="['hub-nav-tab', page === 'studioHome' ? 'active' : '']" @click.prevent="changePage('studioHome')">首页</a>
+            <a class="hub-nav-tab">Skills 创作</a>
+            <a class="hub-nav-tab">Tools 创作</a>
+            <a class="hub-nav-tab">Prompts 创作</a>
+            <a :class="['hub-nav-tab', ['studioApis','studioApiEdit'].includes(page) ? 'active' : '']" @click.prevent="changePage('studioApis')">API 创作</a>
+          </div>
+          <div class="hub-nav-right">
+            <span class="hub-nav-user">demo-admin</span>
+            <a v-if="page === 'shareHome'" class="hub-nav-link" @click.prevent="changePage('studioHome')"><RocketOutlined />创作空间</a>
+            <a v-else class="hub-nav-link" @click.prevent="changePage('shareHome')"><HomeOutlined />返回社区</a>
+            <a class="hub-nav-link" @click.prevent="changePage('dashboard')"><SettingOutlined />管理员</a>
+            <a class="hub-nav-link"><LogoutOutlined />退出</a>
+          </div>
+        </div>
+      </nav>
+
+      <section class="hub-hero">
+        <h1>{{ title }}</h1>
+        <p>{{ desc }}</p>
+      </section>
+
+      <main class="hub-main">
+        <template v-if="page === 'shareHome'">
+          <div class="hub-onboard-banner">
+            <div class="hub-onboard-text">
+              <span class="hub-onboard-text-badge">推荐</span>
+              <span>首次登录推荐先完成 MCP 配置：进入「我的 MCP 配置」页，一键安装到 Cursor，立即体验社区精选能力。</span>
+            </div>
+            <div class="hub-onboard-actions">
+              <a class="btn-hub btn-hub-primary btn-hub-primary-lg">去配置 MCP</a>
+              <button type="button" class="btn-hub btn-hub-outline">暂不提醒</button>
+            </div>
+          </div>
+
+          <div class="hub-rankings">
+            <div v-for="ranking in [
+              { title: 'Skills 点赞排行', color: 'skills', items: ['naming-conventions','xlsx','link-ledger-docs','api-design-principles','frontend-design','api-design'] },
+              { title: 'MCP Tools 点赞排行', color: 'tools', items: ['emeter_create_dubbo','ylog_query','emeter_search','qa_log_query','emeter_search_multi'] },
+              { title: 'MCP Prompts 点赞排行', color: 'prompts', items: ['读取飞书文档','示例开发规范','API 草稿箱能力说明','Prompts 草稿箱能力说明','Tools 草稿箱能力说明'] }
+            ]" :key="ranking.title" :class="['hub-ranking-card', `hub-ranking-card-${ranking.color}`]">
+              <h3>{{ ranking.title }}</h3>
+              <ul class="hub-ranking-list">
+                <li v-for="index in 10" :key="index" class="hub-ranking-item">
+                  <span :class="['hub-ranking-rank', index <= 3 ? 'top3' : '']">{{ index }}</span>
+                  <a>{{ ranking.items[index - 1] || '—' }}</a>
+                  <span class="hub-ranking-meta">{{ index <= 2 ? '管理员' : '-' }}</span>
+                  <span class="hub-ranking-count">{{ ranking.items[index - 1] ? `${Math.max(1, 5 - index)} 赞` : '' }}</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </template>
+
+        <template v-else-if="page === 'studioHome'">
+          <section class="studio-workbench">
+            <div class="studio-command">
+              <span class="studio-kicker">Creator Hub</span>
+              <h2>把经验、接口和脚本沉淀成团队可复用的 AI 能力</h2>
+              <p>这里是能力作者的工作台：可以写 Skill、编排 Tool、沉淀 Prompt，也可以接入 API。完成后再发布到社区或进入 MCP 调用链路。</p>
+              <div class="studio-command-actions">
+                <button type="button" class="studio-primary-action"><PlusOutlined />开始创作</button>
+                <button type="button" class="studio-secondary-action" @click="changePage('shareHome')"><HomeOutlined />浏览社区</button>
+              </div>
+            </div>
+
+            <div class="studio-status-panel">
+              <div class="studio-panel-head">
+                <span>创作概览</span>
+                <b>Lesson 7</b>
+              </div>
+              <div class="studio-panel-metrics">
+                <div><b>4</b><span>创作类型</span></div>
+                <div><b>{{ rows.length || 0 }}</b><span>已接 API</span></div>
+                <div><b>1</b><span>发布入口</span></div>
+              </div>
+              <div class="studio-path">
+                <span class="done">选择能力类型</span>
+                <span class="current">完善能力内容</span>
+                <span>发布到社区</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="studio-lanes">
+            <a class="studio-lane skill">
+              <span class="studio-lane-icon"><DatabaseOutlined /></span>
+              <small>01</small>
+              <h3>Skills 创作</h3>
+              <p>把规范、步骤和上下文沉淀为 AI 可执行的工作说明。</p>
+            </a>
+            <a class="studio-lane tool">
+              <span class="studio-lane-icon"><ThunderboltOutlined /></span>
+              <small>02</small>
+              <h3>Tools 创作</h3>
+              <p>把脚本逻辑和企业能力编排成可调用的 MCP 工具。</p>
+            </a>
+            <a class="studio-lane prompt">
+              <span class="studio-lane-icon"><AuditOutlined /></span>
+              <small>03</small>
+              <h3>Prompts 创作</h3>
+              <p>维护结构化提示词模板，统一团队提问和输出格式。</p>
+            </a>
+            <a class="studio-lane api" @click.prevent="changePage('studioApis')">
+              <span class="studio-lane-icon"><KeyOutlined /></span>
+              <small>04</small>
+              <h3>API 创作</h3>
+              <p>接入外部 HTTP API，作为后续工具编排的基础能力。</p>
+            </a>
+          </section>
+        </template>
+
+        <template v-else-if="page === 'studioApis'">
+          <section class="api-library-shell">
+            <div class="api-library-head">
+              <span class="api-section-kicker">API Workspace</span>
+              <h2>API 创作</h2>
+              <p>创建外部 HTTP API 配置，供后续动态工具 runRequest 调用。</p>
+              <div class="api-library-search">
+                <SearchOutlined />
+                <input v-model="apiKeyword" type="text" placeholder="搜索接口 ID、配置键、名称或 URL..." />
+              </div>
+            </div>
+
+            <div class="api-library-toolbar">
+              <div class="api-status-switch">
+                <button type="button" :class="{active: apiStatusFilter === 'all'}" @click="apiStatusFilter = 'all'">全部</button>
+                <button type="button" :class="{active: apiStatusFilter === 'online'}" @click="apiStatusFilter = 'online'">已上线</button>
+                <button type="button" :class="{active: apiStatusFilter === 'draft'}" @click="apiStatusFilter = 'draft'">草稿</button>
+              </div>
+              <div class="api-library-side">
+                <span>共 {{ filteredStudioApis.length }} 个 API</span>
+                <button type="button" class="api-library-new" @click="openCreate"><PlusOutlined />新建</button>
+              </div>
+            </div>
+            <div class="api-visibility-note">
+              <span><i class="public"></i>公开：进入社区</span>
+              <span><i class="private"></i>不公开：只在自己的创作空间可见</span>
+            </div>
+
+            <div v-if="filteredStudioApis.length" class="api-library-grid">
+              <article v-for="item in filteredStudioApis" :key="item.id" class="api-library-card">
+                <div class="api-card-top">
+                  <span class="api-card-icon"><KeyOutlined /></span>
+                  <div class="api-card-badges">
+                    <span :class="['api-card-status', publishClass(item.publishStatus)]">{{ publishLabel(item.publishStatus) }}</span>
+                    <span v-if="Number(item.publishStatus) !== 0" :class="['api-card-visibility', visibilityClass(item.publishStatus)]">{{ visibilityLabel(item.publishStatus) }}</span>
+                  </div>
+                </div>
+                <div class="api-card-title-row">
+                  <h3>{{ item.configKey || item.name || '未命名 API' }}</h3>
+                  <code>{{ item.requestId || '-' }}</code>
+                </div>
+                <p>{{ item.description || item.name || '还没有填写描述，建议说明这个接口适合被哪个动态工具调用。' }}</p>
+                <div class="api-card-route">
+                  <span>{{ item.type || 'HTTP' }}</span>
+                  <b>{{ item.method || 'GET' }}</b>
+                  <code>{{ item.url || '尚未配置请求 URL' }}</code>
+                </div>
+                <div class="api-card-foot">
+                  <span>{{ item.category || '未分类' }}</span>
+                  <div>
+                    <button type="button" @click="openApiDebug(item)">调试</button>
+                    <button type="button" @click="openApiEditor(item)">编辑</button>
+                    <button type="button" :class="Number(item.publishStatus) === 0 ? 'publish' : 'danger'" @click="toggleOnlineApi(item)">{{ onlineActionLabel(item.publishStatus) }}</button>
+                    <button type="button" class="private" :disabled="Number(item.publishStatus) === 0" @click="toggleVisibilityApi(item)">{{ visibilityActionLabel(item.publishStatus) }}</button>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <div v-else class="api-empty-panel">
+              <div class="api-empty-mark"><KeyOutlined /></div>
+              <h3>{{ rows.length ? '没有匹配的 API' : '还没有接入 API' }}</h3>
+              <p>{{ rows.length ? '换个关键词或筛选条件再看看。' : '先创建一个 HTTP API，保存真实接口配置，再用发送调试验证响应。' }}</p>
+              <div class="api-empty-steps">
+                <span>配置接口</span>
+                <span>发送调试</span>
+                <span>发布能力</span>
+              </div>
+              <button v-if="!rows.length" type="button" @click="openCreate"><PlusOutlined />新建 HTTP API</button>
+            </div>
+          </section>
+        </template>
+
+        <template v-else>
+          <section class="api-editor-shell">
+            <div class="api-editor-header">
+              <div>
+                <button type="button" class="api-back-btn" @click="changePage('studioApis')">← 返回列表</button>
+                <span class="api-section-kicker">HTTP Request</span>
+                <h2>{{ model.id ? '编辑 API' : '新建 API' }}</h2>
+                <p>配置外部 HTTP API，使用 <code v-text="'{{key}}'"></code> 占位符完成参数替换，保存后可直接发送调试。</p>
+              </div>
+              <aside>
+                <span>当前配置</span>
+                <b>{{ model.configKey || '未命名配置' }}</b>
+                <small>{{ model.url || '等待填写请求地址' }}</small>
+              </aside>
+            </div>
+
+            <div class="api-editor-board">
+              <div class="api-editor-meta">
+                <label>
+                  <span>协议类型</span>
+                  <select v-model="model.type">
+                    <option value="HTTP">HTTP</option>
+                  </select>
+                </label>
+                <label>
+                  <span>配置键</span>
+                  <input v-model="model.configKey" placeholder="如 ylog_search，用于 runRequest 调用" />
+                </label>
+                <label>
+                  <span>接口名称</span>
+                  <input v-model="model.name" placeholder="接口名称" />
+                </label>
+              </div>
+
+              <div class="api-request-line">
+                <select v-model="model.method">
+                  <option value="GET">GET</option>
+                  <option value="POST">POST</option>
+                  <option value="PUT">PUT</option>
+                  <option value="DELETE">DELETE</option>
+                </select>
+                <input v-model="model.url" :placeholder="'输入请求 URL，支持 {{key}} 占位符'" />
+                <button type="button" class="api-send-btn" :disabled="debugLoading" @click="sendApiEditor">发送</button>
+                <button type="button" class="api-save-btn" :disabled="apiSaving" @click="saveApiEditor">
+                  {{ apiSaving ? '保存中' : '保存' }}
+                </button>
+              </div>
+
+              <div class="api-editor-tabs">
+                <button v-for="tab in ['params','headers','body','settings']" :key="tab" :class="{active: apiEditorTab === tab}" @click="apiEditorTab = tab">
+                  {{ { params:'Params', headers:'Headers', body:'Body', settings:'Settings' }[tab] }}
+                </button>
+              </div>
+
+              <div class="api-editor-main">
+                <div class="api-editor-panel">
+                  <template v-if="apiEditorTab === 'params'">
+                    <div class="api-params-split">
+                      <section>
+                        <div class="api-panel-head">
+                          <b>默认参数 JSON</b>
+                          <span>保存到配置，后续 runRequest 默认带上</span>
+                        </div>
+                        <textarea v-model="model.paramsDefault" spellcheck="false" placeholder="填写 JSON 对象，例如 pageSize、token、默认查询条件"></textarea>
+                      </section>
+                      <section>
+                        <div class="api-panel-head">
+                          <b>本次调试参数 JSON</b>
+                          <button type="button" @click="apiEditorDebugParams = model.paramsDefault || '{}'">使用默认参数</button>
+                        </div>
+                        <textarea v-model="apiEditorDebugParams" spellcheck="false" placeholder="只用于本次点击发送，可覆盖默认参数里的同名字段"></textarea>
+                      </section>
+                    </div>
+                  </template>
+                  <template v-else-if="apiEditorTab === 'headers'">
+                    <div class="api-panel-head"><b>请求头 JSON</b><button type="button">格式化</button></div>
+                    <textarea v-model="model.headers" spellcheck="false" placeholder="填写 JSON 对象，例如 Authorization、Content-Type"></textarea>
+                  </template>
+                  <template v-else-if="apiEditorTab === 'body'">
+                    <div class="api-panel-head"><b>Body 模板，支持 <code v-text="'{{key}}'"></code> 占位符</b><button type="button">格式化</button></div>
+                    <textarea v-model="model.bodyTemplate" spellcheck="false" placeholder="填写 POST/PUT 请求体模板，可使用占位符"></textarea>
+                  </template>
+                  <template v-else>
+                    <div class="api-settings-grid">
+                      <label><span>连接超时 (ms)</span><input v-model.number="model.connectTimeoutMs" type="number" min="0" /></label>
+                      <label><span>读取超时 (ms)</span><input v-model.number="model.readTimeoutMs" type="number" min="0" /></label>
+                      <label><span>每分钟限流</span><input v-model.number="model.rateLimitPerMinute" type="number" min="0" /></label>
+                      <label><span>分类</span><input v-model="model.category" placeholder="例如：search" /></label>
+                    </div>
+                    <label class="api-description-field">
+                      <span>接口描述</span>
+                      <textarea v-model="model.description" spellcheck="false" placeholder="简要说明接口用途"></textarea>
+                    </label>
+                  </template>
+                </div>
+
+                <aside class="api-response-panel">
+                  <div class="api-response-head">
+                    <b>响应输出</b>
+                    <span v-if="debugResult" :class="['api-debug-state', debugResult.success ? 'success' : 'error']">
+                      {{ debugResult.success ? '调试成功' : '调试失败' }}
+                      <small v-if="debugResult.durationMs != null">{{ debugResult.durationMs }} ms</small>
+                    </span>
+                    <span v-else>状态码 · 响应体 · 耗时</span>
+                  </div>
+                  <div v-if="debugResult && !debugResult.success" class="api-debug-error">
+                    {{ debugResult.errorMessage || '调试失败，请检查请求配置' }}
+                  </div>
+                  <div v-if="debugSummary" class="api-response-summary">
+                    <div>
+                      <span>HTTP 状态</span>
+                      <b>{{ debugSummary.status ?? '-' }}</b>
+                    </div>
+                    <div>
+                      <span>耗时</span>
+                      <b>{{ debugSummary.durationMs ?? '-' }} ms</b>
+                    </div>
+                  </div>
+                  <div class="api-response-body-head">
+                    <b>响应体</b>
+                    <span>{{ debugResult?.result?.body ? '已格式化' : '等待调试' }}</span>
+                  </div>
+                  <pre>{{ debugBodyText }}</pre>
+                </aside>
+              </div>
+            </div>
+          </section>
+        </template>
+      </main>
+    </div>
+  </template>
+  <template v-else>
   <a-layout class="console-layout">
     <a-layout-sider width="260" class="console-sider">
       <div class="brand"><span class="brand-mark">B</span><span>Bear MCP<small>管理控制台</small></span></div>
@@ -386,16 +992,62 @@ function loginSuccess() {
       <div class="sider-footer"><span class="live-dot"></span><span>MCP Server Online</span><small>v0.1.0 · Lesson 6</small></div>
     </a-layout-sider>
     <a-layout-content class="layout-content">
-      <header class="console-topbar"><div class="top-search"><SearchOutlined /><span>搜索页面、工具或配置</span><kbd>⌘ K</kbd></div><div class="top-actions"><a-button type="text" shape="circle" :icon="h(BellOutlined)" /><div class="user-chip"><span class="avatar">D</span><span><b>demo-admin</b><small>管理员</small></span></div></div></header>
+      <header class="console-topbar"><div class="top-search"><SearchOutlined /><span>搜索页面、工具或配置</span><kbd>⌘ K</kbd></div><div class="top-actions"><a-button @click="changePage('shareHome')">Bear 社区</a-button><a-button @click="changePage('studioHome')">创作空间</a-button><a-button type="text" shape="circle" :icon="h(BellOutlined)" /><div class="user-chip"><span class="avatar">D</span><span><b>demo-admin</b><small>管理员</small></span></div></div></header>
       <div class="page-head"><div><div class="breadcrumb">MCP 管理后台 <span>/</span> {{ navSections[page] }}</div><h1 class="page-title">{{ title }}</h1><div class="page-desc">{{ desc }}</div></div><a-button v-if="['users','roles','tokens','requests'].includes(page)" type="primary" class="create-btn" :icon="h(PlusOutlined)" @click="openCreate">新建{{ title.replace('与工具权限','').replace('与工具选择','') }}</a-button></div>
       <template v-if="page === 'dashboard'">
         <a-row :gutter="16" class="metric-grid"><a-col v-for="[label,key,icon,color,note] in [['用户', 'users', TeamOutlined, 'violet', '当前数据库统计'],['角色','roles',SafetyCertificateOutlined, 'cyan', '当前数据库统计'],['有效 Token','activeTokens',KeyOutlined, 'orange', '当前数据库统计'],['启用请求','enabledRequests',DatabaseOutlined, 'green', '当前数据库统计'],['动态工具','enabledDynamicTools',ThunderboltOutlined, 'pink', '当前数据库统计'],['今日调用','todayCalls',AuditOutlined, 'cyan', '今日审计统计']]" :key="key" :span="4"><a-card class="metric"><div class="metric-top"><span>{{ label }}</span><span :class="['metric-icon', color]"><component :is="icon" /></span></div><a-statistic :value="dashboard[key] || 0" /><div class="metric-note"><span class="trend">●</span> {{ note }}</div></a-card></a-col></a-row>
         <div class="surface dashboard-table"><div class="table-toolbar"><div><b>最近调用</b><small>最新 100 条 MCP 工具调用记录</small></div><a-button @click="load">刷新数据</a-button></div><a-table :data-source="rows" :columns="[{title:'时间',dataIndex:'createTime'},{title:'工具',dataIndex:'toolName'},{title:'用户',dataIndex:'userName'},{title:'状态',dataIndex:'status'},{title:'耗时(ms)',dataIndex:'durationMs'}]" row-key="id" :pagination="false" /></div>
       </template>
+      <template v-else-if="page === 'studioApis'">
+        <div class="studio-hero">
+          <div>
+            <span>Lesson 7</span>
+            <h2>先把外部 HTTP API 接进来</h2>
+            <p>这里负责 API 录入、参数模板、在线调试和发布。动态工具包装放到下一步，页面边界先立住。</p>
+          </div>
+          <div class="studio-flow">
+            <b>保存配置</b>
+            <i></i>
+            <b>调试 HTTP</b>
+            <i></i>
+            <b>发布能力</b>
+          </div>
+        </div>
+
+        <div class="studio-api-grid">
+          <article v-for="item in rows" :key="item.id" class="studio-api-card">
+            <div class="studio-api-card-head">
+              <div>
+                <span class="api-method">{{ item.method || 'GET' }}</span>
+                <h3>{{ item.name || item.configKey }}</h3>
+              </div>
+              <div class="studio-api-badges">
+                <em :class="['publish-badge', publishClass(item.publishStatus)]">{{ publishLabel(item.publishStatus) }}</em>
+                <em v-if="Number(item.publishStatus) !== 0" :class="['publish-badge', visibilityClass(item.publishStatus)]">{{ visibilityLabel(item.publishStatus) }}</em>
+              </div>
+            </div>
+            <p>{{ item.description || '暂无 API 描述' }}</p>
+            <div class="api-meta">
+              <span>{{ item.configKey }}</span>
+              <span>{{ item.category || '未分类' }}</span>
+              <span>{{ Number(item.isEnabled) === 1 ? '启用' : '禁用' }}</span>
+            </div>
+            <code>{{ item.url }}</code>
+            <div class="studio-api-actions">
+              <a-button @click="edit(item)">编辑</a-button>
+              <a-button @click="openApiDebug(item)">调试</a-button>
+              <a-button :type="Number(item.publishStatus) === 0 ? 'primary' : 'default'" :danger="Number(item.publishStatus) !== 0" @click="toggleOnlineApi(item)">{{ onlineActionLabel(item.publishStatus) }}</a-button>
+              <a-button :disabled="Number(item.publishStatus) === 0" @click="toggleVisibilityApi(item)">{{ visibilityActionLabel(item.publishStatus) }}</a-button>
+            </div>
+          </article>
+        </div>
+        <a-empty v-if="!loading && !rows.length" description="还没有 API，先新建一个外部 HTTP API" :image-style="{height:'56px'}" />
+      </template>
       <template v-else><div class="surface"><div class="table-toolbar"><div><b>{{ title }}列表</b><small>共 {{ rows.length }} 条记录<span v-if="page==='tools'"> · 由创作空间发布</span></small></div><div class="table-tools"><a-input placeholder="搜索名称或编码" class="table-search"><template #prefix><SearchOutlined /></template></a-input><a-button @click="load">刷新</a-button></div></div><a-table :loading="loading" :data-source="rows" :columns="[...dataColumns,{title:'操作',key:'action'}]" row-key="id"><template #bodyCell="{column,record}"><template v-if="column.key==='action'"><a-button v-if="page==='users'" type="link" @click="updateUserRoles(record)">分配角色</a-button><a-button v-if="page==='roles'" type="link" @click="updateRoleTools(record)">配置工具</a-button><a-button v-if="page==='tokens'" type="link" @click="updateSelections(record)">工具选择</a-button><a-button v-if="page==='tools'" type="link" @click="showDynamicToolDetail(record)">查看详情</a-button><a-button v-if="page==='audits'" type="link" @click="showAuditDetail(record)">查看详情</a-button><a-button v-if="!['tools','audits'].includes(page)" type="link" @click="edit(record)">编辑</a-button></template></template></a-table></div></template>
     </a-layout-content>
   </a-layout>
-  <a-drawer v-model:open="drawer" :title="drawerTitle" :width="page === 'requests' ? 760 : 600" class="console-drawer" @close="rawToken=''">
+  </template>
+  <a-drawer v-model:open="drawer" :title="drawerTitle" :width="['requests','studioApis'].includes(page) ? 760 : 600" class="console-drawer" @close="rawToken=''">
     <a-form v-if="page === 'tokens'" layout="vertical" class="token-form">
       <section class="form-section">
         <div class="form-section-head">
@@ -515,11 +1167,11 @@ function loginSuccess() {
         </a-form-item>
       </section>
     </a-form>
-    <a-form v-else-if="page === 'requests'" layout="vertical" class="entity-form request-form">
+    <a-form v-else-if="page === 'requests' || page === 'studioApis'" layout="vertical" class="entity-form request-form">
       <section class="form-section">
         <div class="form-section-head">
           <b>基础信息</b>
-          <span>动态工具通过配置 Key 引用这项能力</span>
+          <span>{{ page === 'studioApis' ? '创作空间先保存外部 HTTP API，后续再包装成动态工具' : '动态工具通过配置 Key 引用这项能力' }}</span>
         </div>
 
         <a-row :gutter="12">
@@ -547,7 +1199,7 @@ function loginSuccess() {
       <section class="form-section">
         <div class="form-section-head">
           <b>调用方式</b>
-          <span>课堂版主要演示 HTTP 和 MOCK</span>
+          <span>第 7 课只接入外部 HTTP API</span>
         </div>
 
         <a-row :gutter="12">
@@ -569,10 +1221,10 @@ function loginSuccess() {
         </a-row>
 
         <a-form-item label="请求 URL">
-          <a-input v-model:value="model.url" size="large" placeholder="HTTP 请求地址，MOCK 可留空" />
+          <a-input v-model:value="model.url" size="large" placeholder="外部 HTTP API 请求地址" />
         </a-form-item>
 
-        <a-row :gutter="12">
+        <a-row v-if="page === 'requests'" :gutter="12">
           <a-col :span="12">
             <a-form-item label="服务名称">
               <a-input v-model:value="model.serviceName" size="large" placeholder="SOA/Hessian 服务名，可留空" />
@@ -609,7 +1261,7 @@ function loginSuccess() {
           <a-textarea v-model:value="model.bodyTemplate" class="code-area" placeholder="POST/PUT 请求体模板，可留空" :auto-size="{minRows:3,maxRows:8}" />
         </a-form-item>
 
-        <a-form-item label="参数 Schema JSON">
+        <a-form-item v-if="page === 'requests'" label="参数 Schema JSON">
           <a-textarea v-model:value="model.argsSchema" class="code-area" :auto-size="{minRows:3,maxRows:8}" />
         </a-form-item>
 
@@ -634,7 +1286,7 @@ function loginSuccess() {
 
       <section class="form-section compact">
         <a-row :gutter="12">
-          <a-col :span="12">
+          <a-col v-if="page === 'requests'" :span="12">
             <a-form-item label="启用状态">
               <a-segmented v-model:value="model.isEnabled" :options="activeStatusOptions" block class="status-segmented" />
             </a-form-item>
@@ -653,6 +1305,32 @@ function loginSuccess() {
     <div v-if="rawToken" class="raw-token"><b>请立即保存 Token，之后后台不会再返回完整明文：</b><br>{{ rawToken }}</div>
     <template #footer><a-space><a-button @click="drawer=false">取消</a-button><a-button type="primary" @click="save">保存</a-button></a-space></template>
   </a-drawer>
+  <a-modal v-model:open="apiDebugOpen" :title="`调试 API · ${activeStudioApi?.name || ''}`" width="860px" class="tool-permission-modal dynamic-tool-detail-modal">
+    <section class="tool-option-section">
+      <div class="tool-option-title">
+        <span class="tool-type-dot builtin"></span>
+        调试参数
+        <small>JSON 对象，会覆盖默认参数中的同名字段</small>
+      </div>
+      <a-textarea v-model:value="debugParams" class="code-area debug-textarea" :auto-size="{minRows:6,maxRows:12}" />
+      <div class="debug-actions">
+        <a-button type="primary" :loading="debugLoading" @click="runApiDebug">发送请求</a-button>
+      </div>
+    </section>
+
+    <section v-if="debugResult" class="tool-option-section">
+      <div class="tool-option-title">
+        <span :class="['tool-type-dot', debugResult.success ? 'builtin' : 'dynamic']"></span>
+        调试结果
+        <small>{{ debugResult.durationMs != null ? `${debugResult.durationMs} ms` : '' }}</small>
+      </div>
+      <pre class="detail-code script-code">{{ JSON.stringify(debugResult, null, 2) }}</pre>
+    </section>
+
+    <template #footer>
+      <a-button @click="apiDebugOpen=false">关闭</a-button>
+    </template>
+  </a-modal>
   <a-modal v-model:open="dynamicToolDetailOpen" :title="`动态工具详情 · ${activeDynamicTool?.toolName || ''}`" width="860px" class="tool-permission-modal dynamic-tool-detail-modal">
     <section class="tool-option-section">
       <div class="tool-option-title">
@@ -782,14 +1460,18 @@ function loginSuccess() {
   </a-modal>
   <a-modal v-model:open="toolPermissionOpen" :title="`配置工具权限 · ${activeRole?.roleName || ''}`" width="720px" class="tool-permission-modal" @ok="saveRoleTools">
     <p class="permission-hint">角色工具权限是资格上限。Token 是否实际展示和调用工具，还需要在 Token 工具选择中单独配置。</p>
-    <section class="tool-option-section"><div class="tool-option-title"><span class="tool-type-dot builtin"></span>内置工具 <small>由 Spring AI 注册</small></div><a-checkbox-group v-model:value="selectedRoleTools" class="tool-option-grid"><a-checkbox v-for="tool in builtinTools" :key="tool.name" :value="tool.name"><b>{{ tool.name }}</b><span>{{ tool.description }}</span></a-checkbox></a-checkbox-group></section>
-    <section class="tool-option-section"><div class="tool-option-title"><span class="tool-type-dot dynamic"></span>动态工具 <small>由创作空间发布</small></div><a-checkbox-group v-model:value="selectedRoleTools" class="tool-option-grid"><a-checkbox v-for="tool in dynamicToolOptions" :key="tool.toolName" :value="tool.toolName" :disabled="tool.enabled !== 1"><b>{{ tool.toolName }}</b><span>{{ tool.toolDescription || '暂无描述' }}</span></a-checkbox></a-checkbox-group><a-empty v-if="!dynamicToolOptions.length" description="暂无已发布动态工具" :image-style="{height:'48px'}" /></section>
+    <a-checkbox-group v-model:value="selectedRoleTools" class="tool-option-groups">
+      <section class="tool-option-section"><div class="tool-option-title"><span class="tool-type-dot builtin"></span>内置工具 <small>由 Spring AI 注册</small></div><div class="tool-option-grid"><a-checkbox v-for="tool in builtinTools" :key="tool.name" :value="tool.name"><b>{{ tool.name }}</b><span>{{ tool.description }}</span></a-checkbox></div></section>
+      <section class="tool-option-section"><div class="tool-option-title"><span class="tool-type-dot dynamic"></span>动态工具 <small>由创作空间发布</small></div><div class="tool-option-grid"><a-checkbox v-for="tool in dynamicToolOptions" :key="tool.toolName" :value="tool.toolName" :disabled="tool.enabled !== 1"><b>{{ tool.toolName }}</b><span>{{ tool.toolDescription || '暂无描述' }}</span></a-checkbox></div><a-empty v-if="!dynamicToolOptions.length" description="暂无已发布动态工具" :image-style="{height:'48px'}" /></section>
+    </a-checkbox-group>
     <template #footer><a-button @click="toolPermissionOpen=false">取消</a-button><a-button type="primary" @click="saveRoleTools">保存工具权限</a-button></template>
   </a-modal>
   <a-modal v-model:open="tokenSelectionOpen" :title="`Token 工具选择 · ${activeToken?.tokenName || ''}`" width="720px" class="tool-permission-modal" @ok="saveTokenSelections">
     <p class="permission-hint">Token 工具选择决定这把 Token 实际加载、展示和允许调用哪些工具；最终调用还会再经过角色工具权限校验。</p>
-    <section class="tool-option-section"><div class="tool-option-title"><span class="tool-type-dot builtin"></span>内置工具 <small>由 Spring AI 注册</small></div><a-checkbox-group v-model:value="selectedTokenTools" class="tool-option-grid"><a-checkbox v-for="tool in builtinTools" :key="tool.name" :value="tool.name"><b>{{ tool.name }}</b><span>{{ tool.description }}</span></a-checkbox></a-checkbox-group></section>
-    <section class="tool-option-section"><div class="tool-option-title"><span class="tool-type-dot dynamic"></span>动态工具 <small>由创作空间发布</small></div><a-checkbox-group v-model:value="selectedTokenTools" class="tool-option-grid"><a-checkbox v-for="tool in dynamicToolOptions" :key="tool.toolName" :value="tool.toolName" :disabled="tool.enabled !== 1"><b>{{ tool.toolName }}</b><span>{{ tool.toolDescription || '暂无描述' }}</span></a-checkbox></a-checkbox-group><a-empty v-if="!dynamicToolOptions.length" description="暂无已发布动态工具" :image-style="{height:'48px'}" /></section>
+    <a-checkbox-group v-model:value="selectedTokenTools" class="tool-option-groups">
+      <section class="tool-option-section"><div class="tool-option-title"><span class="tool-type-dot builtin"></span>内置工具 <small>由 Spring AI 注册</small></div><div class="tool-option-grid"><a-checkbox v-for="tool in builtinTools" :key="tool.name" :value="tool.name"><b>{{ tool.name }}</b><span>{{ tool.description }}</span></a-checkbox></div></section>
+      <section class="tool-option-section"><div class="tool-option-title"><span class="tool-type-dot dynamic"></span>动态工具 <small>由创作空间发布</small></div><div class="tool-option-grid"><a-checkbox v-for="tool in dynamicToolOptions" :key="tool.toolName" :value="tool.toolName" :disabled="tool.enabled !== 1"><b>{{ tool.toolName }}</b><span>{{ tool.toolDescription || '暂无描述' }}</span></a-checkbox></div><a-empty v-if="!dynamicToolOptions.length" description="暂无已发布动态工具" :image-style="{height:'48px'}" /></section>
+    </a-checkbox-group>
     <template #footer><a-button @click="tokenSelectionOpen=false">取消</a-button><a-button type="primary" @click="saveTokenSelections">保存工具选择</a-button></template>
   </a-modal>
   </a-config-provider>

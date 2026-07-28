@@ -10,15 +10,55 @@
         WHERE config_key = #{configKey}
         LIMIT 1
     </select>
+    <select id="findById" resultType="com.bear.mcp.single.core.entity.McpRequestConfigEntity">
+        SELECT id, request_id, config_key, name, type, method, url, headers, body_template,
+               params_default, connect_timeout_ms, read_timeout_ms, service_name, method_name,
+               args_schema, creator_id, is_enabled, rate_limit_per_minute, publish_status,
+               description, category, create_time, update_time
+        FROM mcp_request_config
+        WHERE id = #{id}
+        LIMIT 1
+    </select>
     <select id="findAll" resultType="com.bear.mcp.single.core.entity.McpRequestConfigEntity">
         SELECT id, request_id, config_key, name, type, method, url, headers, body_template, params_default, connect_timeout_ms, read_timeout_ms, service_name, method_name, args_schema, creator_id, is_enabled, rate_limit_per_minute, publish_status, description, category, create_time, update_time FROM mcp_request_config ORDER BY id DESC
+    </select>
+    <select id="findShareStudioApis" resultType="com.bear.mcp.single.core.entity.McpRequestConfigEntity">
+        SELECT id, request_id, config_key, name, type, method, url, headers, body_template,
+               params_default, connect_timeout_ms, read_timeout_ms, service_name, method_name,
+               args_schema, creator_id, is_enabled, rate_limit_per_minute, publish_status,
+               description, category, create_time, update_time
+        FROM mcp_request_config
+        WHERE type = 'HTTP'
+          AND (creator_id = #{creatorId} OR creator_id IS NULL)
+        ORDER BY id DESC
     </select>
     <insert id="insert" parameterType="com.bear.mcp.single.core.entity.McpRequestConfigEntity" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO mcp_request_config (request_id, config_key, name, type, method, url, headers, body_template, params_default, connect_timeout_ms, read_timeout_ms, service_name, method_name, args_schema, creator_id, is_enabled, rate_limit_per_minute, publish_status, description, category)
         VALUES (#{requestId},#{configKey},#{name},#{type},#{method},#{url},#{headers},#{bodyTemplate},#{paramsDefault},#{connectTimeoutMs},#{readTimeoutMs},#{serviceName},#{methodName},#{argsSchema},#{creatorId},#{isEnabled},#{rateLimitPerMinute},#{publishStatus},#{description},#{category})
     </insert>
     <update id="update" parameterType="com.bear.mcp.single.core.entity.McpRequestConfigEntity">
-        UPDATE mcp_request_config SET name=#{name}, type=#{type}, method=#{method}, url=#{url}, headers=#{headers}, body_template=#{bodyTemplate}, params_default=#{paramsDefault}, connect_timeout_ms=#{connectTimeoutMs}, read_timeout_ms=#{readTimeoutMs}, service_name=#{serviceName}, method_name=#{methodName}, args_schema=#{argsSchema}, is_enabled=#{isEnabled}, rate_limit_per_minute=#{rateLimitPerMinute}, publish_status=#{publishStatus}, description=#{description}, category=#{category} WHERE id=#{id}
+        UPDATE mcp_request_config
+        SET request_id=#{requestId},
+            config_key=#{configKey},
+            name=#{name},
+            type=#{type},
+            method=#{method},
+            url=#{url},
+            headers=#{headers},
+            body_template=#{bodyTemplate},
+            params_default=#{paramsDefault},
+            connect_timeout_ms=#{connectTimeoutMs},
+            read_timeout_ms=#{readTimeoutMs},
+            service_name=#{serviceName},
+            method_name=#{methodName},
+            args_schema=#{argsSchema},
+            creator_id=#{creatorId},
+            is_enabled=#{isEnabled},
+            rate_limit_per_minute=#{rateLimitPerMinute},
+            publish_status=#{publishStatus},
+            description=#{description},
+            category=#{category}
+        WHERE id=#{id}
     </update>
     <select id="countEnabled" resultType="int">SELECT COUNT(*) FROM mcp_request_config WHERE is_enabled=1</select>
 </mapper>

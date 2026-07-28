@@ -17,9 +17,20 @@ public interface McpRequestConfigMapper {
     McpRequestConfigEntity findByConfigKey(@Param("configKey") String configKey);
 
     /**
+     * 根据主键查询请求配置。
+     */
+    McpRequestConfigEntity findById(@Param("id") Long id);
+
+    /**
      * 查询全部请求配置，供管理后台展示。
      */
     List<McpRequestConfigEntity> findAll();
+
+    /**
+     * 查询创作空间中的 HTTP API。
+     * 当前课堂版展示当前用户创建的 API，并兼容没有创建者的演示数据。
+     */
+    List<McpRequestConfigEntity> findShareStudioApis(@Param("creatorId") Long creatorId);
 
     /**
      * 新增请求配置。

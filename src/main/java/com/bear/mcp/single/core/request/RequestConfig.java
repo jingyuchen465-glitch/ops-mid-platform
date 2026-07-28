@@ -15,9 +15,9 @@ public record RequestConfig(
         String key,
         /** 请求配置名称。 */
         String name,
-        /** 请求类型，例如 HTTP、MOCK、SOA、HESSIAN。 */
+        /** 请求类型，当前课堂版主要接入 HTTP。 */
         String type,
-        /** HTTP method，或 MOCK 标识。 */
+        /** HTTP method，例如 GET、POST。 */
         String method,
         /** HTTP URL，支持 {{参数名}} 占位符。 */
         String url,
