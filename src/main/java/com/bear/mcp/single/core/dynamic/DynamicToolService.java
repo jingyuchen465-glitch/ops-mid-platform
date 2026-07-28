@@ -22,13 +22,40 @@ import java.util.Set;
 @Service
 public class DynamicToolService {
 
+    /**
+     * 内置工具来自 Spring AI @Tool / ToolCallbackProvider。
+     */
     public static final String TYPE_BUILTIN = "BUILTIN";
+
+    /**
+     * 动态工具来自 mcp_dynamic_tool 表中的 Groovy 脚本配置。
+     */
     public static final String TYPE_DYNAMIC = "DYNAMIC";
 
+    /**
+     * mcp_dynamic_tool：查询已启用的动态工具定义。
+     */
     private final McpDynamicToolMapper dynamicToolMapper;
+
+    /**
+     * Token 工具选择服务。
+     * tools/list 和 tools/call 都要检查当前 Token 是否选择了对应工具。
+     */
     private final ToolSelectionService toolSelectionService;
+
+    /**
+     * 真正执行 Groovy 脚本的引擎。
+     */
     private final GroovyScriptEngine groovyScriptEngine;
+
+    /**
+     * 动态工具调用不管成功失败都要落审计日志。
+     */
     private final AuditLogService auditLogService;
+
+    /**
+     * 用于解析 linked_request_keys，以及记录审计参数摘要。
+     */
     private final ObjectMapper objectMapper;
 
     public DynamicToolService(McpDynamicToolMapper dynamicToolMapper,
@@ -47,20 +74,31 @@ public class DynamicToolService {
         if (name == null || name.isBlank()) {
             return Optional.empty();
         }
+
         McpDynamicToolEntity entity = dynamicToolMapper.findEnabledByName(name);
         return entity != null ? Optional.of(toDynamicTool(entity)) : Optional.empty();
     }
 
+    /**
+     * 计算当前用户最终可以看到的工具列表。
+     *
+     * 这里对应 MCP 的 tools/list：
+     * 1. 先看当前 Token 选择了哪些工具。
+     * 2. 再看用户角色是否具备这些工具资格。
+     * 3. 动态工具需要从数据库读取描述和 inputSchema；内置工具只返回名称占位。
+     */
     public List<ToolInfo> getUserFinalTools(Long userId, Long tokenId, Set<String> allowedTools) {
         List<String> selected = toolSelectionService.listSelectedTools(tokenId);
         if (selected.isEmpty()) {
             return List.of();
         }
+
         List<ToolInfo> result = new ArrayList<>();
         for (String toolName : selected) {
             if (allowedTools == null || !allowedTools.contains(toolName)) {
                 continue;
             }
+
             Optional<DynamicTool> dynamicTool = findEnabledByName(toolName);
             if (dynamicTool.isPresent()) {
                 DynamicTool tool = dynamicTool.get();
@@ -72,6 +110,16 @@ public class DynamicToolService {
         return result;
     }
 
+    /**
+     * 执行动态工具。
+     *
+     * 这里对应 MCP 的 tools/call：
+     * 1. 工具必须存在且启用。
+     * 2. 当前用户角色必须有资格。
+     * 3. 当前 Token 必须选择了这个工具。
+     * 4. 通过 GroovyScriptEngine 执行脚本。
+     * 5. finally 中记录审计日志。
+     */
     public ScriptResult execute(String toolName, Map<String, Object> params) {
         long startedAt = System.currentTimeMillis();
         McpUserContext context = McpUserContextHolder.get();
@@ -86,9 +134,11 @@ public class DynamicToolService {
             if (context == null || !context.allowedTools().contains(toolName)) {
                 throw new IllegalArgumentException("无权限使用工具: " + toolName);
             }
+
             if (!toolSelectionService.isToolSelected(context.tokenId(), toolName)) {
                 throw new IllegalArgumentException("当前 Token 未选择工具: " + toolName);
             }
+
             result = groovyScriptEngine.execute(tool.script(), new ScriptContext(
                     params,
                     userId,
@@ -121,6 +171,9 @@ public class DynamicToolService {
         }
     }
 
+    /**
+     * 审计日志里记录的是参数摘要，不要求反序列化回完整业务对象。
+     */
     private String toJson(Object value) {
         try {
             return objectMapper.writeValueAsString(value);
@@ -129,6 +182,10 @@ public class DynamicToolService {
         }
     }
 
+    /**
+     * Entity 是数据库表对象，DynamicTool 是业务执行对象。
+     * Service 内部完成转换，避免数据库字段直接扩散到运行链路。
+     */
     private DynamicTool toDynamicTool(McpDynamicToolEntity entity) {
         return new DynamicTool(
                 entity.getToolName(),
@@ -140,6 +197,9 @@ public class DynamicToolService {
         );
     }
 
+    /**
+     * linked_request_keys 在数据库中是 JSON 字符串，这里转换成脚本执行时使用的白名单列表。
+     */
     private List<String> parseStringList(String json) {
         try {
             return objectMapper.readValue(json, new TypeReference<>() {

@@ -8,6 +8,12 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class McpToolsConfig {
 
+    /**
+     * 注册内置 MCP Tools。
+     *
+     * <p>Spring AI 会扫描传入对象上的 @Tool 方法，并把它们暴露给 MCP Server。
+     * 这里注册的是代码内置工具；数据库里的动态工具由 DynamicToolService 额外注入到 tools/list。</p>
+     */
     @Bean
     public ToolCallbackProvider builtinTools(SystemTools systemTools, CalculatorTools calculatorTools) {
         return MethodToolCallbackProvider.builder()

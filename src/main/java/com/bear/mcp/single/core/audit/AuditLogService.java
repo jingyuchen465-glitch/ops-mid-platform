@@ -14,6 +14,9 @@ public class AuditLogService {
 
     private static final Logger log = LoggerFactory.getLogger(AuditLogService.class);
 
+    /**
+     * mcp_audit_log：工具调用审计日志表。
+     */
     private final McpAuditLogMapper auditLogMapper;
 
     public AuditLogService(McpAuditLogMapper auditLogMapper) {
@@ -21,6 +24,10 @@ public class AuditLogService {
     }
 
     public void record(AuditLog auditLog) {
+        /*
+         * AuditLog 是运行时业务对象，McpAuditLogEntity 是数据库表对象。
+         * 这里统一完成转换，避免调用方关心数据库字段名。
+         */
         McpAuditLogEntity entity = new McpAuditLogEntity();
         entity.setCreateTime(auditLog.at());
         entity.setUserId(auditLog.userId());
@@ -36,6 +43,9 @@ public class AuditLogService {
                 auditLog.toolName(), auditLog.userId(), auditLog.status(), auditLog.durationMs());
     }
 
+    /**
+     * 查询最近审计日志，供管理后台首页和审计页面展示。
+     */
     public List<AuditLog> recent() {
         return auditLogMapper.findRecent()
                 .stream()
@@ -53,12 +63,20 @@ public class AuditLogService {
                 .toList();
     }
 
+    /**
+     * 记录一次工具调用。
+     *
+     * <p>参数和响应都先截断再落库，避免大对象或敏感长文本把审计表撑爆。</p>
+     */
     public void recordToolCall(Long userId, String userName, String toolName, String status,
                                long durationMs, String requestSummary, String responseSummary, String errorMessage) {
         record(new AuditLog(new Date(), userId, userName, toolName, status,
                 durationMs, truncate(requestSummary), truncate(responseSummary), truncate(errorMessage)));
     }
 
+    /**
+     * 课堂版只保留前 500 个字符，生产项目可以改成更细的脱敏和摘要策略。
+     */
     private String truncate(String value) {
         if (value == null) {
             return null;
