@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bear.mcp.single.core.mapper.McpDynamicToolMapper">
+    <select id="findEnabledByName" resultType="com.bear.mcp.single.core.entity.McpDynamicToolEntity">
+        SELECT id, tool_name, tool_description, input_schema, groovy_script,
+               linked_request_keys, is_enabled AS enabled
+        FROM mcp_dynamic_tool
+        WHERE tool_name = #{toolName} AND is_enabled = 1
+        LIMIT 1
+    </select>
+    <select id="findAll" resultType="com.bear.mcp.single.core.entity.McpDynamicToolEntity">
+        SELECT id, tool_name, tool_description, input_schema, groovy_script, linked_request_keys, is_enabled AS enabled FROM mcp_dynamic_tool ORDER BY id DESC
+    </select>
+    <insert id="insert" parameterType="com.bear.mcp.single.core.entity.McpDynamicToolEntity" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO mcp_dynamic_tool (tool_name, tool_description, input_schema, groovy_script, linked_request_keys, is_enabled)
+        VALUES (#{toolName}, #{toolDescription}, #{inputSchema}, #{groovyScript}, #{linkedRequestKeys}, #{enabled})
+    </insert>
+    <update id="update" parameterType="com.bear.mcp.single.core.entity.McpDynamicToolEntity">
+        UPDATE mcp_dynamic_tool SET tool_description=#{toolDescription}, input_schema=#{inputSchema}, groovy_script=#{groovyScript}, linked_request_keys=#{linkedRequestKeys}, is_enabled=#{enabled} WHERE id=#{id}
+    </update>
+    <select id="countEnabled" resultType="int">SELECT COUNT(*) FROM mcp_dynamic_tool WHERE is_enabled=1</select>
+</mapper>

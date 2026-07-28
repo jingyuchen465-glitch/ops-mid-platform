@@ -1,9 +1,9 @@
 package com.bear.mcp.single.gateway;
 
-import com.bear.mcp.single.auth.TokenRecord;
-import com.bear.mcp.single.auth.TokenService;
-import com.bear.mcp.single.context.McpUserContext;
-import com.bear.mcp.single.context.McpUserContextHolder;
+import com.bear.mcp.single.core.auth.TokenAuthInfo;
+import com.bear.mcp.single.core.auth.TokenService;
+import com.bear.mcp.single.core.context.McpUserContext;
+import com.bear.mcp.single.core.context.McpUserContextHolder;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -59,8 +59,8 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
             // 只保护 MCP 协议入口。后面补 /admin、/share 页面时，它们会有自己的登录态校验。
             if (mcpRequest) {
                 String token = extractToken(currentRequest);
-                TokenRecord tokenRecord = tokenService.validate(token).orElse(null);
-                if (tokenRecord == null) {
+                TokenAuthInfo tokenAuthInfo = tokenService.validate(token).orElse(null);
+                if (tokenAuthInfo == null) {
                     // MCP 客户端没有带 token，或者 token 不存在时，直接拒绝，不进入 Spring AI MCP Handler。
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                     response.setContentType("application/json;charset=UTF-8");
@@ -77,11 +77,11 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
                 // 把 token 对应的用户、角色、可用工具等信息放入当前请求线程。
                 // 后续 Filter 和 @Tool 方法不需要反复查 token，直接从 McpUserContextHolder 读取。
                 McpUserContextHolder.set(new McpUserContext(
-                        tokenRecord.userId(),
-                        tokenRecord.id(),
-                        tokenRecord.userName(),
-                        tokenRecord.roles(),
-                        tokenRecord.allowedTools(),
+                        tokenAuthInfo.userId(),
+                        tokenAuthInfo.tokenId(),
+                        tokenAuthInfo.userName(),
+                        tokenAuthInfo.roleCodes(),
+                        tokenAuthInfo.allowedTools(),
                         sessionId,
                         clientIp(currentRequest)
                 ));

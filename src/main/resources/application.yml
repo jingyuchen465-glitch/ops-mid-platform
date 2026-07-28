@@ -4,11 +4,24 @@ server:
 spring:
   application:
     name: bear-mcp-single
+  datasource:
+    url: jdbc:mysql://mysql-02a756b9c0e4-public.rds.volces.com:3306/bear-mcp-single?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: root
+    password: QWer1234!!!
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  sql:
+    init:
+      mode: never
   ai:
     mcp:
       server:
         version: 0.1.0
         protocol: STREAMABLE
+
+mybatis:
+  mapper-locations: classpath*:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
 
 logging:
   level:
@@ -17,5 +30,8 @@ logging:
     org.springframework.ai.mcp: INFO
 
 bear:
+  admin:
+    jwt-secret: bear-mcp-single-classroom-admin-secret-change-in-production
+    jwt-expire-seconds: 7200
   mcp:
     demo-token: mcp_dev_token

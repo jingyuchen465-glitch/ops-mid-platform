@@ -1,9 +1,9 @@
 package com.bear.mcp.single.gateway;
 
-import com.bear.mcp.single.context.McpUserContext;
-import com.bear.mcp.single.context.McpUserContextHolder;
-import com.bear.mcp.single.dynamic.DynamicToolService;
-import com.bear.mcp.single.dynamic.ToolInfo;
+import com.bear.mcp.single.core.context.McpUserContext;
+import com.bear.mcp.single.core.context.McpUserContextHolder;
+import com.bear.mcp.single.core.dynamic.DynamicToolService;
+import com.bear.mcp.single.core.dynamic.ToolInfo;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;

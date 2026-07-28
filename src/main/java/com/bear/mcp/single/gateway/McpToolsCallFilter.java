@@ -1,7 +1,10 @@
 package com.bear.mcp.single.gateway;
 
-import com.bear.mcp.single.dynamic.DynamicToolService;
-import com.bear.mcp.single.groovy.ScriptResult;
+import com.bear.mcp.single.core.dynamic.DynamicToolService;
+import com.bear.mcp.single.core.groovy.ScriptResult;
+import com.bear.mcp.single.core.context.McpUserContext;
+import com.bear.mcp.single.core.context.McpUserContextHolder;
+import com.bear.mcp.single.core.selection.ToolSelectionService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -40,10 +43,14 @@ public class McpToolsCallFilter extends OncePerRequestFilter {
     private static final String TOOLS_CALL = "tools/call";
 
     private final DynamicToolService dynamicToolService;
+    private final ToolSelectionService toolSelectionService;
     private final ObjectMapper objectMapper;
 
-    public McpToolsCallFilter(DynamicToolService dynamicToolService, ObjectMapper objectMapper) {
+    public McpToolsCallFilter(DynamicToolService dynamicToolService,
+                              ToolSelectionService toolSelectionService,
+                              ObjectMapper objectMapper) {
         this.dynamicToolService = dynamicToolService;
+        this.toolSelectionService = toolSelectionService;
         this.objectMapper = objectMapper;
     }
 
@@ -68,8 +75,17 @@ public class McpToolsCallFilter extends OncePerRequestFilter {
             return;
         }
 
-        // 只有动态工具才由我们执行。内置工具 hello/current_time/calculate 等继续交给 Spring AI。
+        // 无论内置还是动态工具，tools/call 都要经过同一套严格权限校验。
         String toolName = toolNameOf(body);
+        McpUserContext context = McpUserContextHolder.get();
+        if (toolName != null && !toolName.isBlank() && !canCall(context, toolName)) {
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write(buildJsonRpcResponse(requestIdOf(body),
+                    ScriptResult.failure("当前 Token 未获授权调用工具: " + toolName, 0)));
+            return;
+        }
+
+        // 只有动态工具才由我们执行。内置工具 hello/current_time/calculate 等继续交给 Spring AI。
         if (toolName == null || dynamicToolService.findEnabledByName(toolName).isEmpty()) {
             filterChain.doFilter(cachedRequest, response);
             return;
@@ -80,6 +96,12 @@ public class McpToolsCallFilter extends OncePerRequestFilter {
         ScriptResult result = dynamicToolService.execute(toolName, argumentsOf(body));
         response.setContentType("application/json;charset=UTF-8");
         response.getWriter().write(buildJsonRpcResponse(requestIdOf(body), result));
+    }
+
+    private boolean canCall(McpUserContext context, String toolName) {
+        return context != null
+                && context.allowedTools().contains(toolName)
+                && toolSelectionService.isToolSelected(context.tokenId(), toolName);
     }
 
     /**

@@ -37,3 +37,18 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+
+node_modules
+dist
+.DS_Store
+.idea
+.env.local
+
+# Admin web local dependencies and build output
+admin-web/node_modules/
+admin-web/dist/
+admin-web/.vite/
+admin-web/.cache/
+admin-web/.env.local
+admin-web/.env.*.local

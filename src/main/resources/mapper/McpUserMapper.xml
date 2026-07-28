@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bear.mcp.single.core.mapper.McpUserMapper">
+    <select id="findEnabledById" resultType="com.bear.mcp.single.core.entity.McpUserEntity">
+        SELECT id, username, password_hash, display_name, is_enabled, create_time, update_time
+        FROM mcp_user
+        WHERE id = #{id} AND is_enabled = 1
+        LIMIT 1
+    </select>
+    <select id="findEnabledByUsername" resultType="com.bear.mcp.single.core.entity.McpUserEntity">
+        SELECT id, username, password_hash, display_name, is_enabled, create_time, update_time
+        FROM mcp_user WHERE username = #{username} AND is_enabled = 1 LIMIT 1
+    </select>
+
+    <select id="findAll" resultType="com.bear.mcp.single.core.entity.McpUserEntity">
+        SELECT id, username, password_hash, display_name, is_enabled, create_time, update_time FROM mcp_user ORDER BY id DESC
+    </select>
+    <insert id="insert" parameterType="com.bear.mcp.single.core.entity.McpUserEntity" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO mcp_user (username, password_hash, display_name, is_enabled) VALUES (#{username}, #{passwordHash}, #{displayName}, #{isEnabled})
+    </insert>
+    <update id="update" parameterType="com.bear.mcp.single.core.entity.McpUserEntity">
+        UPDATE mcp_user SET username=#{username}, display_name=#{displayName}, is_enabled=#{isEnabled} WHERE id=#{id}
+    </update>
+    <select id="countAll" resultType="int">SELECT COUNT(*) FROM mcp_user</select>
+</mapper>
