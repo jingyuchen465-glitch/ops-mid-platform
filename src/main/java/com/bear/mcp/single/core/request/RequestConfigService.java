@@ -4,20 +4,21 @@ import com.bear.mcp.single.core.entity.McpRequestConfigEntity;
 import com.bear.mcp.single.core.mapper.McpRequestConfigMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 import org.springframework.stereotype.Service;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -27,9 +28,11 @@ public class RequestConfigService {
 
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{\\{([^}]+)}}");
     private static final ConcurrentHashMap<String, AtomicInteger> RATE_COUNTERS = new ConcurrentHashMap<>();
+    private static final MediaType JSON_MEDIA_TYPE = MediaType.parse("application/json; charset=utf-8");
 
     private final McpRequestConfigMapper requestConfigMapper;
     private final ObjectMapper objectMapper;
+    private final OkHttpClient httpClient = new OkHttpClient();
 
     public RequestConfigService(McpRequestConfigMapper requestConfigMapper, ObjectMapper objectMapper) {
         this.requestConfigMapper = requestConfigMapper;
@@ -93,40 +96,53 @@ public class RequestConfigService {
             String method = config.method() != null ? config.method().toUpperCase() : "GET";
             String url = replace(config.url(), params);
             String body = replace(config.bodyTemplate(), params);
-            HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
-            connection.setRequestMethod(method);
-            connection.setConnectTimeout(config.connectTimeoutMs() != null ? config.connectTimeoutMs() : 5000);
-            connection.setReadTimeout(config.readTimeoutMs() != null ? config.readTimeoutMs() : 15000);
+
+            OkHttpClient client = httpClient.newBuilder()
+                    .connectTimeout(config.connectTimeoutMs() != null ? config.connectTimeoutMs() : 5000, TimeUnit.MILLISECONDS)
+                    .readTimeout(config.readTimeoutMs() != null ? config.readTimeoutMs() : 15000, TimeUnit.MILLISECONDS)
+                    .build();
+
+            Request.Builder requestBuilder = new Request.Builder().url(url);
             for (Map.Entry<String, String> header : config.headers().entrySet()) {
-                connection.setRequestProperty(header.getKey(), header.getValue());
+                requestBuilder.header(header.getKey(), header.getValue());
             }
-            if (!"GET".equals(method) && !"HEAD".equals(method)) {
-                connection.setDoOutput(true);
-                connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-                try (OutputStream outputStream = connection.getOutputStream()) {
-                    outputStream.write((body != null ? body : "{}").getBytes(StandardCharsets.UTF_8));
+
+            RequestBody requestBody = null;
+            if (requiresRequestBody(method)) {
+                requestBody = RequestBody.create(body != null ? body : "{}", JSON_MEDIA_TYPE);
+                if (!hasHeader(config.headers(), "Content-Type")) {
+                    requestBuilder.header("Content-Type", "application/json; charset=UTF-8");
                 }
             }
-            int status = connection.getResponseCode();
-            var stream = status >= 200 && status < 300 ? connection.getInputStream() : connection.getErrorStream();
-            String response = "";
-            if (stream != null) {
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
-                    StringBuilder builder = new StringBuilder();
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        builder.append(line).append('\n');
-                    }
-                    response = builder.toString().trim();
-                }
+
+            Request request = requestBuilder.method(method, requestBody).build();
+
+            try (Response response = client.newCall(request).execute()) {
+                ResponseBody responseBody = response.body();
+                Map<String, Object> result = new LinkedHashMap<>();
+                result.put("status", response.code());
+                result.put("body", responseBody != null ? responseBody.string().trim() : "");
+                return result;
             }
-            Map<String, Object> result = new LinkedHashMap<>();
-            result.put("status", status);
-            result.put("body", response);
-            return result;
         } catch (Exception e) {
             throw new RuntimeException("HTTP 请求失败: " + e.getMessage(), e);
         }
+    }
+
+    private boolean requiresRequestBody(String method) {
+        return !"GET".equals(method) && !"HEAD".equals(method);
+    }
+
+    private boolean hasHeader(Map<String, String> headers, String name) {
+        if (headers == null || headers.isEmpty()) {
+            return false;
+        }
+        for (String headerName : headers.keySet()) {
+            if (headerName.equalsIgnoreCase(name)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String replace(String template, Map<String, Object> params) {
