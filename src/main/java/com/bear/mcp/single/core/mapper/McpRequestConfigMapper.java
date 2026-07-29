@@ -22,6 +22,11 @@ public interface McpRequestConfigMapper {
     McpRequestConfigEntity findById(@Param("id") Long id);
 
     /**
+     * 根据 request_id 查询请求配置。
+     */
+    McpRequestConfigEntity findByRequestId(@Param("requestId") String requestId);
+
+    /**
      * 查询全部请求配置，供管理后台展示。
      */
     List<McpRequestConfigEntity> findAll();

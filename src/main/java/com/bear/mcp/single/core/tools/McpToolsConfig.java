@@ -15,9 +15,12 @@ public class McpToolsConfig {
      * 这里注册的是代码内置工具；数据库里的动态工具由 DynamicToolService 额外注入到 tools/list。</p>
      */
     @Bean
-    public ToolCallbackProvider builtinTools(SystemTools systemTools, CalculatorTools calculatorTools) {
+    public ToolCallbackProvider builtinTools(SystemTools systemTools,
+                                             CalculatorTools calculatorTools,
+                                             RequestConfigTools requestConfigTools,
+                                             DynamicStudioTools dynamicStudioTools) {
         return MethodToolCallbackProvider.builder()
-                .toolObjects(systemTools, calculatorTools)
+                .toolObjects(systemTools, calculatorTools, requestConfigTools, dynamicStudioTools)
                 .build();
     }
 }

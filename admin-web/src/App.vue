@@ -62,7 +62,12 @@ const builtinTools = [
   { name: 'hello', description: '问候工具' },
   { name: 'current_time', description: '当前时间' },
   { name: 'system_info', description: '系统信息' },
-  { name: 'calculate', description: '数学计算' }
+  { name: 'calculate', description: '数学计算' },
+  { name: 'create_request_config', description: '创建 API 请求配置' },
+  { name: 'list_request_configs', description: '查询 API 请求配置' },
+  { name: 'create_dynamic_tool', description: '创建动态 Tool 草稿' },
+  { name: 'list_dynamic_tools', description: '查询动态 Tool 配置' },
+  { name: 'update_dynamic_tool_script', description: '更新动态 Tool 脚本' }
 ]
 const tokenPermissionOptions = [
   { label: '工具列表 + 工具调用', value: '["mcp:tools:read","mcp:tools:call"]' },
