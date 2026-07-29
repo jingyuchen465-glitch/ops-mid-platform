@@ -146,6 +146,7 @@ public class DynamicToolService {
                     userName,
                     toolName,
                     tool.linkedRequestKeys(),
+                    tool.linkedDataSourceIds(),
                     30000
             ));
             if (!result.success()) {
@@ -214,6 +215,7 @@ public class DynamicToolService {
                 entity.getInputSchema(),
                 entity.getGroovyScript(),
                 parseStringList(entity.getLinkedRequestKeys()),
+                parseLongList(entity.getLinkedDataSourceIds()),
                 Integer.valueOf(1).equals(entity.getEnabled())
         );
     }
@@ -223,7 +225,25 @@ public class DynamicToolService {
      */
     private List<String> parseStringList(String json) {
         try {
-            return objectMapper.readValue(json, new TypeReference<>() {
+            if (json == null || json.isBlank()) {
+                return List.of();
+            }
+            return objectMapper.readValue(json, new TypeReference<List<String>>() {
+            });
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
+    /**
+     * linked_data_source_ids 在数据库中是 JSON 字符串，这里转换成脚本执行时使用的数据源白名单。
+     */
+    private List<Long> parseLongList(String json) {
+        try {
+            if (json == null || json.isBlank()) {
+                return List.of();
+            }
+            return objectMapper.readValue(json, new TypeReference<List<Long>>() {
             });
         } catch (Exception e) {
             return List.of();

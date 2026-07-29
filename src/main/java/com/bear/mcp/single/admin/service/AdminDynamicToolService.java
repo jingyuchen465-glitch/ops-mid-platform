@@ -28,6 +28,7 @@ public class AdminDynamicToolService {
         res.setInputSchema(entity.getInputSchema());
         res.setGroovyScript(entity.getGroovyScript());
         res.setLinkedRequestKeys(entity.getLinkedRequestKeys());
+        res.setLinkedDataSourceIds(entity.getLinkedDataSourceIds());
         res.setEnabled(entity.getEnabled());
         res.setPublishStatus(entity.getPublishStatus());
         return res;

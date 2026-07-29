@@ -114,6 +114,7 @@ public class ShareCommunityService {
         res.setInputSchema(entity.getInputSchema());
         res.setGroovyScript(entity.getGroovyScript());
         res.setLinkedRequestKeys(entity.getLinkedRequestKeys());
+        res.setLinkedDataSourceIds(entity.getLinkedDataSourceIds());
         res.setPublishStatus(entity.getPublishStatus());
         return res;
     }
@@ -128,6 +129,7 @@ public class ShareCommunityService {
         res.setInputSchema(buildInputSchema(method));
         res.setGroovyScript("");
         res.setLinkedRequestKeys("[]");
+        res.setLinkedDataSourceIds("[]");
         res.setPublishStatus(2);
         return res;
     }

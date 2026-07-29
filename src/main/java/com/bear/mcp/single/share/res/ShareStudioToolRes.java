@@ -39,6 +39,11 @@ public class ShareStudioToolRes {
     private String linkedRequestKeys;
 
     /**
+     * 允许 runSql 查询的数据源 id 列表 JSON。
+     */
+    private String linkedDataSourceIds;
+
+    /**
      * 是否启用：1-启用，0-禁用。
      */
     private Integer enabled;

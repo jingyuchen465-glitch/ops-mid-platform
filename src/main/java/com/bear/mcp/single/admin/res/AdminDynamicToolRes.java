@@ -23,6 +23,9 @@ public class AdminDynamicToolRes {
     /** 允许调用的请求配置 key 列表 JSON。 */
     private String linkedRequestKeys;
 
+    /** 允许访问的数据源 id 列表 JSON。 */
+    private String linkedDataSourceIds;
+
     /** 是否启用：1-启用，0-禁用。 */
     private Integer enabled;
 

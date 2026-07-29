@@ -56,6 +56,11 @@ public class ShareCommunityToolRes {
     private String linkedRequestKeys;
 
     /**
+     * 允许脚本访问的数据源 id 列表 JSON。
+     */
+    private String linkedDataSourceIds;
+
+    /**
      * 发布状态：社区只返回 2。
      */
     private Integer publishStatus;

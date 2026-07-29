@@ -1,11 +1,13 @@
 package com.bear.mcp.single.share.service;
 
 import com.bear.mcp.single.common.exception.BusinessException;
+import com.bear.mcp.single.core.entity.McpDataSourceEntity;
 import com.bear.mcp.single.core.entity.McpDynamicToolEntity;
 import com.bear.mcp.single.core.entity.McpRequestConfigEntity;
 import com.bear.mcp.single.core.groovy.GroovyScriptEngine;
 import com.bear.mcp.single.core.groovy.ScriptContext;
 import com.bear.mcp.single.core.groovy.ScriptResult;
+import com.bear.mcp.single.core.mapper.McpDataSourceMapper;
 import com.bear.mcp.single.core.mapper.McpDynamicToolMapper;
 import com.bear.mcp.single.core.mapper.McpRequestConfigMapper;
 import com.bear.mcp.single.share.req.ShareStudioToolDebugReq;
@@ -55,6 +57,11 @@ public class ShareStudioToolService {
     private final McpRequestConfigMapper requestConfigMapper;
 
     /**
+     * mcp_data_source 表 Mapper，用于校验数据源白名单是否存在。
+     */
+    private final McpDataSourceMapper dataSourceMapper;
+
+    /**
      * Groovy 脚本执行引擎。
      */
     private final GroovyScriptEngine groovyScriptEngine;
@@ -66,10 +73,12 @@ public class ShareStudioToolService {
 
     public ShareStudioToolService(McpDynamicToolMapper dynamicToolMapper,
                                   McpRequestConfigMapper requestConfigMapper,
+                                  McpDataSourceMapper dataSourceMapper,
                                   GroovyScriptEngine groovyScriptEngine,
                                   ObjectMapper objectMapper) {
         this.dynamicToolMapper = dynamicToolMapper;
         this.requestConfigMapper = requestConfigMapper;
+        this.dataSourceMapper = dataSourceMapper;
         this.groovyScriptEngine = groovyScriptEngine;
         this.objectMapper = objectMapper;
     }
@@ -188,6 +197,7 @@ public class ShareStudioToolService {
                 currentUsername,
                 entity.getToolName(),
                 parseStringList(entity.getLinkedRequestKeys()),
+                parseLongList(entity.getLinkedDataSourceIds()),
                 30000
         ));
 
@@ -211,6 +221,9 @@ public class ShareStudioToolService {
         if (entity.getLinkedRequestKeys() == null || entity.getLinkedRequestKeys().isBlank()) {
             entity.setLinkedRequestKeys("[]");
         }
+        if (entity.getLinkedDataSourceIds() == null || entity.getLinkedDataSourceIds().isBlank()) {
+            entity.setLinkedDataSourceIds("[]");
+        }
         if (entity.getEnabled() == null) {
             entity.setEnabled(0);
         }
@@ -227,6 +240,9 @@ public class ShareStudioToolService {
         List<String> requestKeys = parseStringList(entity.getLinkedRequestKeys());
         validateLinkedRequestKeys(requestKeys);
         entity.setLinkedRequestKeys(toJson(requestKeys));
+        List<Long> dataSourceIds = parseLongList(entity.getLinkedDataSourceIds());
+        validateLinkedDataSourceIds(dataSourceIds);
+        entity.setLinkedDataSourceIds(toJson(dataSourceIds));
     }
 
     private void validateJsonObject(String json, String fieldName) {
@@ -240,10 +256,19 @@ public class ShareStudioToolService {
 
     private List<String> parseStringList(String json) {
         try {
-            return objectMapper.readValue(json, new TypeReference<>() {
+            return objectMapper.readValue(json, new TypeReference<List<String>>() {
             });
         } catch (Exception e) {
             throw new BusinessException(400, "API白名单JSON格式不正确");
+        }
+    }
+
+    private List<Long> parseLongList(String json) {
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<Long>>() {
+            });
+        } catch (Exception e) {
+            throw new BusinessException(400, "数据源白名单JSON格式不正确");
         }
     }
 
@@ -255,6 +280,21 @@ public class ShareStudioToolService {
             }
             if (config.getPublishStatus() == null || config.getPublishStatus() == 0) {
                 throw new BusinessException(400, "API配置尚未上线: " + key);
+            }
+        }
+    }
+
+    private void validateLinkedDataSourceIds(List<Long> dataSourceIds) {
+        for (Long id : dataSourceIds) {
+            if (id == null) {
+                throw new BusinessException(400, "数据源ID不能为空");
+            }
+            McpDataSourceEntity dataSource = dataSourceMapper.findById(id);
+            if (dataSource == null) {
+                throw new BusinessException(400, "数据源不存在: " + id);
+            }
+            if (dataSource.getPublishStatus() == null || dataSource.getPublishStatus() == 0) {
+                throw new BusinessException(400, "数据源尚未发布: " + id);
             }
         }
     }
@@ -274,6 +314,7 @@ public class ShareStudioToolService {
         entity.setInputSchema(req.getInputSchema());
         entity.setGroovyScript(req.getGroovyScript());
         entity.setLinkedRequestKeys(req.getLinkedRequestKeys());
+        entity.setLinkedDataSourceIds(req.getLinkedDataSourceIds());
         entity.setEnabled(req.getEnabled());
         entity.setPublishStatus(req.getPublishStatus());
         return entity;
@@ -287,6 +328,7 @@ public class ShareStudioToolService {
         res.setInputSchema(entity.getInputSchema());
         res.setGroovyScript(entity.getGroovyScript());
         res.setLinkedRequestKeys(entity.getLinkedRequestKeys());
+        res.setLinkedDataSourceIds(entity.getLinkedDataSourceIds());
         res.setEnabled(entity.getEnabled());
         res.setPublishStatus(entity.getPublishStatus());
         return res;

@@ -39,7 +39,7 @@ public class ShareStudioToolSaveReq {
     /**
      * Groovy 脚本。
      *
-     * <p>脚本中可以使用 params、userId、userName、toolName 和 runRequest。</p>
+     * <p>脚本中可以使用 params、userId、userName、toolName、runRequest 和 runSql。</p>
      */
     @NotBlank(message = "Groovy脚本不能为空")
     private String groovyScript;
@@ -50,6 +50,13 @@ public class ShareStudioToolSaveReq {
      * <p>例如 ["query_course_list"]，脚本只能调用这里列出的请求配置。</p>
      */
     private String linkedRequestKeys;
+
+    /**
+     * 允许脚本访问的数据源 id 列表 JSON。
+     *
+     * <p>例如 [1]，脚本只能通过 runSql 查询这里列出的数据源。</p>
+     */
+    private String linkedDataSourceIds;
 
     /**
      * 是否启用：1-启用，0-禁用。

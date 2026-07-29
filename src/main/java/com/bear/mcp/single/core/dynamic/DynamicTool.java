@@ -18,6 +18,8 @@ public record DynamicTool(
         String script,
         /** 脚本允许调用的请求配置 key 白名单。 */
         List<String> linkedRequestKeys,
+        /** 脚本允许访问的数据源 id 白名单。 */
+        List<Long> linkedDataSourceIds,
         /** 工具是否启用。 */
         boolean enabled
 ) {

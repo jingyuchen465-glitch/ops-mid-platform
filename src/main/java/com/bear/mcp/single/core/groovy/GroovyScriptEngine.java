@@ -1,5 +1,6 @@
 package com.bear.mcp.single.core.groovy;
 
+import com.bear.mcp.single.core.datasource.ExternalDataSourceSqlExecutor;
 import com.bear.mcp.single.core.request.RequestConfigService;
 import groovy.lang.Binding;
 import groovy.lang.GroovyShell;
@@ -30,6 +31,11 @@ public class GroovyScriptEngine {
     private final RequestConfigService requestConfigService;
 
     /**
+     * 动态脚本访问外部数据库时，只能通过受控的 runSql 入口。
+     */
+    private final ExternalDataSourceSqlExecutor sqlExecutor;
+
+    /**
      * Groovy 脚本可能由外部配置产生，不能直接占用 Web 请求线程执行。
      * 这里用独立线程池执行脚本，方便做超时控制，也避免脚本卡住主请求线程。
      */
@@ -41,8 +47,10 @@ public class GroovyScriptEngine {
      */
     private final CompilerConfiguration compilerConfiguration;
 
-    public GroovyScriptEngine(RequestConfigService requestConfigService) {
+    public GroovyScriptEngine(RequestConfigService requestConfigService,
+                              ExternalDataSourceSqlExecutor sqlExecutor) {
         this.requestConfigService = requestConfigService;
+        this.sqlExecutor = sqlExecutor;
 
         /*
          * 构造引擎时只创建一次编译配置。
@@ -55,7 +63,7 @@ public class GroovyScriptEngine {
      * 执行动态工具中的 Groovy 脚本。
      *
      * @param script  数据库中保存的 Groovy 脚本文本
-     * @param context 当前工具调用上下文，包括用户、工具名、入参和允许访问的请求配置 key
+     * @param context 当前工具调用上下文，包括用户、工具名、入参和允许访问的白名单
      * @return 脚本执行结果，包含成功/失败、返回值或错误信息、耗时
      */
     public ScriptResult execute(String script, ScriptContext context) {
@@ -144,6 +152,7 @@ public class GroovyScriptEngine {
      * <pre>
      * def name = params.name
      * def result = runRequest.runRequest("demo_clock", params)
+     * def rows = runSql.runSql(1L, "select id, name from user limit 10")
      * return [userId: userId, data: result]
      * </pre>
      */
@@ -159,6 +168,7 @@ public class GroovyScriptEngine {
          * 脚本不能绕过它直接访问任意企业接口，只能调用当前动态工具提前关联过的 request config。
          */
         binding.setVariable("runRequest", new ScriptRunRequest(requestConfigService, context.linkedRequestKeys()));
+        binding.setVariable("runSql", new ScriptRunSql(sqlExecutor, context.linkedDataSourceIds()));
         return binding;
     }
 
@@ -194,6 +204,48 @@ public class GroovyScriptEngine {
             }
 
             return requestConfigService.execute(key, params != null ? params : Map.of());
+        }
+    }
+
+    /**
+     * 暴露给 Groovy 脚本使用的数据源查询对象。
+     *
+     * <p>它只负责白名单校验，SQL 只读校验、长度限制和最大返回行数由 ExternalDataSourceSqlExecutor 统一处理。</p>
+     */
+    public static class ScriptRunSql {
+        private final ExternalDataSourceSqlExecutor sqlExecutor;
+        private final List<Long> allowedDataSourceIds;
+
+        public ScriptRunSql(ExternalDataSourceSqlExecutor sqlExecutor, List<Long> allowedDataSourceIds) {
+            this.sqlExecutor = sqlExecutor;
+            this.allowedDataSourceIds = allowedDataSourceIds != null ? allowedDataSourceIds : List.of();
+        }
+
+        /**
+         * 当前工具只绑定一个数据源时，可以省略 datasourceId。
+         */
+        public Object runSql(String sql) {
+            if (allowedDataSourceIds.isEmpty()) {
+                throw new IllegalArgumentException("当前动态工具未关联数据源");
+            }
+            if (allowedDataSourceIds.size() > 1) {
+                throw new IllegalArgumentException("当前动态工具关联了多个数据源，请显式传入 datasourceId");
+            }
+            return sqlExecutor.query(allowedDataSourceIds.get(0), sql);
+        }
+
+        /**
+         * 在 Groovy 脚本中查询已绑定的数据源。
+         */
+        public Object runSql(Number datasourceId, String sql) {
+            if (datasourceId == null) {
+                throw new IllegalArgumentException("datasourceId 不能为空");
+            }
+            Long id = datasourceId.longValue();
+            if (!allowedDataSourceIds.contains(id)) {
+                throw new IllegalArgumentException("未关联的数据源: " + id);
+            }
+            return sqlExecutor.query(id, sql);
         }
     }
 }

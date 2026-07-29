@@ -19,6 +19,8 @@ public record ScriptContext(
         String toolName,
         /** 当前脚本允许调用的 request config key 白名单。 */
         List<String> linkedRequestKeys,
+        /** 当前脚本允许访问的数据源 id 白名单。 */
+        List<Long> linkedDataSourceIds,
         /** 脚本最大执行时间，单位毫秒。 */
         long timeoutMs
 ) {

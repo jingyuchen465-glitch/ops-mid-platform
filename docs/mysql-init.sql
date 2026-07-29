@@ -82,6 +82,7 @@ CREATE TABLE mcp_dynamic_tool (
     input_schema JSON NOT NULL COMMENT 'MCP inputSchema',
     groovy_script TEXT NOT NULL COMMENT 'Groovy 脚本',
     linked_request_keys JSON NOT NULL COMMENT '允许 runRequest 调用的配置 key',
+    linked_data_source_ids JSON NOT NULL COMMENT '允许 runSql 查询的数据源 id',
     is_enabled TINYINT NOT NULL DEFAULT 1 COMMENT '是否启用',
     publish_status TINYINT NOT NULL DEFAULT 0 COMMENT '发布状态：0-草稿，1-已上架不公开，2-已上架公开',
     UNIQUE KEY uk_mcp_dynamic_tool_name (tool_name)
@@ -227,7 +228,7 @@ INSERT INTO mcp_request_config (
 );
 
 INSERT INTO mcp_dynamic_tool (
-    tool_name, tool_description, input_schema, groovy_script, linked_request_keys, is_enabled, publish_status
+    tool_name, tool_description, input_schema, groovy_script, linked_request_keys, linked_data_source_ids, is_enabled, publish_status
 ) VALUES (
     'echo_dynamic',
     '动态工具示例：回显输入参数，并演示通过 runRequest 调用白名单请求配置。',
@@ -243,6 +244,7 @@ return [
   clock: clock
 ]',
     JSON_ARRAY('demo_clock'),
+    JSON_ARRAY(),
     1,
     2
 );

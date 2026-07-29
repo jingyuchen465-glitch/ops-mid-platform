@@ -26,6 +26,7 @@ const selectedRoleTools = ref([])
 const selectedTokenTools = ref([])
 const users = ref([])
 const requestConfigs = ref([])
+const dataSourceConfigs = ref([])
 const drawer = ref(false)
 const model = ref({})
 const rawToken = ref('')
@@ -276,6 +277,24 @@ const toolApiOptions = computed(() => {
     title: item.url || item.description || item.name || item.configKey
   }))
 })
+const selectedToolDataSourceIds = computed({
+  get() {
+    return parseJsonArray(model.value.linkedDataSourceIds).map(Number).filter(Number.isFinite)
+  },
+  set(value) {
+    model.value.linkedDataSourceIds = JSON.stringify(value.map(Number), null, 2)
+  }
+})
+const availableToolDataSources = computed(() => {
+  return dataSourceConfigs.value.filter(item => Number(item.publishStatus) === 1)
+})
+const toolDataSourceOptions = computed(() => {
+  return availableToolDataSources.value.map(item => ({
+    label: `${item.id} ${item.name || item.datasourceKey || ''}`,
+    value: item.id,
+    title: item.description || item.jdbcUrl || item.name || String(item.id)
+  }))
+})
 const toolDebugText = computed(() => {
   if (!toolDebugResult.value) {
     return '点击「运行调试」后显示脚本返回结果'
@@ -298,7 +317,7 @@ const columns = computed(() => ({
  tokens:[['tokenName','Token 名称'],['userId','所属用户'],['permissions','访问范围'],['tokenPrefix','展示前缀'],['isActive','状态'],['expireTime','过期时间']],
  requests:[['requestId','接口 ID'],['configKey','配置 Key'],['name','名称'],['type','协议'],['publishStatus','发布'],['isEnabled','状态']],
  dataSources:[['name','名称'],['datasourceKey','数据源 Key'],['dbType','类型'],['jdbcUrl','JDBC URL'],['username','用户名'],['passwordSet','密码'],['publishStatus','发布']],
- tools:[['toolName','工具名'],['toolDescription','工具描述'],['linkedRequestKeys','API 白名单'],['publishStatus','发布'],['inputSchema','入参 Schema'],['groovyScript','脚本摘要'],['enabled','状态']],
+ tools:[['toolName','工具名'],['toolDescription','工具描述'],['linkedRequestKeys','API 白名单'],['linkedDataSourceIds','数据源白名单'],['publishStatus','发布'],['inputSchema','入参 Schema'],['groovyScript','脚本摘要'],['enabled','状态']],
  audits:[['createTime','调用时间'],['userName','用户'],['toolName','工具'],['status','状态'],['durationMs','耗时(ms)']],
  roles:[['roleCode','角色编码'],['roleName','角色名称'],['isEnabled','状态']]
 })[page.value] || [])
@@ -365,6 +384,9 @@ function formatTableCell(dataIndex, text, record) {
   if (dataIndex === 'linkedRequestKeys' && page.value === 'tools') {
     return linkedRequestLabel(text)
   }
+  if (dataIndex === 'linkedDataSourceIds' && page.value === 'tools') {
+    return linkedDataSourceLabel(text)
+  }
   if (dataIndex === 'inputSchema' && page.value === 'tools') {
     return compactText(text, 42)
   }
@@ -415,6 +437,18 @@ function linkedRequestLabel(value) {
   }).join('，')
 }
 
+function linkedDataSourceLabel(value) {
+  const ids = parseJsonArray(value).map(Number).filter(Number.isFinite)
+  if (!ids.length) {
+    return '未绑定'
+  }
+
+  return ids.map(id => {
+    const dataSource = dataSourceConfigs.value.find(item => Number(item.id) === id)
+    return dataSource ? `${id}（${dataSource.name || dataSource.datasourceKey}）` : String(id)
+  }).join('，')
+}
+
 function parseJsonArray(value) {
   if (!value) {
     return []
@@ -453,7 +487,7 @@ function communityToolCountLabel(item) {
   if (item.communityType === 'builtin') {
     return item.displayCategory || '内置工具'
   }
-  return `${parseJsonArray(item.linkedRequestKeys).length} 个 API`
+  return `${parseJsonArray(item.linkedRequestKeys).length} 个 API · ${parseJsonArray(item.linkedDataSourceIds).length} 个数据源`
 }
 
 function openCommunityToolDetail(item) {
@@ -578,13 +612,17 @@ async function load() {
     else if (page.value === 'requests') rows.value = await api('/request-configs')
     else if (page.value === 'dataSources') rows.value = await api('/data-sources')
     else if (page.value === 'studioTools') {
-      [rows.value, requestConfigs.value] = await Promise.all([
+      [rows.value, requestConfigs.value, dataSourceConfigs.value] = await Promise.all([
         api('/api/share/studio/tools'),
-        api('/api/share/studio/apis')
+        api('/api/share/studio/apis'),
+        api('/data-sources')
       ])
     }
     else if (page.value === 'studioToolEdit') {
-      requestConfigs.value = await api('/api/share/studio/apis')
+      [requestConfigs.value, dataSourceConfigs.value] = await Promise.all([
+        api('/api/share/studio/apis'),
+        api('/data-sources')
+      ])
       if (!model.value.toolName) {
         model.value = emptyToolModel()
       }
@@ -597,9 +635,10 @@ async function load() {
       }
     }
     else if (page.value === 'tools') {
-      [rows.value, requestConfigs.value] = await Promise.all([
+      [rows.value, requestConfigs.value, dataSourceConfigs.value] = await Promise.all([
         api('/dynamic-tools'),
-        api('/request-configs')
+        api('/request-configs'),
+        api('/data-sources')
       ])
     }
     else rows.value = await api('/audit-logs')
@@ -628,7 +667,7 @@ function emptyModel() {
   if (page.value === 'tokens') return { userId: users.value[0]?.id, tokenName:'新建 Token', permissions:'["mcp:tools:read","mcp:tools:call"]', isActive:1 }
   if (page.value === 'requests' || page.value === 'studioApis' || page.value === 'studioApiEdit') return emptyApiModel()
   if (page.value === 'dataSources') return emptyDataSourceModel()
-  if (page.value === 'tools') return { toolName:'', toolDescription:'', inputSchema:'{"type":"object","properties":{}}', groovyScript:'return [message: params.message]', linkedRequestKeys:'[]', enabled:1 }
+  if (page.value === 'tools') return { toolName:'', toolDescription:'', inputSchema:'{"type":"object","properties":{}}', groovyScript:'return [message: params.message]', linkedRequestKeys:'[]', linkedDataSourceIds:'[]', enabled:1 }
   return {}
 }
 function emptyApiModel() {
@@ -649,6 +688,7 @@ function emptyToolModel() {
     inputSchema: schema,
     groovyScript: script,
     linkedRequestKeys: '[]',
+    linkedDataSourceIds: '[]',
     enabled: 0,
     publishStatus: 0
   }
@@ -666,6 +706,9 @@ function openCreate() {
 }
 function openToolEditor(row) {
   model.value = row ? { ...row } : emptyToolModel()
+  if (!model.value.linkedDataSourceIds) {
+    model.value.linkedDataSourceIds = '[]'
+  }
   lastAutoToolScript.value = row ? '' : model.value.groovyScript
   lastAutoToolSchema.value = row ? '' : model.value.inputSchema
   toolDebugResult.value = null
@@ -758,6 +801,7 @@ function buildSaveBody() {
   if (page.value === 'studioTools' || page.value === 'studioToolEdit') {
     body.publishStatus = Number(body.publishStatus || 0)
     body.enabled = body.publishStatus === 0 ? 0 : 1
+    body.linkedDataSourceIds = body.linkedDataSourceIds || '[]'
   }
   return body
 }
@@ -777,12 +821,20 @@ function tryAutoGenerateToolAssets() {
 
   const script = model.value.groovyScript || ''
   if (!script.trim() || script === lastAutoToolScript.value || script === defaultToolScript()) {
-    generateToolScriptFromSelection()
+    if (selectedToolRequestKeys.value.length) {
+      generateToolScriptFromSelection()
+    } else if (selectedToolDataSourceIds.value.length) {
+      generateToolScriptFromDataSourceSelection()
+    }
   }
 
   const schema = model.value.inputSchema || ''
   if (!schema.trim() || schema === lastAutoToolSchema.value || schema === defaultToolSchema()) {
-    generateToolSchemaFromSelection()
+    if (selectedToolRequestKeys.value.length) {
+      generateToolSchemaFromSelection()
+    } else if (selectedToolDataSourceIds.value.length) {
+      generateToolSchemaFromScript()
+    }
   }
 }
 
@@ -820,6 +872,60 @@ function generateToolAssetsFromSelection() {
   generateToolDebugParamsFromSelection()
 }
 
+function generateToolScriptFromDataSourceSelection() {
+  const ids = selectedToolDataSourceIds.value
+  if (!ids.length) {
+    return
+  }
+
+  const script = buildDataSourceToolScript(ids)
+  model.value.groovyScript = script
+  lastAutoToolScript.value = script
+}
+
+function generateToolAssetsFromDataSourceSelection() {
+  generateToolScriptFromDataSourceSelection()
+  generateToolSchemaFromScript()
+}
+
+function generateToolSchemaFromScript() {
+  const entries = collectScriptParamEntries(model.value.groovyScript)
+  if (!entries.length) {
+    message.warning('没有识别到 params.xxx 参数')
+    return
+  }
+
+  const currentSchema = parseJsonObject(model.value.inputSchema)
+  const properties = {
+    ...(currentSchema.properties && typeof currentSchema.properties === 'object' && !Array.isArray(currentSchema.properties)
+      ? currentSchema.properties
+      : {})
+  }
+  const required = new Set(Array.isArray(currentSchema.required) ? currentSchema.required : [])
+
+  entries.forEach(item => {
+    properties[item.key] = properties[item.key] || {
+      type: item.type,
+      description: item.description
+    }
+    if (item.required) {
+      required.add(item.key)
+    }
+  })
+
+  const nextSchema = {
+    type: 'object',
+    properties
+  }
+  if (required.size) {
+    nextSchema.required = Array.from(required)
+  }
+
+  model.value.inputSchema = JSON.stringify(nextSchema, null, 2)
+  toolDebugParams.value = JSON.stringify(buildScriptDebugParams(entries), null, 2)
+  message.success(`已生成 ${entries.length} 个入参`)
+}
+
 function generateToolDebugParamsFromSelection() {
   const keys = selectedToolRequestKeys.value
   if (!keys.length) {
@@ -831,6 +937,35 @@ function generateToolDebugParamsFromSelection() {
     return requestConfigs.value.find(item => item.configKey === key) || { configKey: key, paramsDefault: '{}', bodyTemplate: '' }
   })
   toolDebugParams.value = buildToolDebugParams(apiConfigs)
+}
+
+function buildDataSourceToolScript(ids) {
+  const firstId = ids[0]
+  const dataSource = dataSourceConfigs.value.find(item => Number(item.id) === Number(firstId))
+  const name = dataSource?.name || dataSource?.datasourceKey || `数据源 ${firstId}`
+  const runSqlCall = ids.length === 1
+    ? 'runSql.runSql(sql)'
+    : `runSql.runSql(${Number(firstId)}L, sql)`
+
+  return `def limit = Math.min((params["limit"] ?: 10) as Integer, 100)
+
+def sql = """
+select 1 as demo_value
+limit \${limit}
+"""
+
+def result = ${runSqlCall}
+
+return [
+    message: "${name} 查询完成",
+    requestParams: [
+        "limit": limit
+    ],
+    rows: result.rows,
+    rowCount: result.row_count,
+    truncated: result.truncated,
+    result: result
+]`
 }
 
 function buildToolScript(apiConfigs) {
@@ -913,6 +1048,78 @@ function buildToolDebugParams(apiConfigs) {
   })
 
   return JSON.stringify(params, null, 2)
+}
+
+function collectScriptParamEntries(script) {
+  if (!script) {
+    return []
+  }
+
+  const text = String(script)
+  const paramMap = new Map()
+  const patterns = [
+    /params\.([A-Za-z_][A-Za-z0-9_]*)/g,
+    /params\[['"]([A-Za-z_][A-Za-z0-9_]*)['"]\]/g
+  ]
+
+  patterns.forEach(pattern => {
+    let match = pattern.exec(text)
+    while (match) {
+      const key = match[1]
+      if (key && key !== 'class') {
+        const after = text.slice(match.index + match[0].length, match.index + match[0].length + 20)
+        const optional = /^\s*\?:/.test(after)
+        const existing = paramMap.get(key)
+        paramMap.set(key, {
+          key,
+          type: inferScriptParamType(key),
+          description: paramDescription(key),
+          required: existing ? existing.required || !optional : !optional
+        })
+      }
+      match = pattern.exec(text)
+    }
+  })
+
+  return Array.from(paramMap.values())
+}
+
+function inferScriptParamType(key) {
+  if (/^(pageNum|pageSize|limit|offset|count|size|num|id)$/i.test(key) || /(Id|Count|Num|Size|Limit|Offset)$/.test(key)) {
+    return 'integer'
+  }
+  if (/^(is|has|enable|enabled|active)/i.test(key)) {
+    return 'boolean'
+  }
+  return 'string'
+}
+
+function paramDescription(key) {
+  const labels = {
+    keyword: '关键词',
+    name: '名称',
+    pageNum: '页码',
+    pageSize: '每页条数',
+    limit: '最大返回条数',
+    offset: '偏移量'
+  }
+  return labels[key] || key
+}
+
+function buildScriptDebugParams(entries) {
+  const params = {}
+  entries.forEach(item => {
+    if (item.type === 'integer') {
+      params[item.key] = item.key === 'pageNum' ? 1 : 10
+    } else if (item.type === 'number') {
+      params[item.key] = 1
+    } else if (item.type === 'boolean') {
+      params[item.key] = true
+    } else {
+      params[item.key] = ''
+    }
+  })
+  return params
 }
 
 function collectApiParamEntries(apiConfig) {
@@ -1294,6 +1501,10 @@ watch(selectedToolRequestKeys, () => {
   generateToolDebugParamsFromSelection()
 })
 
+watch(selectedToolDataSourceIds, () => {
+  tryAutoGenerateToolAssets()
+})
+
 function loginSuccess() {
   loggedIn.value = true
   load()
@@ -1616,10 +1827,13 @@ function loginSuccess() {
                 <div class="tool-card-meta">
                   <span>MCP Tool</span>
                   <span>{{ parseJsonArray(item.linkedRequestKeys).length }} 个 API</span>
+                  <span>{{ parseJsonArray(item.linkedDataSourceIds).length }} 个数据源</span>
                 </div>
                 <div class="tool-card-whitelist">
                   <span v-for="key in parseJsonArray(item.linkedRequestKeys)" :key="key">{{ key }}</span>
+                  <span v-for="id in parseJsonArray(item.linkedDataSourceIds)" :key="`ds-${id}`">DS {{ id }}</span>
                   <span v-if="!parseJsonArray(item.linkedRequestKeys).length">未绑定 API</span>
+                  <span v-if="!parseJsonArray(item.linkedDataSourceIds).length">未绑定数据源</span>
                 </div>
                 <div class="api-card-foot">
                   <span class="tool-script-preview">{{ compactText(item.groovyScript, 34) }}</span>
@@ -1726,7 +1940,7 @@ function loginSuccess() {
                 <button type="button" class="api-back-btn" @click="changePage('studioTools')">← 返回列表</button>
                 <span class="api-section-kicker">Dynamic Tool</span>
                 <h2>{{ model.id ? '编辑 Tool' : '新建 Tool' }}</h2>
-                <p>Tool 创作负责包装能力：通过 inputSchema 定义入参，通过 Groovy 编排逻辑，并用 <code>runRequest.runRequest</code> 调用已保存的 API 配置。</p>
+                <p>Tool 创作负责包装能力：通过 inputSchema 定义入参，通过 Groovy 编排逻辑，并用 <code>runRequest.runRequest</code> 或 <code>runSql.runSql</code> 调用已保存的能力配置。</p>
               </div>
               <aside>
                 <span>当前工具</span>
@@ -1770,12 +1984,33 @@ function loginSuccess() {
                   max-tag-count="responsive"
                 />
                 <p v-if="!availableToolApis.length" class="tool-api-empty">暂无已上线 API，请先在 API 创作中上线一个配置。</p>
+                <div class="tool-editor-panel-head compact">
+                  <b>数据源白名单</b>
+                  <span>已选 {{ selectedToolDataSourceIds.length }} 个 datasourceId</span>
+                </div>
+                <a-select
+                  v-model:value="selectedToolDataSourceIds"
+                  mode="multiple"
+                  show-search
+                  allow-clear
+                  :options="toolDataSourceOptions"
+                  option-filter-prop="label"
+                  placeholder="搜索并选择可查询的数据源"
+                  class="tool-api-select"
+                  popupClassName="dark-select-dropdown tool-api-dropdown"
+                  max-tag-count="responsive"
+                />
+                <p v-if="!availableToolDataSources.length" class="tool-api-empty">暂无已发布数据源，请先在管理后台发布一个数据源。</p>
               </aside>
 
               <section class="tool-script-editor">
                 <div class="tool-editor-panel-head">
                   <b>Groovy 脚本</b>
-                  <button type="button" @click="generateToolAssetsFromSelection">按已选 API 生成</button>
+                  <span class="tool-head-actions">
+                    <button type="button" @click="generateToolSchemaFromScript">从脚本生成 Schema</button>
+                    <button type="button" @click="generateToolAssetsFromDataSourceSelection">按已选数据源生成</button>
+                    <button type="button" @click="generateToolAssetsFromSelection">按已选 API 生成</button>
+                  </span>
                 </div>
                 <textarea v-model="model.groovyScript" spellcheck="false"></textarea>
                 <div class="tool-editor-actions">
@@ -2335,7 +2570,7 @@ function loginSuccess() {
       </section>
     </a-form>
     <a-form v-else layout="vertical" class="entity-form">
-      <template v-for="(value,key) in model" :key="key"><a-form-item v-if="!['id','tokenHash','tokenPrefix','createTime','updateTime','lastUsedTime','lastUsedIp'].includes(key)" :label="key"><a-textarea v-if="['headers','bodyTemplate','paramsDefault','inputSchema','groovyScript','linkedRequestKeys','description','argsSchema'].includes(key)" v-model:value="model[key]" class="code-area" :auto-size="{minRows:2,maxRows:8}" /><a-input v-else v-model:value="model[key]" /></a-form-item></template>
+      <template v-for="(value,key) in model" :key="key"><a-form-item v-if="!['id','tokenHash','tokenPrefix','createTime','updateTime','lastUsedTime','lastUsedIp'].includes(key)" :label="key"><a-textarea v-if="['headers','bodyTemplate','paramsDefault','inputSchema','groovyScript','linkedRequestKeys','linkedDataSourceIds','description','argsSchema'].includes(key)" v-model:value="model[key]" class="code-area" :auto-size="{minRows:2,maxRows:8}" /><a-input v-else v-model:value="model[key]" /></a-form-item></template>
     </a-form>
     <div v-if="rawToken" class="raw-token"><b>请立即保存 Token，之后后台不会再返回完整明文：</b><br>{{ rawToken }}</div>
     <template #footer><a-space><a-button @click="drawer=false">取消</a-button><a-button v-if="page === 'dataSources'" :loading="dataSourceTesting" @click="testDataSourceConnection">测试连接</a-button><a-button type="primary" @click="save">保存</a-button></a-space></template>
@@ -2483,6 +2718,10 @@ function loginSuccess() {
         <div>
           <span>API 白名单</span>
           <b>{{ linkedRequestLabel(activeDynamicTool?.linkedRequestKeys) }}</b>
+        </div>
+        <div>
+          <span>数据源白名单</span>
+          <b>{{ linkedDataSourceLabel(activeDynamicTool?.linkedDataSourceIds) }}</b>
         </div>
       </div>
       <p class="permission-hint detail-desc">{{ activeDynamicTool?.toolDescription || '暂无工具描述' }}</p>
