@@ -19,4 +19,6 @@ public class McpDynamicToolEntity {
     private String linkedRequestKeys;
     /** 是否启用：1-启用，0-禁用。 */
     private Integer enabled;
+    /** 发布状态：0-草稿，1-已上线不公开，2-已上线公开。 */
+    private Integer publishStatus;
 }

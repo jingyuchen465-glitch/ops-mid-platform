@@ -1,5 +1,5 @@
 <script setup>
-import { computed, h, onMounted, onUnmounted, ref } from 'vue'
+import { computed, h, onMounted, onUnmounted, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { ADMIN_TOKEN_KEY, UNAUTHORIZED_EVENT, api } from './api'
 import LoginView from './LoginView.vue'
@@ -31,6 +31,8 @@ const model = ref({})
 const rawToken = ref('')
 const dynamicToolDetailOpen = ref(false)
 const activeDynamicTool = ref(null)
+const communityDetailOpen = ref(false)
+const activeCommunityItem = ref(null)
 const auditDetailOpen = ref(false)
 const activeAuditLog = ref(null)
 const apiDebugOpen = ref(false)
@@ -43,6 +45,19 @@ const apiEditorTab = ref('body')
 const apiEditorDebugParams = ref('{}')
 const apiKeyword = ref('')
 const apiStatusFilter = ref('all')
+const toolKeyword = ref('')
+const toolStatusFilter = ref('all')
+const toolDebugParams = ref('{\n  "pageNum": 1,\n  "pageSize": 10\n}')
+const toolDebugResult = ref(null)
+const toolDebugLoading = ref(false)
+const toolSaving = ref(false)
+const lastAutoToolScript = ref('')
+const lastAutoToolSchema = ref('')
+const communityTools = ref([])
+const communityBuiltinTools = ref([])
+const communityApis = ref([])
+const communityKeyword = ref('')
+const communityToolTypeFilter = ref('all')
 const builtinTools = [
   { name: 'hello', description: '问候工具' },
   { name: 'current_time', description: '当前时间' },
@@ -75,11 +90,14 @@ const menu = [
   ['dashboard', '概览', AppstoreOutlined], ['users', '用户', TeamOutlined], ['roles', '角色与工具权限', TeamOutlined], ['tokens', 'Token 与工具选择', KeyOutlined],
   ['requests', '请求配置', SettingOutlined], ['tools', '动态工具', ThunderboltOutlined], ['audits', '审计日志', AuditOutlined]
 ]
-const sharePages = ['shareHome', 'studioHome', 'studioApis', 'studioApiEdit']
+const communityPages = ['shareHome', 'shareTools', 'shareApis']
+const studioPages = ['studioHome', 'studioTools', 'studioToolEdit', 'studioApis', 'studioApiEdit']
+const sharePages = [...communityPages, ...studioPages]
 const isSharePage = computed(() => sharePages.includes(page.value))
-const navSections = { dashboard: '概览', users: '系统治理', roles: '系统治理', tokens: '访问控制', requests: '能力展示', tools: '能力展示', audits: '运行观测', shareHome: '首页', studioHome: '首页', studioApis: 'API 创作' }
-const title = computed(() => ({ dashboard:'运行概览', users:'用户', roles:'角色与工具权限', tokens:'Token 与工具选择', requests:'请求配置', tools:'动态工具', audits:'调用审计', shareHome:'Bear 社区', studioHome:'Bear 创作空间', studioApis:'API 创作', studioApiEdit:'新建 API' })[page.value])
-const desc = computed(() => ({ dashboard:'当前数据库中的 MCP 治理状态', users:'角色是工具权限上限，用户通过角色获得资格', roles:'角色决定资格上限，实际工具权限由角色工具表维护', tokens:'每把 Token 单独选择要暴露和实际允许调用的工具', requests:'展示动态工具可引用的企业请求配置；完整创作在创作空间完成', tools:'这里只展示已发布的动态工具；创建与编辑在创作空间完成', audits:'保留每一次 MCP 工具调用的结果摘要与耗时', shareHome:'发现优质 AI 能力，探索社区精选点赞排行', studioHome:'创作 Skills、Tools、Prompts、API，分享到社区', studioApis:'创建外部 HTTP API 配置，调试通过后发布给后续动态工具使用', studioApiEdit:'配置外部 HTTP API，保存并调试真实响应' })[page.value])
+const isCommunityPage = computed(() => communityPages.includes(page.value))
+const navSections = { dashboard: '概览', users: '系统治理', roles: '系统治理', tokens: '访问控制', requests: '能力展示', tools: '能力展示', audits: '运行观测', shareHome: '首页', shareTools: 'MCP Tools', shareApis: 'API 能力', studioHome: '首页', studioTools: 'Tools 创作', studioApis: 'API 创作' }
+const title = computed(() => ({ dashboard:'运行概览', users:'用户', roles:'角色与工具权限', tokens:'Token 与工具选择', requests:'请求配置', tools:'动态工具', audits:'调用审计', shareHome:'发现优质 AI 能力', shareTools:'MCP Tools', shareApis:'API 能力', studioHome:'Bear 创作空间', studioTools:'Tools 创作', studioToolEdit:'新建 Tool', studioApis:'API 创作', studioApiEdit:'新建 API' })[page.value])
+const desc = computed(() => ({ dashboard:'当前数据库中的 MCP 治理状态', users:'角色是工具权限上限，用户通过角色获得资格', roles:'角色决定资格上限，实际工具权限由角色工具表维护', tokens:'每把 Token 单独选择要暴露和实际允许调用的工具', requests:'展示动态工具可引用的企业请求配置；完整创作在创作空间完成', tools:'这里只展示已发布的动态工具；创建与编辑在创作空间完成', audits:'保留每一次 MCP 工具调用的结果摘要与耗时', shareHome:'公开的 Tool 和 API 会先进入社区，被团队发现、复用，再进入 Token 配置链路。', shareTools:'浏览已公开的 MCP Tool。能否调用仍由角色权限和 Token 工具选择决定。', shareApis:'浏览已公开的 API 配置，它们是动态 Tool 编排时可复用的基础能力。', studioHome:'创作 Skills、Tools、Prompts、API，分享到社区', studioTools:'把已接入的 API 配置包装成 AI Agent 可见和可调用的 MCP Tool', studioToolEdit:'编写工具描述、入参 Schema 和 Groovy 脚本，调试通过后发布上线', studioApis:'创建外部 HTTP API 配置，调试通过后发布给后续动态工具使用', studioApiEdit:'配置外部 HTTP API，保存并调试真实响应' })[page.value])
 const studioApiStats = computed(() => {
   const all = rows.value.length
   const online = rows.value.filter(item => Number(item.publishStatus) !== 0).length
@@ -135,6 +153,120 @@ const filteredStudioApis = computed(() => {
     return matchStatus && (!keyword || searchText.includes(keyword))
   })
 })
+const filteredStudioTools = computed(() => {
+  const keyword = toolKeyword.value.trim().toLowerCase()
+
+  return rows.value.filter(item => {
+    const publishStatus = Number(item.publishStatus)
+    const matchStatus =
+      toolStatusFilter.value === 'all'
+      || (toolStatusFilter.value === 'online' && publishStatus !== 0)
+      || (toolStatusFilter.value === 'draft' && publishStatus === 0)
+
+    const searchText = [
+      item.toolName,
+      item.toolDescription,
+      item.linkedRequestKeys,
+      item.groovyScript
+    ].filter(Boolean).join(' ').toLowerCase()
+
+    return matchStatus && (!keyword || searchText.includes(keyword))
+  })
+})
+const communityDynamicToolSource = computed(() => {
+  const source = page.value === 'shareTools' ? rows.value : communityTools.value
+  return source.map(item => ({
+    ...item,
+    communityType: 'dynamic',
+    displayName: item.toolName,
+    displayDescription: item.toolDescription,
+    displayCategory: '动态工具',
+    scriptLanguage: item.scriptLanguage || 'Groovy'
+  }))
+})
+const communityBuiltinToolSource = computed(() => {
+  return communityBuiltinTools.value.map(item => ({
+    ...item,
+    linkedRequestKeys: '[]',
+    communityType: 'builtin',
+    displayName: item.toolName,
+    displayDescription: item.toolDescription,
+    displayCategory: item.category,
+    scriptLanguage: item.scriptLanguage || 'Java @Tool'
+  }))
+})
+const filteredCommunityTools = computed(() => {
+  const source = [
+    ...communityDynamicToolSource.value,
+    ...communityBuiltinToolSource.value
+  ].filter(item => {
+    return communityToolTypeFilter.value === 'all' || item.communityType === communityToolTypeFilter.value
+  })
+  const keyword = communityKeyword.value.trim().toLowerCase()
+
+  return source.filter(item => {
+    const searchText = [
+      item.displayName,
+      item.displayDescription,
+      item.displayCategory,
+      item.linkedRequestKeys,
+      item.inputSchema
+    ].filter(Boolean).join(' ').toLowerCase()
+
+    return !keyword || searchText.includes(keyword)
+  })
+})
+const filteredCommunityApis = computed(() => {
+  const source = page.value === 'shareApis' ? rows.value : communityApis.value
+  const keyword = communityKeyword.value.trim().toLowerCase()
+
+  return source.filter(item => {
+    const searchText = [
+      item.requestId,
+      item.configKey,
+      item.name,
+      item.description,
+      item.category,
+      item.method
+    ].filter(Boolean).join(' ').toLowerCase()
+
+    return !keyword || searchText.includes(keyword)
+  })
+})
+const communityDetailTitle = computed(() => {
+  if (!activeCommunityItem.value) {
+    return '能力详情'
+  }
+  if (activeCommunityItem.value.communityKind === 'api') {
+    return `API 能力详情 · ${activeCommunityItem.value.configKey || activeCommunityItem.value.name || ''}`
+  }
+  return `MCP Tool 详情 · ${activeCommunityItem.value.displayName || activeCommunityItem.value.toolName || ''}`
+})
+const selectedToolRequestKeys = computed({
+  get() {
+    return parseJsonArray(model.value.linkedRequestKeys)
+  },
+  set(value) {
+    model.value.linkedRequestKeys = JSON.stringify(value, null, 2)
+  }
+})
+const availableToolApis = computed(() => {
+  return requestConfigs.value.filter(item => Number(item.publishStatus) !== 0)
+})
+const toolApiOptions = computed(() => {
+  return availableToolApis.value.map(item => ({
+    label: `${item.configKey} ${item.name || ''}`,
+    value: item.configKey,
+    title: item.url || item.description || item.name || item.configKey
+  }))
+})
+const toolDebugText = computed(() => {
+  if (!toolDebugResult.value) {
+    return '点击「运行调试」后显示脚本返回结果'
+  }
+
+  return JSON.stringify(normalizeDebugResult(toolDebugResult.value), null, 2)
+})
 const drawerTitle = computed(() => {
   if (page.value === 'studioApis') {
     return model.value.id ? '编辑 HTTP API' : '新建 HTTP API'
@@ -149,7 +281,7 @@ const columns = computed(() => ({
  users:[['username','用户名'],['displayName','展示名称'],['roleCodes','角色'],['isEnabled','状态']],
  tokens:[['tokenName','Token 名称'],['userId','所属用户'],['permissions','访问范围'],['tokenPrefix','展示前缀'],['isActive','状态'],['expireTime','过期时间']],
  requests:[['requestId','接口 ID'],['configKey','配置 Key'],['name','名称'],['type','协议'],['publishStatus','发布'],['isEnabled','状态']],
- tools:[['toolName','工具名'],['toolDescription','工具描述'],['linkedRequestKeys','API 白名单'],['inputSchema','入参 Schema'],['groovyScript','脚本摘要'],['enabled','状态']],
+ tools:[['toolName','工具名'],['toolDescription','工具描述'],['linkedRequestKeys','API 白名单'],['publishStatus','发布'],['inputSchema','入参 Schema'],['groovyScript','脚本摘要'],['enabled','状态']],
  audits:[['createTime','调用时间'],['userName','用户'],['toolName','工具'],['status','状态'],['durationMs','耗时(ms)']],
  roles:[['roleCode','角色编码'],['roleName','角色名称'],['isEnabled','状态']]
 })[page.value] || [])
@@ -162,11 +294,23 @@ const dataColumns = computed(() => columns.value.map(([dataIndex,title]) => ({
 
 function pageFromPath() {
   const path = window.location.pathname
+  if (path === '/share/studio/tools') {
+    return 'studioTools'
+  }
+  if (path === '/share/studio/tools/edit') {
+    return 'studioToolEdit'
+  }
   if (path === '/share/studio/apis') {
     return 'studioApis'
   }
   if (path === '/share/studio/apis/edit') {
     return 'studioApiEdit'
+  }
+  if (path === '/share/tools') {
+    return 'shareTools'
+  }
+  if (path === '/share/apis') {
+    return 'shareApis'
   }
   if (path === '/share/studio') {
     return 'studioHome'
@@ -180,7 +324,11 @@ function pageFromPath() {
 function pathForPage(key) {
   return {
     shareHome: '/share',
+    shareTools: '/share/tools',
+    shareApis: '/share/apis',
     studioHome: '/share/studio',
+    studioTools: '/share/studio/tools',
+    studioToolEdit: '/share/studio/tools/edit',
     studioApis: '/share/studio/apis',
     studioApiEdit: '/share/studio/apis/edit',
     dashboard: '/admin'
@@ -264,6 +412,40 @@ function compactText(value, maxLength) {
   return text.length > maxLength ? text.slice(0, maxLength) + '...' : text
 }
 
+function communityCode(prefix, id) {
+  const value = id == null ? 0 : Number(id)
+  return `${prefix}${String(value).padStart(10, '0')}`
+}
+
+function communityToolCode(item) {
+  return item.communityType === 'builtin'
+    ? item.toolName
+    : communityCode('TOOL', item.id)
+}
+
+function communityToolCountLabel(item) {
+  if (item.communityType === 'builtin') {
+    return item.displayCategory || '内置工具'
+  }
+  return `${parseJsonArray(item.linkedRequestKeys).length} 个 API`
+}
+
+function openCommunityToolDetail(item) {
+  activeCommunityItem.value = {
+    ...item,
+    communityKind: 'tool'
+  }
+  communityDetailOpen.value = true
+}
+
+function openCommunityApiDetail(item) {
+  activeCommunityItem.value = {
+    ...item,
+    communityKind: 'api'
+  }
+  communityDetailOpen.value = true
+}
+
 function prettyJsonText(value) {
   if (typeof value !== 'string') {
     return JSON.stringify(value, null, 2)
@@ -271,6 +453,43 @@ function prettyJsonText(value) {
 
   try {
     return JSON.stringify(JSON.parse(value), null, 2)
+  } catch (error) {
+    return value
+  }
+}
+
+function normalizeDebugResult(value) {
+  if (Array.isArray(value)) {
+    return value.map(item => normalizeDebugResult(item))
+  }
+  if (value && typeof value === 'object') {
+    const result = {}
+    Object.entries(value).forEach(([key, item]) => {
+      if (key === 'body' && typeof item === 'string') {
+        result[key] = parseMaybeJson(item)
+      } else {
+        result[key] = normalizeDebugResult(item)
+      }
+    })
+    return result
+  }
+  if (typeof value === 'string') {
+    return parseMaybeJson(value)
+  }
+  return value
+}
+
+function parseMaybeJson(value) {
+  const text = value.trim()
+  if (!text) {
+    return value
+  }
+  if (!['{', '['].includes(text[0])) {
+    return value
+  }
+
+  try {
+    return normalizeDebugResult(JSON.parse(text))
   } catch (error) {
     return value
   }
@@ -296,6 +515,20 @@ async function load() {
   try {
     if (page.value === 'shareHome') {
       rows.value = []
+      [communityTools.value, communityBuiltinTools.value, communityApis.value] = await Promise.all([
+        api('/api/share/community/tools'),
+        api('/api/share/community/builtin-tools'),
+        api('/api/share/community/apis')
+      ])
+    }
+    else if (page.value === 'shareTools') {
+      [rows.value, communityBuiltinTools.value] = await Promise.all([
+        api('/api/share/community/tools'),
+        api('/api/share/community/builtin-tools')
+      ])
+    }
+    else if (page.value === 'shareApis') {
+      rows.value = await api('/api/share/community/apis')
     }
     else if (page.value === 'studioHome') rows.value = await api('/api/share/studio/apis')
     else if (page.value === 'dashboard') { dashboard.value = await api('/dashboard'); rows.value = dashboard.value.recentAudits || [] }
@@ -317,6 +550,18 @@ async function load() {
       ])
     }
     else if (page.value === 'requests') rows.value = await api('/request-configs')
+    else if (page.value === 'studioTools') {
+      [rows.value, requestConfigs.value] = await Promise.all([
+        api('/api/share/studio/tools'),
+        api('/api/share/studio/apis')
+      ])
+    }
+    else if (page.value === 'studioToolEdit') {
+      requestConfigs.value = await api('/api/share/studio/apis')
+      if (!model.value.toolName) {
+        model.value = emptyToolModel()
+      }
+    }
     else if (page.value === 'studioApis') rows.value = await api('/api/share/studio/apis')
     else if (page.value === 'studioApiEdit') {
       if (!model.value.requestId) {
@@ -361,12 +606,41 @@ function emptyModel() {
 function emptyApiModel() {
   return { requestId:'API' + Date.now(), configKey:'', name:'', type:'HTTP', method:'GET', url:'', headers:'{}', bodyTemplate:'', paramsDefault:'{}', connectTimeoutMs:5000, readTimeoutMs:15000, serviceName:'', methodName:'', argsSchema:'{}', creatorId: users.value[0]?.id, isEnabled:1, rateLimitPerMinute:0, publishStatus:0, description:'', category:'' }
 }
+function emptyToolModel() {
+  const script = defaultToolScript()
+  const schema = defaultToolSchema()
+  lastAutoToolScript.value = script
+  lastAutoToolSchema.value = schema
+
+  return {
+    toolName: '',
+    toolDescription: '',
+    inputSchema: schema,
+    groovyScript: script,
+    linkedRequestKeys: '[]',
+    enabled: 0,
+    publishStatus: 0
+  }
+}
 function openCreate() {
   if (page.value === 'studioApis') {
     openApiEditor()
     return
   }
+  if (page.value === 'studioTools') {
+    openToolEditor()
+    return
+  }
   model.value = emptyModel(); drawer.value=true
+}
+function openToolEditor(row) {
+  model.value = row ? { ...row } : emptyToolModel()
+  lastAutoToolScript.value = row ? '' : model.value.groovyScript
+  lastAutoToolSchema.value = row ? '' : model.value.inputSchema
+  toolDebugResult.value = null
+  toolDebugParams.value = '{}'
+  page.value = 'studioToolEdit'
+  window.history.pushState({}, '', pathForPage('studioToolEdit'))
 }
 function openApiEditor(row) {
   model.value = row ? { ...row } : emptyApiModel()
@@ -383,6 +657,10 @@ function edit(row) {
   }
   if (page.value === 'studioApis') {
     openApiEditor(row)
+    return
+  }
+  if (page.value === 'studioTools') {
+    openToolEditor(row)
     return
   }
   drawer.value=true
@@ -414,7 +692,246 @@ function buildSaveBody() {
     delete body.argsSchema
     delete body.publishStatus
   }
+  if (page.value === 'studioTools' || page.value === 'studioToolEdit') {
+    body.publishStatus = Number(body.publishStatus || 0)
+    body.enabled = body.publishStatus === 0 ? 0 : 1
+  }
   return body
+}
+
+function defaultToolScript() {
+  return 'def result = runRequest.runRequest("api_config_key", params)\n\nreturn [\n    message: "API调用完成",\n    requestParams: params,\n    result: result\n]'
+}
+
+function defaultToolSchema() {
+  return '{\n  "type": "object",\n  "properties": {\n    "pageNum": {\n      "type": "integer",\n      "description": "页码"\n    },\n    "pageSize": {\n      "type": "integer",\n      "description": "每页条数"\n    }\n  }\n}'
+}
+
+function tryAutoGenerateToolAssets() {
+  if (page.value !== 'studioToolEdit') {
+    return
+  }
+
+  const script = model.value.groovyScript || ''
+  if (!script.trim() || script === lastAutoToolScript.value || script === defaultToolScript()) {
+    generateToolScriptFromSelection()
+  }
+
+  const schema = model.value.inputSchema || ''
+  if (!schema.trim() || schema === lastAutoToolSchema.value || schema === defaultToolSchema()) {
+    generateToolSchemaFromSelection()
+  }
+}
+
+function generateToolScriptFromSelection() {
+  const keys = selectedToolRequestKeys.value
+  if (!keys.length) {
+    return
+  }
+
+  const apiConfigs = keys.map(key => {
+    return requestConfigs.value.find(item => item.configKey === key) || { configKey: key, name: key, paramsDefault: '{}' }
+  })
+  const script = buildToolScript(apiConfigs)
+  model.value.groovyScript = script
+  lastAutoToolScript.value = script
+}
+
+function generateToolSchemaFromSelection() {
+  const keys = selectedToolRequestKeys.value
+  if (!keys.length) {
+    return
+  }
+
+  const apiConfigs = keys.map(key => {
+    return requestConfigs.value.find(item => item.configKey === key) || { configKey: key, paramsDefault: '{}' }
+  })
+  const schema = buildToolSchema(apiConfigs)
+  model.value.inputSchema = schema
+  lastAutoToolSchema.value = schema
+}
+
+function generateToolAssetsFromSelection() {
+  generateToolSchemaFromSelection()
+  generateToolScriptFromSelection()
+  generateToolDebugParamsFromSelection()
+}
+
+function generateToolDebugParamsFromSelection() {
+  const keys = selectedToolRequestKeys.value
+  if (!keys.length) {
+    toolDebugParams.value = '{}'
+    return
+  }
+
+  const apiConfigs = keys.map(key => {
+    return requestConfigs.value.find(item => item.configKey === key) || { configKey: key, paramsDefault: '{}', bodyTemplate: '' }
+  })
+  toolDebugParams.value = buildToolDebugParams(apiConfigs)
+}
+
+function buildToolScript(apiConfigs) {
+  if (apiConfigs.length === 1) {
+    return buildSingleApiToolScript(apiConfigs[0])
+  }
+
+  const calls = apiConfigs.map((apiConfig, index) => {
+    const configKey = apiConfig.configKey
+    const entries = collectApiParamEntries(apiConfig)
+    const resultName = `result${index + 1}`
+
+    if (!entries.length) {
+      return `def ${resultName} = runRequest.runRequest("${configKey}", params)`
+    }
+
+    const requestLines = entries.map(item => {
+      return `    "${item.key}": params["${item.key}"] ?: ${groovyLiteral(item.defaultValue)}`
+    }).join(',\n')
+
+    return `def ${resultName} = runRequest.runRequest("${configKey}", [\n${requestLines}\n])`
+  }).join('\n\n')
+
+  const resultLines = apiConfigs.map((apiConfig, index) => {
+    return `    "${apiConfig.configKey}": result${index + 1}`
+  }).join(',\n')
+
+  return `${calls}\n\nreturn [\n    message: "组合调用完成",\n${resultLines}\n]`
+}
+
+function buildSingleApiToolScript(apiConfig) {
+  const configKey = apiConfig.configKey
+  const apiName = apiConfig.name || configKey
+  const entries = collectApiParamEntries(apiConfig)
+
+  if (!entries.length) {
+    return `def result = runRequest.runRequest("${configKey}", params)\n\nreturn [\n    message: "${apiName}调用完成",\n    requestParams: params,\n    result: result\n]`
+  }
+
+  const requestLines = entries.map(item => {
+    return `    "${item.key}": params["${item.key}"] ?: ${groovyLiteral(item.defaultValue)}`
+  }).join(',\n')
+
+  const responseLines = entries.map(item => {
+    return `        "${item.key}": params["${item.key}"] ?: ${groovyLiteral(item.defaultValue)}`
+  }).join(',\n')
+
+  return `def result = runRequest.runRequest("${configKey}", [\n${requestLines}\n])\n\nreturn [\n    message: "${apiName}调用完成",\n    requestParams: [\n${responseLines}\n    ],\n    result: result\n]`
+}
+
+function buildToolSchema(apiConfigs) {
+  const properties = {}
+
+  apiConfigs.forEach(apiConfig => {
+    collectApiParamEntries(apiConfig).forEach(item => {
+      if (!properties[item.key]) {
+        properties[item.key] = {
+          type: item.type,
+          description: item.description
+        }
+      }
+    })
+  })
+
+  return JSON.stringify({
+    type: 'object',
+    properties
+  }, null, 2)
+}
+
+function buildToolDebugParams(apiConfigs) {
+  const params = {}
+
+  apiConfigs.forEach(apiConfig => {
+    collectApiParamEntries(apiConfig).forEach(item => {
+      if (params[item.key] == null) {
+        params[item.key] = item.defaultValue
+      }
+    })
+  })
+
+  return JSON.stringify(params, null, 2)
+}
+
+function collectApiParamEntries(apiConfig) {
+  const paramsDefault = parseJsonObject(apiConfig.paramsDefault)
+  const paramMap = new Map()
+
+  Object.entries(paramsDefault).forEach(([key, value]) => {
+    paramMap.set(key, {
+      key,
+      defaultValue: value,
+      type: inferJsonSchemaType(value),
+      description: key
+    })
+  })
+
+  extractTemplateParams(apiConfig.bodyTemplate).forEach(key => {
+    if (!paramMap.has(key)) {
+      paramMap.set(key, {
+        key,
+        defaultValue: '',
+        type: 'string',
+        description: key
+      })
+    }
+  })
+
+  return Array.from(paramMap.values())
+}
+
+function extractTemplateParams(template) {
+  if (!template) {
+    return []
+  }
+
+  const keys = []
+  const pattern = /\{\{\s*([A-Za-z0-9_.-]+)\s*\}\}/g
+  let match = pattern.exec(String(template))
+  while (match) {
+    if (!keys.includes(match[1])) {
+      keys.push(match[1])
+    }
+    match = pattern.exec(String(template))
+  }
+  return keys
+}
+
+function inferJsonSchemaType(value) {
+  if (Number.isInteger(value)) {
+    return 'integer'
+  }
+  if (typeof value === 'number') {
+    return 'number'
+  }
+  if (typeof value === 'boolean') {
+    return 'boolean'
+  }
+  if (Array.isArray(value)) {
+    return 'array'
+  }
+  if (value && typeof value === 'object') {
+    return 'object'
+  }
+  return 'string'
+}
+
+function parseJsonObject(value) {
+  try {
+    const parsed = value ? JSON.parse(value) : {}
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+  } catch (error) {
+    return {}
+  }
+}
+
+function groovyLiteral(value) {
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value)
+  }
+  if (value == null) {
+    return 'null'
+  }
+  return JSON.stringify(String(value))
 }
 
 function normalizePermissions(value) {
@@ -568,6 +1085,85 @@ async function sendApiEditor() {
     debugLoading.value = false
   }
 }
+async function saveToolEditor() {
+  toolSaving.value = true
+  try {
+    const method = model.value.id ? 'PUT' : 'POST'
+    const url = model.value.id ? `/api/share/studio/tools/${model.value.id}` : '/api/share/studio/tools'
+    const result = await api(url, {
+      method,
+      body: buildSaveBody()
+    })
+    model.value = { ...model.value, ...result }
+    message.success(model.value.id ? 'Tool 已保存' : 'Tool 已创建')
+    return result
+  } catch (error) {
+    message.error(error.message || '保存失败')
+    throw error
+  } finally {
+    toolSaving.value = false
+  }
+}
+async function sendToolEditor() {
+  toolDebugLoading.value = true
+  try {
+    const params = toolDebugParams.value ? JSON.parse(toolDebugParams.value) : {}
+    toolDebugResult.value = await api('/api/share/studio/tools/debug', {
+      method: 'POST',
+      body: { params, tool: buildSaveBody() }
+    })
+    message.success('调试成功')
+  } catch (error) {
+    toolDebugResult.value = error.data || { success: false, errorMessage: error.message }
+    message.error(toolDebugResult.value.errorMessage || error.message || '调试失败')
+  } finally {
+    toolDebugLoading.value = false
+  }
+}
+async function publishTool(tool) {
+  const result = await api(`/api/share/studio/tools/${tool.id}/publish`, { method: 'POST' })
+  if (model.value.id === tool.id) {
+    model.value = { ...model.value, ...result }
+  }
+  message.success('Tool 已公开发布')
+  await load()
+}
+async function publishPrivateTool(tool) {
+  const result = await api(`/api/share/studio/tools/${tool.id}/publish-private`, { method: 'POST' })
+  if (model.value.id === tool.id) {
+    model.value = { ...model.value, ...result }
+  }
+  message.success('Tool 已设为不公开')
+  await load()
+}
+async function unpublishTool(tool) {
+  const result = await api(`/api/share/studio/tools/${tool.id}/unpublish`, { method: 'POST' })
+  if (model.value.id === tool.id) {
+    model.value = { ...model.value, ...result }
+  }
+  message.success('Tool 已下线')
+  await load()
+}
+async function toggleOnlineTool(tool) {
+  if (Number(tool.publishStatus) !== 0) {
+    await unpublishTool(tool)
+    return
+  }
+
+  await publishPrivateTool(tool)
+}
+async function toggleVisibilityTool(tool) {
+  if (Number(tool.publishStatus) === 0) {
+    message.warning('先上线，再设置公开范围')
+    return
+  }
+  if (Number(tool.publishStatus) === 2) {
+    await publishPrivateTool(tool)
+    return
+  }
+
+  await publishTool(tool)
+}
 async function publishApi(apiConfig) {
   await api(`/api/share/studio/apis/${apiConfig.id}/publish`, { method: 'POST' })
   message.success('已公开发布')
@@ -630,6 +1226,11 @@ onUnmounted(() => {
   window.removeEventListener('popstate', syncPageFromLocation)
 })
 
+watch(selectedToolRequestKeys, () => {
+  tryAutoGenerateToolAssets()
+  generateToolDebugParamsFromSelection()
+})
+
 function loginSuccess() {
   loggedIn.value = true
   load()
@@ -644,13 +1245,13 @@ function loginSuccess() {
     <div class="share-shell">
       <nav class="hub-nav">
         <div class="hub-nav-inner">
-          <div v-if="page === 'shareHome'" class="hub-nav-tabs">
+          <div v-if="isCommunityPage" class="hub-nav-tabs">
             <a class="hub-logo" @click.prevent="changePage('shareHome')"><AppstoreOutlined />Bear 社区</a>
-            <a class="hub-nav-tab active" @click.prevent="changePage('shareHome')">首页</a>
+            <a :class="['hub-nav-tab', page === 'shareHome' ? 'active' : '']" @click.prevent="changePage('shareHome')">首页</a>
             <a class="hub-nav-tab">Skills 社区</a>
-            <a class="hub-nav-tab">MCP Tools</a>
+            <a :class="['hub-nav-tab', page === 'shareTools' ? 'active' : '']" @click.prevent="changePage('shareTools')">MCP Tools</a>
             <a class="hub-nav-tab">MCP Prompts</a>
-            <a class="hub-nav-tab">数据源</a>
+            <a :class="['hub-nav-tab', page === 'shareApis' ? 'active' : '']" @click.prevent="changePage('shareApis')">API 能力</a>
             <a class="hub-nav-tab">我的MCP配置</a>
             <a class="hub-nav-tab">Token 管理</a>
           </div>
@@ -658,13 +1259,13 @@ function loginSuccess() {
             <a class="hub-logo" @click.prevent="changePage('studioHome')"><RocketOutlined />Bear 创作空间</a>
             <a :class="['hub-nav-tab', page === 'studioHome' ? 'active' : '']" @click.prevent="changePage('studioHome')">首页</a>
             <a class="hub-nav-tab">Skills 创作</a>
-            <a class="hub-nav-tab">Tools 创作</a>
+            <a :class="['hub-nav-tab', ['studioTools','studioToolEdit'].includes(page) ? 'active' : '']" @click.prevent="changePage('studioTools')">Tools 创作</a>
             <a class="hub-nav-tab">Prompts 创作</a>
             <a :class="['hub-nav-tab', ['studioApis','studioApiEdit'].includes(page) ? 'active' : '']" @click.prevent="changePage('studioApis')">API 创作</a>
           </div>
           <div class="hub-nav-right">
             <span class="hub-nav-user">demo-admin</span>
-            <a v-if="page === 'shareHome'" class="hub-nav-link" @click.prevent="changePage('studioHome')"><RocketOutlined />创作空间</a>
+            <a v-if="isCommunityPage" class="hub-nav-link" @click.prevent="changePage('studioHome')"><RocketOutlined />创作空间</a>
             <a v-else class="hub-nav-link" @click.prevent="changePage('shareHome')"><HomeOutlined />返回社区</a>
             <a class="hub-nav-link" @click.prevent="changePage('dashboard')"><SettingOutlined />管理员</a>
             <a class="hub-nav-link"><LogoutOutlined />退出</a>
@@ -679,34 +1280,175 @@ function loginSuccess() {
 
       <main class="hub-main">
         <template v-if="page === 'shareHome'">
-          <div class="hub-onboard-banner">
-            <div class="hub-onboard-text">
-              <span class="hub-onboard-text-badge">推荐</span>
-              <span>首次登录推荐先完成 MCP 配置：进入「我的 MCP 配置」页，一键安装到 Cursor，立即体验社区精选能力。</span>
+          <section class="community-market-shell">
+            <div class="community-search-row">
+              <div class="community-search">
+                <SearchOutlined />
+                <input v-model="communityKeyword" type="text" placeholder="搜索工具名、API Key、描述..." />
+              </div>
+              <button type="button" class="community-create-btn" @click="changePage('studioHome')"><PlusOutlined />创作能力</button>
             </div>
-            <div class="hub-onboard-actions">
-              <a class="btn-hub btn-hub-primary btn-hub-primary-lg">去配置 MCP</a>
-              <button type="button" class="btn-hub btn-hub-outline">暂不提醒</button>
-            </div>
-          </div>
 
-          <div class="hub-rankings">
-            <div v-for="ranking in [
-              { title: 'Skills 点赞排行', color: 'skills', items: ['naming-conventions','xlsx','link-ledger-docs','api-design-principles','frontend-design','api-design'] },
-              { title: 'MCP Tools 点赞排行', color: 'tools', items: ['emeter_create_dubbo','ylog_query','emeter_search','qa_log_query','emeter_search_multi'] },
-              { title: 'MCP Prompts 点赞排行', color: 'prompts', items: ['读取飞书文档','示例开发规范','API 草稿箱能力说明','Prompts 草稿箱能力说明','Tools 草稿箱能力说明'] }
-            ]" :key="ranking.title" :class="['hub-ranking-card', `hub-ranking-card-${ranking.color}`]">
-              <h3>{{ ranking.title }}</h3>
-              <ul class="hub-ranking-list">
-                <li v-for="index in 10" :key="index" class="hub-ranking-item">
-                  <span :class="['hub-ranking-rank', index <= 3 ? 'top3' : '']">{{ index }}</span>
-                  <a>{{ ranking.items[index - 1] || '—' }}</a>
-                  <span class="hub-ranking-meta">{{ index <= 2 ? '管理员' : '-' }}</span>
-                  <span class="hub-ranking-count">{{ ranking.items[index - 1] ? `${Math.max(1, 5 - index)} 赞` : '' }}</span>
-                </li>
-              </ul>
+            <div class="community-overview">
+              <button type="button" class="community-stat-card" @click="changePage('shareTools')">
+                <span><ThunderboltOutlined /></span>
+                <b>{{ communityTools.length + communityBuiltinTools.length }}</b>
+                <small>公开 MCP Tools</small>
+              </button>
+              <button type="button" class="community-stat-card" @click="changePage('shareApis')">
+                <span><KeyOutlined /></span>
+                <b>{{ communityApis.length }}</b>
+                <small>公开 API 能力</small>
+              </button>
+              <div class="community-rule-card">
+                <b>公开负责发现，调用仍走权限</b>
+                <p>社区展示只说明能力存在，真正进入 tools/list / tools/call 还需要角色资格和 Token 工具选择。</p>
+              </div>
             </div>
-          </div>
+
+            <div class="community-section-head">
+              <div>
+                <h2>公开 MCP Tools</h2>
+                <p>AI Agent 最终看到和调用的是这些 Tool。</p>
+              </div>
+              <button type="button" @click="changePage('shareTools')">查看全部</button>
+            </div>
+
+            <div v-if="filteredCommunityTools.length" class="community-card-grid">
+              <article v-for="item in filteredCommunityTools.slice(0, 6)" :key="`${item.communityType}-${item.id}`" class="community-card tool" @click="openCommunityToolDetail(item)">
+                <div class="community-card-top">
+                  <div class="community-kind">
+                    <span class="community-card-icon"><ThunderboltOutlined /></span>
+                    <b>{{ item.communityType === 'builtin' ? '内置工具' : '动态工具' }}</b>
+                  </div>
+                  <em>{{ communityToolCode(item) }}</em>
+                </div>
+                <h3>{{ item.displayName || '未命名 Tool' }}</h3>
+                <p>{{ item.displayDescription || '暂无描述' }}</p>
+                <div class="community-tags">
+                  <span>{{ communityToolCountLabel(item) }}</span>
+                  <span v-for="key in parseJsonArray(item.linkedRequestKeys).slice(0, 2)" :key="key">{{ key }}</span>
+                  <span v-if="parseJsonArray(item.linkedRequestKeys).length > 2">+{{ parseJsonArray(item.linkedRequestKeys).length - 2 }}</span>
+                </div>
+                <div class="community-card-foot">
+                  <span>管理员</span>
+                  <span>♡ 0</span>
+                  <button type="button" @click.stop="openCommunityToolDetail(item)">查看</button>
+                </div>
+              </article>
+            </div>
+            <div v-else class="community-empty">还没有公开的 MCP Tool。</div>
+
+            <div class="community-section-head">
+              <div>
+                <h2>公开 API 能力</h2>
+                <p>API 是 Tool 编排时可复用的底层接入能力。</p>
+              </div>
+              <button type="button" @click="changePage('shareApis')">查看全部</button>
+            </div>
+
+            <div v-if="filteredCommunityApis.length" class="community-card-grid api">
+              <article v-for="item in filteredCommunityApis.slice(0, 6)" :key="item.id" class="community-card api" @click="openCommunityApiDetail(item)">
+                <div class="community-card-top">
+                  <div class="community-kind">
+                    <span class="community-card-icon"><KeyOutlined /></span>
+                    <b>API 能力</b>
+                  </div>
+                  <em>{{ communityCode('API', item.id) }}</em>
+                </div>
+                <h3>{{ item.configKey || item.name || '未命名 API' }}</h3>
+                <p>{{ item.description || item.name || '暂无描述' }}</p>
+                <div class="community-tags">
+                  <span>{{ item.method || 'GET' }}</span>
+                  <span>{{ item.category || '未分类' }}</span>
+                </div>
+                <div class="community-card-foot">
+                  <span>管理员</span>
+                  <span>♡ 0</span>
+                  <button type="button" @click.stop="openCommunityApiDetail(item)">查看</button>
+                </div>
+              </article>
+            </div>
+            <div v-else class="community-empty">还没有公开的 API。</div>
+          </section>
+        </template>
+
+        <template v-else-if="page === 'shareTools'">
+          <section class="community-market-shell">
+            <div class="community-search-row">
+              <div class="community-search">
+                <SearchOutlined />
+                <input v-model="communityKeyword" type="text" placeholder="搜索 Tool 名称、描述、API 白名单..." />
+              </div>
+              <span class="community-count">共 {{ filteredCommunityTools.length }} 个 Tool</span>
+            </div>
+            <div class="community-type-switch">
+              <button type="button" :class="{active: communityToolTypeFilter === 'all'}" @click="communityToolTypeFilter = 'all'">全部</button>
+              <button type="button" :class="{active: communityToolTypeFilter === 'dynamic'}" @click="communityToolTypeFilter = 'dynamic'">动态工具</button>
+              <button type="button" :class="{active: communityToolTypeFilter === 'builtin'}" @click="communityToolTypeFilter = 'builtin'">内置工具</button>
+            </div>
+
+            <div v-if="filteredCommunityTools.length" class="community-card-grid">
+              <article v-for="item in filteredCommunityTools" :key="`${item.communityType}-${item.id}`" class="community-card tool" @click="openCommunityToolDetail(item)">
+                <div class="community-card-top">
+                  <div class="community-kind">
+                    <span class="community-card-icon"><ThunderboltOutlined /></span>
+                    <b>{{ item.communityType === 'builtin' ? '内置工具' : '动态工具' }}</b>
+                  </div>
+                  <em>{{ communityToolCode(item) }}</em>
+                </div>
+                <h3>{{ item.displayName || '未命名 Tool' }}</h3>
+                <p>{{ item.displayDescription || '暂无描述' }}</p>
+                <div class="community-tags">
+                  <span>{{ communityToolCountLabel(item) }}</span>
+                  <span v-for="key in parseJsonArray(item.linkedRequestKeys).slice(0, 3)" :key="key">{{ key }}</span>
+                </div>
+                <div class="community-card-foot">
+                  <span>管理员</span>
+                  <span>♡ 0</span>
+                  <button type="button" @click.stop="openCommunityToolDetail(item)">查看</button>
+                </div>
+              </article>
+            </div>
+            <div v-else class="community-empty">没有匹配的公开 MCP Tool。</div>
+          </section>
+        </template>
+
+        <template v-else-if="page === 'shareApis'">
+          <section class="community-market-shell">
+            <div class="community-search-row">
+              <div class="community-search">
+                <SearchOutlined />
+                <input v-model="communityKeyword" type="text" placeholder="搜索 API Key、名称、分类或描述..." />
+              </div>
+              <span class="community-count">共 {{ filteredCommunityApis.length }} 个 API</span>
+            </div>
+
+            <div v-if="filteredCommunityApis.length" class="community-card-grid api">
+              <article v-for="item in filteredCommunityApis" :key="item.id" class="community-card api" @click="openCommunityApiDetail(item)">
+                <div class="community-card-top">
+                  <div class="community-kind">
+                    <span class="community-card-icon"><KeyOutlined /></span>
+                    <b>API 能力</b>
+                  </div>
+                  <em>{{ communityCode('API', item.id) }}</em>
+                </div>
+                <h3>{{ item.configKey || item.name || '未命名 API' }}</h3>
+                <p>{{ item.description || item.name || '暂无描述' }}</p>
+                <div class="community-tags">
+                  <span>{{ item.type || 'HTTP' }}</span>
+                  <span>{{ item.method || 'GET' }}</span>
+                  <span>{{ item.category || '未分类' }}</span>
+                </div>
+                <div class="community-card-foot">
+                  <span>管理员</span>
+                  <span>♡ 0</span>
+                  <button type="button" @click.stop="openCommunityApiDetail(item)">查看</button>
+                </div>
+              </article>
+            </div>
+            <div v-else class="community-empty">没有匹配的公开 API。</div>
+          </section>
         </template>
 
         <template v-else-if="page === 'studioHome'">
@@ -724,7 +1466,7 @@ function loginSuccess() {
             <div class="studio-status-panel">
               <div class="studio-panel-head">
                 <span>创作概览</span>
-                <b>Lesson 7</b>
+              <b>Creator</b>
               </div>
               <div class="studio-panel-metrics">
                 <div><b>4</b><span>创作类型</span></div>
@@ -746,7 +1488,7 @@ function loginSuccess() {
               <h3>Skills 创作</h3>
               <p>把规范、步骤和上下文沉淀为 AI 可执行的工作说明。</p>
             </a>
-            <a class="studio-lane tool">
+            <a class="studio-lane tool" @click.prevent="changePage('studioTools')">
               <span class="studio-lane-icon"><ThunderboltOutlined /></span>
               <small>02</small>
               <h3>Tools 创作</h3>
@@ -764,6 +1506,80 @@ function loginSuccess() {
               <h3>API 创作</h3>
               <p>接入外部 HTTP API，作为后续工具编排的基础能力。</p>
             </a>
+          </section>
+        </template>
+
+        <template v-else-if="page === 'studioTools'">
+          <section class="api-library-shell tool-library-shell">
+            <div class="api-library-head">
+              <span class="api-section-kicker">Tool Workspace</span>
+              <h2>Tools 创作</h2>
+              <p>把已接入的 API 配置包装成 MCP Tool，让 AI Agent 能在 tools/list 中看到并通过 tools/call 调用。</p>
+              <div class="api-library-search">
+                <SearchOutlined />
+                <input v-model="toolKeyword" type="text" placeholder="搜索工具名、描述、API 白名单或脚本..." />
+              </div>
+            </div>
+
+            <div class="api-library-toolbar">
+              <div class="api-status-switch">
+                <button type="button" :class="{active: toolStatusFilter === 'all'}" @click="toolStatusFilter = 'all'">全部</button>
+                <button type="button" :class="{active: toolStatusFilter === 'online'}" @click="toolStatusFilter = 'online'">已上线</button>
+                <button type="button" :class="{active: toolStatusFilter === 'draft'}" @click="toolStatusFilter = 'draft'">草稿</button>
+              </div>
+              <div class="api-library-side">
+                <span>共 {{ filteredStudioTools.length }} 个 Tool</span>
+                <button type="button" class="api-library-new" @click="openCreate"><PlusOutlined />新建</button>
+              </div>
+            </div>
+            <div class="api-visibility-note">
+              <span><i class="public"></i>公开：进入社区</span>
+              <span><i class="private"></i>不公开：已上线但只在自己的创作空间可见</span>
+            </div>
+
+            <div v-if="filteredStudioTools.length" class="api-library-grid">
+              <article v-for="item in filteredStudioTools" :key="item.id" class="api-library-card tool-library-card">
+                <div class="api-card-top">
+                  <span class="api-card-icon"><ThunderboltOutlined /></span>
+                  <div class="api-card-badges">
+                    <span :class="['api-card-status', publishClass(item.publishStatus)]">{{ publishLabel(item.publishStatus) }}</span>
+                    <span v-if="Number(item.publishStatus) !== 0" :class="['api-card-visibility', visibilityClass(item.publishStatus)]">{{ visibilityLabel(item.publishStatus) }}</span>
+                  </div>
+                </div>
+                <div class="api-card-title-row">
+                  <h3>{{ item.toolName || '未命名 Tool' }}</h3>
+                </div>
+                <p>{{ item.toolDescription || '还没有填写工具描述，建议说明这个工具能帮 Agent 完成什么任务。' }}</p>
+                <div class="tool-card-meta">
+                  <span>MCP Tool</span>
+                  <span>{{ parseJsonArray(item.linkedRequestKeys).length }} 个 API</span>
+                </div>
+                <div class="tool-card-whitelist">
+                  <span v-for="key in parseJsonArray(item.linkedRequestKeys)" :key="key">{{ key }}</span>
+                  <span v-if="!parseJsonArray(item.linkedRequestKeys).length">未绑定 API</span>
+                </div>
+                <div class="api-card-foot">
+                  <span class="tool-script-preview">{{ compactText(item.groovyScript, 34) }}</span>
+                  <div class="tool-card-actions">
+                    <button type="button" @click="openToolEditor(item)">编辑</button>
+                    <button type="button" :class="Number(item.publishStatus) === 0 ? 'publish' : 'danger'" @click="toggleOnlineTool(item)">{{ onlineActionLabel(item.publishStatus) }}</button>
+                    <button type="button" class="private" :disabled="Number(item.publishStatus) === 0" @click="toggleVisibilityTool(item)">{{ visibilityActionLabel(item.publishStatus) }}</button>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <div v-else class="api-empty-panel">
+              <div class="api-empty-mark"><ThunderboltOutlined /></div>
+              <h3>{{ rows.length ? '没有匹配的 Tool' : '还没有创建 Tool' }}</h3>
+              <p>{{ rows.length ? '换个关键词或筛选条件再看看。' : '先选择已上线的 API 配置，再编写 Groovy 脚本，把它包装成 MCP Tool。' }}</p>
+              <div class="api-empty-steps">
+                <span>选择 API</span>
+                <span>编写脚本</span>
+                <span>调试发布</span>
+              </div>
+              <button v-if="!rows.length" type="button" @click="openCreate"><PlusOutlined />新建 Tool</button>
+            </div>
           </section>
         </template>
 
@@ -840,7 +1656,98 @@ function loginSuccess() {
           </section>
         </template>
 
-        <template v-else>
+        <template v-else-if="page === 'studioToolEdit'">
+          <section class="tool-editor-shell">
+            <div class="api-editor-header">
+              <div>
+                <button type="button" class="api-back-btn" @click="changePage('studioTools')">← 返回列表</button>
+                <span class="api-section-kicker">Dynamic Tool</span>
+                <h2>{{ model.id ? '编辑 Tool' : '新建 Tool' }}</h2>
+                <p>Tool 创作负责包装能力：通过 inputSchema 定义入参，通过 Groovy 编排逻辑，并用 <code>runRequest.runRequest</code> 调用已保存的 API 配置。</p>
+              </div>
+              <aside>
+                <span>当前工具</span>
+                <b>{{ model.toolName || '未命名 Tool' }}</b>
+                <small>{{ Number(model.publishStatus) === 0 ? '草稿状态，可先调试再上线' : `${publishLabel(model.publishStatus)}，${visibilityLabel(model.publishStatus)}` }}</small>
+              </aside>
+            </div>
+
+            <div class="tool-editor-board">
+              <aside class="tool-editor-meta">
+                <div class="tool-editor-panel-head">
+                  <b>Tool 基本信息</b>
+                  <span>Agent 会根据名称、描述和 Schema 选择工具</span>
+                </div>
+                <label>
+                  <span>工具名</span>
+                  <input v-model="model.toolName" placeholder="如 query_course_list_tool" />
+                </label>
+                <label>
+                  <span>工具描述</span>
+                  <textarea v-model="model.toolDescription" spellcheck="false" placeholder="说明这个工具适合解决什么问题"></textarea>
+                </label>
+                <label>
+                  <span>inputSchema</span>
+                  <textarea v-model="model.inputSchema" class="tool-code-input" spellcheck="false"></textarea>
+                </label>
+                <div class="tool-editor-panel-head compact">
+                  <b>API 白名单</b>
+                  <span>已选 {{ selectedToolRequestKeys.length }} 个 configKey</span>
+                </div>
+                <a-select
+                  v-model:value="selectedToolRequestKeys"
+                  mode="multiple"
+                  show-search
+                  allow-clear
+                  :options="toolApiOptions"
+                  option-filter-prop="label"
+                  placeholder="搜索并选择可调用的 API configKey"
+                  class="tool-api-select"
+                  popupClassName="dark-select-dropdown tool-api-dropdown"
+                  max-tag-count="responsive"
+                />
+                <p v-if="!availableToolApis.length" class="tool-api-empty">暂无已上线 API，请先在 API 创作中上线一个配置。</p>
+              </aside>
+
+              <section class="tool-script-editor">
+                <div class="tool-editor-panel-head">
+                  <b>Groovy 脚本</b>
+                  <button type="button" @click="generateToolAssetsFromSelection">按已选 API 生成</button>
+                </div>
+                <textarea v-model="model.groovyScript" spellcheck="false"></textarea>
+                <div class="tool-editor-actions">
+                  <button type="button" class="tool-save-btn" :disabled="toolSaving" @click="saveToolEditor">{{ toolSaving ? '保存中' : '保存 Tool' }}</button>
+                  <button type="button" class="tool-run-btn" :disabled="toolDebugLoading" @click="sendToolEditor">{{ toolDebugLoading ? '运行中' : '运行调试' }}</button>
+                  <button v-if="model.id" type="button" class="tool-online-btn" @click="toggleOnlineTool(model)">
+                    {{ onlineActionLabel(model.publishStatus) }}
+                  </button>
+                  <button v-if="model.id" type="button" class="tool-online-btn" :disabled="Number(model.publishStatus) === 0" @click="toggleVisibilityTool(model)">
+                    {{ visibilityActionLabel(model.publishStatus) }}
+                  </button>
+                </div>
+              </section>
+
+              <aside class="tool-debug-panel">
+                <div class="tool-editor-panel-head">
+                  <b>调试面板</b>
+                  <span>输入 params，查看脚本返回值或错误信息</span>
+                </div>
+                <label>
+                  <span>测试参数 JSON</span>
+                  <textarea v-model="toolDebugParams" spellcheck="false"></textarea>
+                </label>
+                <div class="tool-debug-result-head">
+                  <b>执行结果</b>
+                  <span v-if="toolDebugResult" :class="toolDebugResult.success ? 'success' : 'error'">{{ toolDebugResult.success ? '成功' : '失败' }} · {{ toolDebugResult.durationMs ?? '-' }} ms</span>
+                  <span v-else>等待调试</span>
+                </div>
+                <pre>{{ toolDebugText }}</pre>
+              </aside>
+            </div>
+          </section>
+        </template>
+
+        <template v-else-if="page === 'studioApiEdit'">
           <section class="api-editor-shell">
             <div class="api-editor-header">
               <div>
@@ -989,7 +1896,7 @@ function loginSuccess() {
         <div class="nav-caption">运行观测</div>
         <a-menu-item key="audits"><AuditOutlined /><span>审计日志</span></a-menu-item>
       </a-menu>
-      <div class="sider-footer"><span class="live-dot"></span><span>MCP Server Online</span><small>v0.1.0 · Lesson 6</small></div>
+      <div class="sider-footer"><span class="live-dot"></span><span>MCP Server Online</span><small>v0.1.0 · Admin Console</small></div>
     </a-layout-sider>
     <a-layout-content class="layout-content">
       <header class="console-topbar"><div class="top-search"><SearchOutlined /><span>搜索页面、工具或配置</span><kbd>⌘ K</kbd></div><div class="top-actions"><a-button @click="changePage('shareHome')">Bear 社区</a-button><a-button @click="changePage('studioHome')">创作空间</a-button><a-button type="text" shape="circle" :icon="h(BellOutlined)" /><div class="user-chip"><span class="avatar">D</span><span><b>demo-admin</b><small>管理员</small></span></div></div></header>
@@ -1001,7 +1908,7 @@ function loginSuccess() {
       <template v-else-if="page === 'studioApis'">
         <div class="studio-hero">
           <div>
-            <span>Lesson 7</span>
+            <span>API Workspace</span>
             <h2>先把外部 HTTP API 接进来</h2>
             <p>这里负责 API 录入、参数模板、在线调试和发布。动态工具包装放到下一步，页面边界先立住。</p>
           </div>
@@ -1171,7 +2078,7 @@ function loginSuccess() {
       <section class="form-section">
         <div class="form-section-head">
           <b>基础信息</b>
-          <span>{{ page === 'studioApis' ? '创作空间先保存外部 HTTP API，后续再包装成动态工具' : '动态工具通过配置 Key 引用这项能力' }}</span>
+          <span>{{ page === 'studioApis' ? '先保存外部 HTTP API，后续可包装成动态工具' : '动态工具通过配置 Key 引用这项能力' }}</span>
         </div>
 
         <a-row :gutter="12">
@@ -1199,7 +2106,7 @@ function loginSuccess() {
       <section class="form-section">
         <div class="form-section-head">
           <b>调用方式</b>
-          <span>第 7 课只接入外部 HTTP API</span>
+          <span>当前支持外部 HTTP API 接入</span>
         </div>
 
         <a-row :gutter="12">
@@ -1329,6 +2236,108 @@ function loginSuccess() {
 
     <template #footer>
       <a-button @click="apiDebugOpen=false">关闭</a-button>
+    </template>
+  </a-modal>
+  <a-modal v-model:open="communityDetailOpen" :title="communityDetailTitle" width="760px" class="tool-permission-modal dynamic-tool-detail-modal community-detail-modal">
+    <template v-if="activeCommunityItem?.communityKind === 'tool'">
+      <section class="tool-option-section">
+        <div class="tool-option-title">
+          <span class="tool-type-dot dynamic"></span>
+          基础信息
+          <small>{{ activeCommunityItem?.communityType === 'builtin' ? '内置工具' : '动态工具' }}</small>
+        </div>
+        <div class="detail-grid">
+          <div>
+            <span>工具名</span>
+            <b>{{ activeCommunityItem?.displayName || activeCommunityItem?.toolName || '-' }}</b>
+          </div>
+          <div>
+            <span>工具编号</span>
+            <b>{{ communityToolCode(activeCommunityItem || {}) }}</b>
+          </div>
+          <div>
+            <span>分类</span>
+            <b>{{ activeCommunityItem?.displayCategory || activeCommunityItem?.category || '-' }}</b>
+          </div>
+          <div>
+            <span>发布范围</span>
+            <b>公开</b>
+          </div>
+        </div>
+        <p class="permission-hint detail-desc">{{ activeCommunityItem?.displayDescription || activeCommunityItem?.toolDescription || '暂无工具描述' }}</p>
+      </section>
+
+      <section class="tool-option-section">
+        <div class="tool-option-title">
+          <span class="tool-type-dot builtin"></span>
+          入参 Schema
+          <small>AI Client 看到的参数结构</small>
+        </div>
+        <pre class="detail-code">{{ prettyJsonText(activeCommunityItem?.inputSchema || '{}') }}</pre>
+      </section>
+
+      <section v-if="activeCommunityItem?.communityType !== 'builtin'" class="tool-option-section">
+        <div class="tool-option-title">
+          <span class="tool-type-dot dynamic"></span>
+          API 白名单
+          <small>脚本只能调用这些 configKey</small>
+        </div>
+        <div class="community-detail-tags">
+          <span v-for="key in parseJsonArray(activeCommunityItem?.linkedRequestKeys)" :key="key">{{ key }}</span>
+          <span v-if="!parseJsonArray(activeCommunityItem?.linkedRequestKeys).length">未绑定 API</span>
+        </div>
+      </section>
+
+      <section v-if="activeCommunityItem?.communityType !== 'builtin'" class="tool-option-section">
+        <div class="tool-option-title">
+          <span class="tool-type-dot dynamic"></span>
+          Groovy 脚本
+          <small>tools/call 命中动态工具后执行</small>
+        </div>
+        <pre class="detail-code script-code">{{ activeCommunityItem?.groovyScript || '暂无脚本内容' }}</pre>
+      </section>
+
+      <section v-else class="tool-option-section">
+        <div class="tool-option-title">
+          <span class="tool-type-dot builtin"></span>
+          实现方式
+          <small>内置工具由 Java 方法注册</small>
+        </div>
+        <pre class="detail-code script-code">Java @Tool：{{ activeCommunityItem?.displayName || activeCommunityItem?.toolName }}</pre>
+      </section>
+    </template>
+
+    <template v-else-if="activeCommunityItem?.communityKind === 'api'">
+      <section class="tool-option-section">
+        <div class="tool-option-title">
+          <span class="tool-type-dot builtin"></span>
+          基础信息
+          <small>API 能力</small>
+        </div>
+        <div class="detail-grid">
+          <div>
+            <span>配置 Key</span>
+            <b>{{ activeCommunityItem?.configKey || '-' }}</b>
+          </div>
+          <div>
+            <span>接口编号</span>
+            <b>{{ activeCommunityItem?.requestId || communityCode('API', activeCommunityItem?.id) }}</b>
+          </div>
+          <div>
+            <span>请求方式</span>
+            <b>{{ activeCommunityItem?.type || 'HTTP' }} / {{ activeCommunityItem?.method || 'GET' }}</b>
+          </div>
+          <div>
+            <span>分类</span>
+            <b>{{ activeCommunityItem?.category || '未分类' }}</b>
+          </div>
+        </div>
+        <p class="permission-hint detail-desc">{{ activeCommunityItem?.description || activeCommunityItem?.name || '暂无 API 描述' }}</p>
+      </section>
+    </template>
+
+    <template #footer>
+      <a-button type="primary" @click="communityDetailOpen=false">关闭</a-button>
     </template>
   </a-modal>
   <a-modal v-model:open="dynamicToolDetailOpen" :title="`动态工具详情 · ${activeDynamicTool?.toolName || ''}`" width="860px" class="tool-permission-modal dynamic-tool-detail-modal">

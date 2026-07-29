@@ -3,20 +3,67 @@
 <mapper namespace="com.bear.mcp.single.core.mapper.McpDynamicToolMapper">
     <select id="findEnabledByName" resultType="com.bear.mcp.single.core.entity.McpDynamicToolEntity">
         SELECT id, tool_name, tool_description, input_schema, groovy_script,
-               linked_request_keys, is_enabled AS enabled
+               linked_request_keys, is_enabled AS enabled, publish_status
         FROM mcp_dynamic_tool
-        WHERE tool_name = #{toolName} AND is_enabled = 1
+        WHERE tool_name = #{toolName} AND is_enabled = 1 AND publish_status != 0
+        LIMIT 1
+    </select>
+    <select id="findById" resultType="com.bear.mcp.single.core.entity.McpDynamicToolEntity">
+        SELECT id, tool_name, tool_description, input_schema, groovy_script,
+               linked_request_keys, is_enabled AS enabled, publish_status
+        FROM mcp_dynamic_tool
+        WHERE id = #{id}
+        LIMIT 1
+    </select>
+    <select id="findByName" resultType="com.bear.mcp.single.core.entity.McpDynamicToolEntity">
+        SELECT id, tool_name, tool_description, input_schema, groovy_script,
+               linked_request_keys, is_enabled AS enabled, publish_status
+        FROM mcp_dynamic_tool
+        WHERE tool_name = #{toolName}
         LIMIT 1
     </select>
     <select id="findAll" resultType="com.bear.mcp.single.core.entity.McpDynamicToolEntity">
-        SELECT id, tool_name, tool_description, input_schema, groovy_script, linked_request_keys, is_enabled AS enabled FROM mcp_dynamic_tool ORDER BY id DESC
+        SELECT id, tool_name, tool_description, input_schema, groovy_script,
+               linked_request_keys, is_enabled AS enabled, publish_status
+        FROM mcp_dynamic_tool
+        ORDER BY id DESC
+    </select>
+    <select id="findPublicTools" resultType="com.bear.mcp.single.core.entity.McpDynamicToolEntity">
+        SELECT id, tool_name, tool_description, input_schema, groovy_script,
+               linked_request_keys, is_enabled AS enabled, publish_status
+        FROM mcp_dynamic_tool
+        WHERE is_enabled = 1
+          AND publish_status = 2
+        ORDER BY id DESC
     </select>
     <insert id="insert" parameterType="com.bear.mcp.single.core.entity.McpDynamicToolEntity" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO mcp_dynamic_tool (tool_name, tool_description, input_schema, groovy_script, linked_request_keys, is_enabled)
-        VALUES (#{toolName}, #{toolDescription}, #{inputSchema}, #{groovyScript}, #{linkedRequestKeys}, #{enabled})
+        INSERT INTO mcp_dynamic_tool (tool_name, tool_description, input_schema, groovy_script, linked_request_keys, is_enabled, publish_status)
+        VALUES (#{toolName}, #{toolDescription}, #{inputSchema}, #{groovyScript}, #{linkedRequestKeys}, #{enabled}, #{publishStatus})
     </insert>
     <update id="update" parameterType="com.bear.mcp.single.core.entity.McpDynamicToolEntity">
-        UPDATE mcp_dynamic_tool SET tool_description=#{toolDescription}, input_schema=#{inputSchema}, groovy_script=#{groovyScript}, linked_request_keys=#{linkedRequestKeys}, is_enabled=#{enabled} WHERE id=#{id}
+        UPDATE mcp_dynamic_tool
+        SET tool_name=#{toolName},
+            tool_description=#{toolDescription},
+            input_schema=#{inputSchema},
+            groovy_script=#{groovyScript},
+            linked_request_keys=#{linkedRequestKeys},
+            is_enabled=#{enabled},
+            publish_status=#{publishStatus}
+        WHERE id=#{id}
     </update>
-    <select id="countEnabled" resultType="int">SELECT COUNT(*) FROM mcp_dynamic_tool WHERE is_enabled=1</select>
+    <update id="updateEnabled">
+        UPDATE mcp_dynamic_tool
+        SET is_enabled=#{enabled},
+            publish_status=CASE WHEN #{enabled}=1 THEN 1 ELSE 0 END
+        WHERE id=#{id}
+    </update>
+    <update id="updatePublishStatus">
+        UPDATE mcp_dynamic_tool
+        SET is_enabled=#{enabled},
+            publish_status=#{publishStatus}
+        WHERE id=#{id}
+    </update>
+    <select id="countEnabled" resultType="int">
+        SELECT COUNT(*) FROM mcp_dynamic_tool WHERE is_enabled=1 AND publish_status != 0
+    </select>
 </mapper>

@@ -33,6 +33,11 @@ public interface McpRequestConfigMapper {
     List<McpRequestConfigEntity> findShareStudioApis(@Param("creatorId") Long creatorId);
 
     /**
+     * 查询社区公开的 HTTP API。
+     */
+    List<McpRequestConfigEntity> findPublicApis();
+
+    /**
      * 新增请求配置。
      */
     int insert(McpRequestConfigEntity entity);

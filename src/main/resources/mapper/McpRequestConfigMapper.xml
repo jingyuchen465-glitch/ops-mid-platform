@@ -32,6 +32,17 @@
           AND (creator_id = #{creatorId} OR creator_id IS NULL)
         ORDER BY id DESC
     </select>
+    <select id="findPublicApis" resultType="com.bear.mcp.single.core.entity.McpRequestConfigEntity">
+        SELECT id, request_id, config_key, name, type, method, url, headers, body_template,
+               params_default, connect_timeout_ms, read_timeout_ms, service_name, method_name,
+               args_schema, creator_id, is_enabled, rate_limit_per_minute, publish_status,
+               description, category, create_time, update_time
+        FROM mcp_request_config
+        WHERE type = 'HTTP'
+          AND is_enabled = 1
+          AND publish_status = 2
+        ORDER BY id DESC
+    </select>
     <insert id="insert" parameterType="com.bear.mcp.single.core.entity.McpRequestConfigEntity" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO mcp_request_config (request_id, config_key, name, type, method, url, headers, body_template, params_default, connect_timeout_ms, read_timeout_ms, service_name, method_name, args_schema, creator_id, is_enabled, rate_limit_per_minute, publish_status, description, category)
         VALUES (#{requestId},#{configKey},#{name},#{type},#{method},#{url},#{headers},#{bodyTemplate},#{paramsDefault},#{connectTimeoutMs},#{readTimeoutMs},#{serviceName},#{methodName},#{argsSchema},#{creatorId},#{isEnabled},#{rateLimitPerMinute},#{publishStatus},#{description},#{category})
