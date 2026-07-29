@@ -26,6 +26,10 @@ public class AdminWebMvcConfig implements WebMvcConfigurer {
         registry.addViewController("/admin").setViewName("forward:/index.html");
         registry.addViewController("/share").setViewName("forward:/index.html");
         registry.addViewController("/share/studio").setViewName("forward:/index.html");
+        registry.addViewController("/share/studio/tools").setViewName("forward:/index.html");
+        registry.addViewController("/share/studio/tools/edit").setViewName("forward:/index.html");
+        registry.addViewController("/share/studio/prompts").setViewName("forward:/index.html");
+        registry.addViewController("/share/studio/prompts/edit").setViewName("forward:/index.html");
         registry.addViewController("/share/studio/apis").setViewName("forward:/index.html");
         registry.addViewController("/share/studio/apis/edit").setViewName("forward:/index.html");
     }

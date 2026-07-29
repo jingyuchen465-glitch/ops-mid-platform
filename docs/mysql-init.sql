@@ -1,7 +1,10 @@
 DROP TABLE IF EXISTS mcp_audit_log;
+DROP TABLE IF EXISTS mcp_user_prompt_selection;
 DROP TABLE IF EXISTS mcp_user_tool_selection;
+DROP TABLE IF EXISTS mcp_role_prompt;
 DROP TABLE IF EXISTS mcp_role_tool;
 DROP TABLE IF EXISTS mcp_user_role;
+DROP TABLE IF EXISTS mcp_prompt_template;
 DROP TABLE IF EXISTS mcp_dynamic_tool;
 DROP TABLE IF EXISTS mcp_data_source;
 DROP TABLE IF EXISTS mcp_request_config;
@@ -48,6 +51,14 @@ CREATE TABLE mcp_role_tool (
     UNIQUE KEY uk_mcp_role_tool (role_code, tool_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='角色工具权限表';
 
+CREATE TABLE mcp_role_prompt (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
+    role_code VARCHAR(64) NOT NULL COMMENT '角色编码',
+    prompt_name VARCHAR(128) NOT NULL COMMENT 'MCP Prompt 名称',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    UNIQUE KEY uk_mcp_role_prompt (role_code, prompt_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='角色 Prompt 权限表';
+
 CREATE TABLE mcp_user_token (
     id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'Token 主键',
     user_id BIGINT NOT NULL COMMENT '用户 ID',
@@ -75,6 +86,15 @@ CREATE TABLE mcp_user_tool_selection (
     CONSTRAINT fk_mcp_tool_selection_token FOREIGN KEY (token_id) REFERENCES mcp_user_token (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Token 工具选择表';
 
+CREATE TABLE mcp_user_prompt_selection (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
+    token_id BIGINT NOT NULL COMMENT 'Token ID',
+    prompt_name VARCHAR(128) NOT NULL COMMENT 'MCP Prompt 名称',
+    is_enabled TINYINT NOT NULL DEFAULT 1 COMMENT '是否启用',
+    KEY idx_mcp_prompt_selection_token (token_id),
+    CONSTRAINT fk_mcp_prompt_selection_token FOREIGN KEY (token_id) REFERENCES mcp_user_token (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Token Prompt 选择表';
+
 CREATE TABLE mcp_dynamic_tool (
     id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
     tool_name VARCHAR(128) NOT NULL COMMENT 'MCP 工具名',
@@ -87,6 +107,23 @@ CREATE TABLE mcp_dynamic_tool (
     publish_status TINYINT NOT NULL DEFAULT 0 COMMENT '发布状态：0-草稿，1-已上架不公开，2-已上架公开',
     UNIQUE KEY uk_mcp_dynamic_tool_name (tool_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='动态工具表';
+
+CREATE TABLE mcp_prompt_template (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
+    prompt_name VARCHAR(128) NOT NULL COMMENT 'MCP Prompt 名称',
+    title VARCHAR(128) NOT NULL COMMENT '展示标题',
+    description TEXT NULL COMMENT 'Prompt 描述',
+    arguments_schema JSON NOT NULL COMMENT 'MCP Prompt 参数定义 JSON 数组',
+    template_content MEDIUMTEXT NOT NULL COMMENT 'Prompt 模板内容',
+    linked_tool_names JSON NOT NULL COMMENT '建议使用的工具名',
+    creator_id BIGINT NULL COMMENT '创建者用户 ID',
+    is_enabled TINYINT NOT NULL DEFAULT 0 COMMENT '是否启用',
+    publish_status TINYINT NOT NULL DEFAULT 0 COMMENT '发布状态：0-草稿，1-已上架不公开，2-已上架公开',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_mcp_prompt_template_name (prompt_name),
+    KEY idx_mcp_prompt_template_creator (creator_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Prompt 模板表';
 
 CREATE TABLE mcp_request_config (
     id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',

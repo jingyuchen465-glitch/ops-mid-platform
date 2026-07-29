@@ -18,6 +18,8 @@ public record McpUserContext(
         Set<String> roles,
         /** 用户通过角色获得的工具资格集合。 */
         Set<String> allowedTools,
+        /** 用户通过角色获得的 Prompt 资格集合。 */
+        Set<String> allowedPrompts,
         /** 当前 MCP 会话 ID，课堂版预留。 */
         String sessionId,
         /** 客户端 IP，用于审计和排查。 */

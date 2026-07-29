@@ -307,6 +307,17 @@ body { margin:0; min-width:1180px; background:radial-gradient(ellipse 70% 45% at
 .tool-card-actions{gap:6px}
 .tool-card-actions button{height:28px;min-width:50px;padding:0 10px!important;font-size:12px!important}
 
+/* Prompt creator */
+.prompt-param-list{display:grid;gap:8px;margin:8px 0 14px}
+.prompt-param-item{display:grid;grid-template-columns:minmax(82px,1fr) minmax(96px,1.1fr) minmax(82px,1fr) auto auto;gap:7px;align-items:center;padding:8px;border:1px solid rgba(255,255,255,.08);border-radius:9px;background:#11131c}
+.prompt-param-item input[type="text"],.prompt-param-item>input{height:32px;min-width:0;padding:0 9px;border:1px solid rgba(148,163,184,.16);border-radius:7px;background:#0d0f17;color:#dce6f7;font-size:12px;outline:0}
+.prompt-param-item input:focus{border-color:rgba(34,211,238,.45);box-shadow:0 0 0 2px rgba(34,211,238,.08)}
+.prompt-param-check{display:inline-flex!important;align-items:center;gap:5px;margin:0!important;color:#91a0b7;font-size:12px;white-space:nowrap}
+.prompt-param-check input{accent-color:#22d3ee}
+.prompt-param-item button{height:30px;padding:0 9px;border:1px solid rgba(248,113,113,.22);border-radius:7px;background:rgba(248,113,113,.08);color:#fca5a5;font-size:12px;font-weight:700;cursor:pointer}
+.prompt-param-item button:hover{border-color:rgba(248,113,113,.4);background:rgba(248,113,113,.13)}
+@media (max-width:900px){.prompt-param-item{grid-template-columns:1fr 1fr}.prompt-param-check{height:32px}}
+
 /* Community marketplace */
 .share-shell:has(.community-market-shell){background:radial-gradient(ellipse 46% 32% at 50% 0%,rgba(96,165,250,.16),transparent 62%),radial-gradient(ellipse 36% 30% at 88% 12%,rgba(139,92,246,.14),transparent 64%),linear-gradient(180deg,#090a10 0%,#0d1018 58%,#080a0f 100%)}
 .share-shell:has(.community-market-shell) .hub-main{max-width:1620px;padding:34px 32px 72px}

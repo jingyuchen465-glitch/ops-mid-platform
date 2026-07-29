@@ -1,11 +1,13 @@
 package com.bear.mcp.single.core.auth;
 
 import com.bear.mcp.single.core.entity.McpRoleEntity;
+import com.bear.mcp.single.core.entity.McpRolePromptEntity;
 import com.bear.mcp.single.core.entity.McpRoleToolEntity;
 import com.bear.mcp.single.core.entity.McpUserEntity;
 import com.bear.mcp.single.core.entity.McpUserRoleEntity;
 import com.bear.mcp.single.core.entity.McpUserTokenEntity;
 import com.bear.mcp.single.core.mapper.McpRoleMapper;
+import com.bear.mcp.single.core.mapper.McpRolePromptMapper;
 import com.bear.mcp.single.core.mapper.McpRoleToolMapper;
 import com.bear.mcp.single.core.mapper.McpUserMapper;
 import com.bear.mcp.single.core.mapper.McpUserRoleMapper;
@@ -47,16 +49,23 @@ public class TokenService {
      */
     private final McpRoleToolMapper roleToolMapper;
 
+    /**
+     * mcp_role_prompt：角色能使用哪些 Prompt，是 Prompt 权限上限。
+     */
+    private final McpRolePromptMapper rolePromptMapper;
+
     public TokenService(McpUserTokenMapper tokenMapper,
                         McpUserMapper userMapper,
                         McpUserRoleMapper userRoleMapper,
                         McpRoleMapper roleMapper,
-                        McpRoleToolMapper roleToolMapper) {
+                        McpRoleToolMapper roleToolMapper,
+                        McpRolePromptMapper rolePromptMapper) {
         this.tokenMapper = tokenMapper;
         this.userMapper = userMapper;
         this.userRoleMapper = userRoleMapper;
         this.roleMapper = roleMapper;
         this.roleToolMapper = roleToolMapper;
+        this.rolePromptMapper = rolePromptMapper;
     }
 
     public Optional<TokenAuthInfo> validate(String token) {
@@ -104,6 +113,15 @@ public class TokenService {
                 .collect(Collectors.toSet());
 
         /*
+         * Prompt 和 Tool 一样走角色资格上限。
+         * 最终 prompts/list 还会再和 Token Prompt 选择取交集。
+         */
+        Set<String> allowedPrompts = activeRoleCodes.isEmpty() ? Set.of()
+                : rolePromptMapper.findByRoleCodes(activeRoleCodes).stream()
+                .map(McpRolePromptEntity::getPromptName)
+                .collect(Collectors.toSet());
+
+        /*
          * 只要鉴权通过，就刷新最后使用时间。
          * 它方便管理端观察 Token 是否还在被真实调用。
          */
@@ -113,7 +131,8 @@ public class TokenService {
                 userEntity.getId(),
                 userEntity.getUsername(),
                 activeRoleCodes,
-                allowedTools
+                allowedTools,
+                allowedPrompts
         ));
     }
 

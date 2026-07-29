@@ -3,10 +3,13 @@ package com.bear.mcp.single.admin.service;
 import com.bear.mcp.single.admin.req.AdminCodeListReq;
 import com.bear.mcp.single.admin.req.AdminRoleSaveReq;
 import com.bear.mcp.single.admin.res.AdminRoleRes;
+import com.bear.mcp.single.admin.res.AdminRolePromptRes;
 import com.bear.mcp.single.admin.res.AdminRoleToolRes;
 import com.bear.mcp.single.core.entity.McpRoleEntity;
+import com.bear.mcp.single.core.entity.McpRolePromptEntity;
 import com.bear.mcp.single.core.entity.McpRoleToolEntity;
 import com.bear.mcp.single.core.mapper.McpRoleMapper;
+import com.bear.mcp.single.core.mapper.McpRolePromptMapper;
 import com.bear.mcp.single.core.mapper.McpRoleToolMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,10 +20,14 @@ import java.util.List;
 public class AdminRoleService {
     private final McpRoleMapper roleMapper;
     private final McpRoleToolMapper roleToolMapper;
+    private final McpRolePromptMapper rolePromptMapper;
 
-    public AdminRoleService(McpRoleMapper roleMapper, McpRoleToolMapper roleToolMapper) {
+    public AdminRoleService(McpRoleMapper roleMapper,
+                            McpRoleToolMapper roleToolMapper,
+                            McpRolePromptMapper rolePromptMapper) {
         this.roleMapper = roleMapper;
         this.roleToolMapper = roleToolMapper;
+        this.rolePromptMapper = rolePromptMapper;
     }
 
     public List<AdminRoleRes> list() {
@@ -50,6 +57,10 @@ public class AdminRoleService {
         return roleToolMapper.findAll().stream().map(this::toRoleToolRes).toList();
     }
 
+    public List<AdminRolePromptRes> listPrompts() {
+        return rolePromptMapper.findAll().stream().map(this::toRolePromptRes).toList();
+    }
+
     @Transactional
     public void replaceTools(String roleCode, AdminCodeListReq req) {
         roleToolMapper.deleteByRoleCode(roleCode);
@@ -58,6 +69,17 @@ public class AdminRoleService {
             entity.setRoleCode(roleCode);
             entity.setToolName(toolName);
             roleToolMapper.insert(entity);
+        }
+    }
+
+    @Transactional
+    public void replacePrompts(String roleCode, AdminCodeListReq req) {
+        rolePromptMapper.deleteByRoleCode(roleCode);
+        for (String promptName : safe(req.getCodes())) {
+            McpRolePromptEntity entity = new McpRolePromptEntity();
+            entity.setRoleCode(roleCode);
+            entity.setPromptName(promptName);
+            rolePromptMapper.insert(entity);
         }
     }
 
@@ -91,6 +113,15 @@ public class AdminRoleService {
         res.setId(entity.getId());
         res.setRoleCode(entity.getRoleCode());
         res.setToolName(entity.getToolName());
+        res.setCreateTime(entity.getCreateTime());
+        return res;
+    }
+
+    private AdminRolePromptRes toRolePromptRes(McpRolePromptEntity entity) {
+        AdminRolePromptRes res = new AdminRolePromptRes();
+        res.setId(entity.getId());
+        res.setRoleCode(entity.getRoleCode());
+        res.setPromptName(entity.getPromptName());
         res.setCreateTime(entity.getCreateTime());
         return res;
     }

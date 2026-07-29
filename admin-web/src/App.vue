@@ -12,18 +12,25 @@ const rows = ref([])
 const dashboard = ref({})
 const roles = ref([])
 const roleTools = ref([])
+const rolePrompts = ref([])
 const userRoles = ref([])
 const tokenSelections = ref([])
+const tokenPromptSelections = ref([])
 const dynamicToolOptions = ref([])
+const promptOptions = ref([])
 const toolPermissionOpen = ref(false)
+const promptPermissionOpen = ref(false)
 const tokenSelectionOpen = ref(false)
+const tokenPromptSelectionOpen = ref(false)
 const userRoleOpen = ref(false)
 const activeUser = ref(null)
 const activeRole = ref(null)
 const activeToken = ref(null)
 const selectedUserRoles = ref([])
 const selectedRoleTools = ref([])
+const selectedRolePrompts = ref([])
 const selectedTokenTools = ref([])
+const selectedTokenPrompts = ref([])
 const users = ref([])
 const requestConfigs = ref([])
 const dataSourceConfigs = ref([])
@@ -51,6 +58,13 @@ const apiKeyword = ref('')
 const apiStatusFilter = ref('all')
 const toolKeyword = ref('')
 const toolStatusFilter = ref('all')
+const promptKeyword = ref('')
+const promptStatusFilter = ref('all')
+const promptPreviewArgs = ref('{}')
+const promptPreviewResult = ref(null)
+const promptPreviewLoading = ref(false)
+const promptSaving = ref(false)
+const promptArgumentItems = ref([])
 const toolDebugParams = ref('{\n  "pageNum": 1,\n  "pageSize": 10\n}')
 const toolDebugResult = ref(null)
 const toolDebugLoading = ref(false)
@@ -106,17 +120,17 @@ const dataSourcePublishStatusOptions = [
   { label: '已发布', value: 1 }
 ]
 const menu = [
-  ['dashboard', '概览', AppstoreOutlined], ['users', '用户', TeamOutlined], ['roles', '角色与工具权限', TeamOutlined], ['tokens', 'Token 与工具选择', KeyOutlined],
+  ['dashboard', '概览', AppstoreOutlined], ['users', '用户', TeamOutlined], ['roles', '角色与能力权限', TeamOutlined], ['tokens', 'Token 与能力选择', KeyOutlined],
   ['requests', '请求配置', SettingOutlined], ['dataSources', '数据源', DatabaseOutlined], ['tools', '动态工具', ThunderboltOutlined], ['audits', '审计日志', AuditOutlined]
 ]
 const communityPages = ['shareHome', 'shareTools', 'shareApis']
-const studioPages = ['studioHome', 'studioTools', 'studioToolEdit', 'studioApis', 'studioApiEdit']
+const studioPages = ['studioHome', 'studioTools', 'studioToolEdit', 'studioPrompts', 'studioPromptEdit', 'studioApis', 'studioApiEdit']
 const sharePages = [...communityPages, ...studioPages]
 const isSharePage = computed(() => sharePages.includes(page.value))
 const isCommunityPage = computed(() => communityPages.includes(page.value))
-const navSections = { dashboard: '概览', users: '系统治理', roles: '系统治理', tokens: '访问控制', requests: '能力展示', dataSources: '能力展示', tools: '能力展示', audits: '运行观测', shareHome: '首页', shareTools: 'MCP Tools', shareApis: 'API 能力', studioHome: '首页', studioTools: 'Tools 创作', studioApis: 'API 创作' }
-const title = computed(() => ({ dashboard:'运行概览', users:'用户', roles:'角色与工具权限', tokens:'Token 与工具选择', requests:'请求配置', dataSources:'数据源', tools:'动态工具', audits:'调用审计', shareHome:'发现优质 AI 能力', shareTools:'MCP Tools', shareApis:'API 能力', studioHome:'Bear 创作空间', studioTools:'Tools 创作', studioToolEdit:'新建 Tool', studioApis:'API 创作', studioApiEdit:'新建 API' })[page.value])
-const desc = computed(() => ({ dashboard:'当前数据库中的 MCP 治理状态', users:'角色是工具权限上限，用户通过角色获得资格', roles:'角色决定资格上限，实际工具权限由角色工具表维护', tokens:'每把 Token 单独选择要暴露和实际允许调用的工具', requests:'展示动态工具可引用的企业请求配置；完整创作在创作空间完成', dataSources:'维护外部数据库连接配置，为后续 query_data_source 和动态 Tool runSql 提供受控数据入口', tools:'这里只展示已发布的动态工具；创建与编辑在创作空间完成', audits:'保留每一次 MCP 工具调用的结果摘要与耗时', shareHome:'公开的 Tool 和 API 会先进入社区，被团队发现、复用，再进入 Token 配置链路。', shareTools:'浏览已公开的 MCP Tool。能否调用仍由角色权限和 Token 工具选择决定。', shareApis:'浏览已公开的 API 配置，它们是动态 Tool 编排时可复用的基础能力。', studioHome:'创作 Skills、Tools、Prompts、API，分享到社区', studioTools:'把已接入的 API 配置包装成 AI Agent 可见和可调用的 MCP Tool', studioToolEdit:'编写工具描述、入参 Schema 和 Groovy 脚本，调试通过后发布上线', studioApis:'创建外部 HTTP API 配置，调试通过后发布给后续动态工具使用', studioApiEdit:'配置外部 HTTP API，保存并调试真实响应' })[page.value])
+const navSections = { dashboard: '概览', users: '系统治理', roles: '系统治理', tokens: '访问控制', requests: '能力展示', dataSources: '能力展示', tools: '能力展示', audits: '运行观测', shareHome: '首页', shareTools: 'MCP Tools', shareApis: 'API 能力', studioHome: '首页', studioTools: 'Tools 创作', studioPrompts: 'Prompts 创作', studioApis: 'API 创作' }
+const title = computed(() => ({ dashboard:'运行概览', users:'用户', roles:'角色与能力权限', tokens:'Token 与能力选择', requests:'请求配置', dataSources:'数据源', tools:'动态工具', audits:'调用审计', shareHome:'发现优质 AI 能力', shareTools:'MCP Tools', shareApis:'API 能力', studioHome:'Bear 创作空间', studioTools:'Tools 创作', studioToolEdit:'新建 Tool', studioPrompts:'Prompts 创作', studioPromptEdit:'新建 Prompt', studioApis:'API 创作', studioApiEdit:'新建 API' })[page.value])
+const desc = computed(() => ({ dashboard:'当前数据库中的 MCP 治理状态', users:'角色是工具和 Prompt 权限上限，用户通过角色获得资格', roles:'角色决定资格上限，工具和 Prompt 都在这里授权', tokens:'每把 Token 单独选择要暴露和实际允许使用的 Tool / Prompt', requests:'展示动态工具可引用的企业请求配置；完整创作在创作空间完成', dataSources:'维护外部数据库连接配置，为后续 query_data_source 和动态 Tool runSql 提供受控数据入口', tools:'这里只展示已发布的动态工具；创建与编辑在创作空间完成', audits:'保留每一次 MCP 工具调用的结果摘要与耗时', shareHome:'公开的 Tool 和 API 会先进入社区，被团队发现、复用，再进入 Token 配置链路。', shareTools:'浏览已公开的 MCP Tool。能否调用仍由角色权限和 Token 工具选择决定。', shareApis:'浏览已公开的 API 配置，它们是动态 Tool 编排时可复用的基础能力。', studioHome:'创作 Skills、Tools、Prompts、API，分享到社区', studioTools:'把已接入的 API 配置包装成 AI Agent 可见和可调用的 MCP Tool', studioToolEdit:'编写工具描述、入参 Schema 和 Groovy 脚本，调试通过后发布上线', studioPrompts:'沉淀企业工作流模板，指导 Agent 按标准流程使用工具', studioPromptEdit:'编写 Prompt 模板、参数和建议工具，预览渲染后发布', studioApis:'创建外部 HTTP API 配置，调试通过后发布给后续动态工具使用', studioApiEdit:'配置外部 HTTP API，保存并调试真实响应' })[page.value])
 const studioApiStats = computed(() => {
   const all = rows.value.length
   const online = rows.value.filter(item => Number(item.publishStatus) !== 0).length
@@ -187,6 +201,27 @@ const filteredStudioTools = computed(() => {
       item.toolDescription,
       item.linkedRequestKeys,
       item.groovyScript
+    ].filter(Boolean).join(' ').toLowerCase()
+
+    return matchStatus && (!keyword || searchText.includes(keyword))
+  })
+})
+const filteredStudioPrompts = computed(() => {
+  const keyword = promptKeyword.value.trim().toLowerCase()
+
+  return rows.value.filter(item => {
+    const publishStatus = Number(item.publishStatus)
+    const matchStatus =
+      promptStatusFilter.value === 'all'
+      || (promptStatusFilter.value === 'online' && publishStatus !== 0)
+      || (promptStatusFilter.value === 'draft' && publishStatus === 0)
+
+    const searchText = [
+      item.promptName,
+      item.title,
+      item.description,
+      item.templateContent,
+      item.linkedToolNames
     ].filter(Boolean).join(' ').toLowerCase()
 
     return matchStatus && (!keyword || searchText.includes(keyword))
@@ -297,6 +332,27 @@ const toolDataSourceOptions = computed(() => {
     title: item.description || item.jdbcUrl || item.name || String(item.id)
   }))
 })
+const selectedPromptToolNames = computed({
+  get() {
+    return parseJsonArray(model.value.linkedToolNames)
+  },
+  set(value) {
+    model.value.linkedToolNames = JSON.stringify(value, null, 2)
+  }
+})
+const promptToolOptions = computed(() => {
+  const dynamicOptions = dynamicToolOptions.value.map(item => ({
+    label: `${item.toolName} 动态工具`,
+    value: item.toolName,
+    title: item.toolDescription || item.toolName
+  }))
+  const builtinOptions = builtinTools.map(item => ({
+    label: `${item.name} 内置工具`,
+    value: item.name,
+    title: item.description
+  }))
+  return [...dynamicOptions, ...builtinOptions]
+})
 const toolDebugText = computed(() => {
   if (!toolDebugResult.value) {
     return '点击「运行调试」后显示脚本返回结果'
@@ -308,7 +364,7 @@ const drawerTitle = computed(() => {
   if (page.value === 'studioApis') {
     return model.value.id ? '编辑 HTTP API' : '新建 HTTP API'
   }
-  return `${model.value.id ? '编辑' : '新建'}${title.value.replace('与工具权限','').replace('与工具选择','')}`
+  return `${model.value.id ? '编辑' : '新建'}${title.value.replace('与工具权限','').replace('与工具选择','').replace('与能力权限','').replace('与能力选择','')}`
 })
 const userOptions = computed(() => users.value.map(user => ({
   label: `${user.displayName || user.username}（${user.username}）`,
@@ -337,6 +393,12 @@ function pageFromPath() {
   }
   if (path === '/share/studio/tools/edit') {
     return 'studioToolEdit'
+  }
+  if (path === '/share/studio/prompts') {
+    return 'studioPrompts'
+  }
+  if (path === '/share/studio/prompts/edit') {
+    return 'studioPromptEdit'
   }
   if (path === '/share/studio/apis') {
     return 'studioApis'
@@ -367,6 +429,8 @@ function pathForPage(key) {
     studioHome: '/share/studio',
     studioTools: '/share/studio/tools',
     studioToolEdit: '/share/studio/tools/edit',
+    studioPrompts: '/share/studio/prompts',
+    studioPromptEdit: '/share/studio/prompts/edit',
     studioApis: '/share/studio/apis',
     studioApiEdit: '/share/studio/apis/edit',
     dashboard: '/admin'
@@ -602,13 +666,23 @@ async function load() {
       ])
       users.value = rows.value
     }
-    else if (page.value === 'roles') { [rows.value, roleTools.value, dynamicToolOptions.value] = await Promise.all([api('/roles'), api('/role-tools'), api('/dynamic-tools')]) }
+    else if (page.value === 'roles') {
+      [rows.value, roleTools.value, rolePrompts.value, dynamicToolOptions.value, promptOptions.value] = await Promise.all([
+        api('/roles'),
+        api('/role-tools'),
+        api('/role-prompts'),
+        api('/dynamic-tools'),
+        api('/prompt-templates')
+      ])
+    }
     else if (page.value === 'tokens') {
-      [rows.value, users.value, tokenSelections.value, dynamicToolOptions.value] = await Promise.all([
+      [rows.value, users.value, tokenSelections.value, tokenPromptSelections.value, dynamicToolOptions.value, promptOptions.value] = await Promise.all([
         api('/tokens'),
         api('/users'),
         api('/token-selections'),
-        api('/dynamic-tools')
+        api('/token-prompt-selections'),
+        api('/dynamic-tools'),
+        api('/prompt-templates')
       ])
     }
     else if (page.value === 'requests') rows.value = await api('/request-configs')
@@ -627,6 +701,20 @@ async function load() {
       ])
       if (!model.value.toolName) {
         model.value = emptyToolModel()
+      }
+    }
+    else if (page.value === 'studioPrompts') {
+      [rows.value, dynamicToolOptions.value] = await Promise.all([
+        api('/api/share/studio/prompts'),
+        api('/dynamic-tools')
+      ])
+    }
+    else if (page.value === 'studioPromptEdit') {
+      dynamicToolOptions.value = await api('/dynamic-tools')
+      if (!model.value.promptName) {
+        model.value = emptyPromptModel()
+        syncPromptArgumentsFromModel()
+        promptPreviewArgs.value = buildPromptPreviewArgs()
       }
     }
     else if (page.value === 'studioApis') rows.value = await api('/api/share/studio/apis')
@@ -670,6 +758,7 @@ function emptyModel() {
   if (page.value === 'requests' || page.value === 'studioApis' || page.value === 'studioApiEdit') return emptyApiModel()
   if (page.value === 'dataSources') return emptyDataSourceModel()
   if (page.value === 'tools') return { toolName:'', toolDescription:'', inputSchema:'{"type":"object","properties":{}}', groovyScript:'return [message: params.message]', linkedRequestKeys:'[]', linkedDataSourceIds:'[]', enabled:1 }
+  if (page.value === 'studioPrompts' || page.value === 'studioPromptEdit') return emptyPromptModel()
   return {}
 }
 function emptyApiModel() {
@@ -695,6 +784,18 @@ function emptyToolModel() {
     publishStatus: 0
   }
 }
+function emptyPromptModel() {
+  return {
+    promptName: '',
+    title: '',
+    description: '',
+    argumentsSchema: '[]',
+    templateContent: defaultPromptTemplate(),
+    linkedToolNames: '[]',
+    enabled: 0,
+    publishStatus: 0
+  }
+}
 function openCreate() {
   if (page.value === 'studioApis') {
     openApiEditor()
@@ -702,6 +803,10 @@ function openCreate() {
   }
   if (page.value === 'studioTools') {
     openToolEditor()
+    return
+  }
+  if (page.value === 'studioPrompts') {
+    openPromptEditor()
     return
   }
   model.value = emptyModel(); drawer.value=true
@@ -726,6 +831,20 @@ function openApiEditor(row) {
   page.value = 'studioApiEdit'
   window.history.pushState({}, '', pathForPage('studioApiEdit'))
 }
+function openPromptEditor(row) {
+  model.value = row ? { ...row } : emptyPromptModel()
+  if (!model.value.linkedToolNames) {
+    model.value.linkedToolNames = '[]'
+  }
+  if (!model.value.argumentsSchema) {
+    model.value.argumentsSchema = '[]'
+  }
+  syncPromptArgumentsFromModel()
+  promptPreviewResult.value = null
+  promptPreviewArgs.value = buildPromptPreviewArgs()
+  page.value = 'studioPromptEdit'
+  window.history.pushState({}, '', pathForPage('studioPromptEdit'))
+}
 function edit(row) {
   model.value = { ...row }
   if (page.value === 'tokens') {
@@ -737,6 +856,10 @@ function edit(row) {
   }
   if (page.value === 'studioTools') {
     openToolEditor(row)
+    return
+  }
+  if (page.value === 'studioPrompts') {
+    openPromptEditor(row)
     return
   }
   drawer.value=true
@@ -839,6 +962,13 @@ function buildSaveBody() {
     body.enabled = body.publishStatus === 0 ? 0 : 1
     body.linkedDataSourceIds = body.linkedDataSourceIds || '[]'
   }
+  if (page.value === 'studioPrompts' || page.value === 'studioPromptEdit') {
+    body.publishStatus = Number(body.publishStatus || 0)
+    body.enabled = body.publishStatus === 0 ? 0 : 1
+    syncPromptArgumentsToModel()
+    body.argumentsSchema = model.value.argumentsSchema || '[]'
+    body.linkedToolNames = body.linkedToolNames || '[]'
+  }
   return body
 }
 
@@ -846,8 +976,154 @@ function defaultToolScript() {
   return 'def result = runRequest.runRequest("api_config_key", params)\n\nreturn [\n    message: "API调用完成",\n    requestParams: params,\n    result: result\n]'
 }
 
+function defaultPromptTemplate() {
+  return '你是企业 AI 工作流助手。\n\n任务：围绕 {{topic}} 完成分析。\n\n建议流程：\n1. 先理解用户目标，确认缺失参数。\n2. 优先使用下方建议工具完成事实查询。\n3. 如果工具返回 rows，不要原样堆砌，先提炼关键结论。\n4. 最终输出：结论、依据、下一步建议。\n\n建议使用的工具：\n{{tools}}'
+}
+
 function defaultToolSchema() {
   return '{\n  "type": "object",\n  "properties": {\n    "pageNum": {\n      "type": "integer",\n      "description": "页码"\n    },\n    "pageSize": {\n      "type": "integer",\n      "description": "每页条数"\n    }\n  }\n}'
+}
+
+function promptArguments() {
+  return promptArgumentItems.value
+}
+
+function promptArgumentKey() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
+function normalizePromptArgument(item, index) {
+  return {
+    _key: item?._key || promptArgumentKey(),
+    name: item?.name || '',
+    description: item?.description || `参数 ${index + 1}`,
+    required: Boolean(item?.required),
+    defaultValue: item?.defaultValue ?? ''
+  }
+}
+
+function serializablePromptArguments() {
+  return promptArgumentItems.value
+    .filter(item => item && item.name)
+    .map(({ name, description, required, defaultValue }) => ({
+      name,
+      description,
+      required,
+      defaultValue
+    }))
+}
+
+function syncPromptArgumentsFromModel() {
+  promptArgumentItems.value = parseJsonArray(model.value.argumentsSchema)
+    .map((item, index) => normalizePromptArgument(item, index))
+}
+
+function syncPromptArgumentsToModel() {
+  model.value.argumentsSchema = JSON.stringify(serializablePromptArguments(), null, 2)
+}
+
+function addPromptArgument() {
+  const nextIndex = promptArgumentItems.value.length + 1
+  promptArgumentItems.value.push({
+    _key: promptArgumentKey(),
+    name: `param${nextIndex}`,
+    description: `参数 ${nextIndex}`,
+    required: false,
+    defaultValue: ''
+  })
+  syncPromptArgumentsToModel()
+  promptPreviewArgs.value = buildPromptPreviewArgs()
+}
+
+function removePromptArgument(index) {
+  promptArgumentItems.value.splice(index, 1)
+  syncPromptArgumentsToModel()
+  promptPreviewArgs.value = buildPromptPreviewArgs()
+}
+
+function updatePromptArgument(index, field, value) {
+  if (!promptArgumentItems.value[index]) {
+    return
+  }
+  promptArgumentItems.value[index][field] = value
+  syncPromptArgumentsToModel()
+  if (field === 'name' || field === 'defaultValue') {
+    promptPreviewArgs.value = buildPromptPreviewArgs()
+  }
+}
+
+function updatePromptArguments(args) {
+  promptArgumentItems.value = args.map((item, index) => normalizePromptArgument(item, index))
+  syncPromptArgumentsToModel()
+}
+
+function extractPromptArgumentsFromTemplate() {
+  const template = model.value.templateContent || ''
+  const args = promptArguments()
+  const names = args.map(item => item.name)
+  const pattern = /\{\{\s*([A-Za-z_][A-Za-z0-9_.-]*)\s*}}/g
+  let match = pattern.exec(template)
+  while (match) {
+    const name = match[1]
+    if (name !== 'tools' && !names.includes(name)) {
+      args.push({
+        name,
+        description: name,
+        required: true,
+        defaultValue: ''
+      })
+      names.push(name)
+    }
+    match = pattern.exec(template)
+  }
+  updatePromptArguments(args)
+  promptPreviewArgs.value = buildPromptPreviewArgs()
+  message.success('已从模板提取参数')
+}
+
+function buildPromptPreviewArgs() {
+  const params = {}
+  serializablePromptArguments().forEach(item => {
+    params[item.name] = item.defaultValue ?? ''
+  })
+  return JSON.stringify(params, null, 2)
+}
+
+function promptToolsText() {
+  const names = selectedPromptToolNames.value
+  if (!names.length) {
+    return '{{tools}}'
+  }
+  return names.map(name => `- ${name}`).join('\n')
+}
+
+function promptToolsBlock() {
+  return `建议使用的工具：\n${promptToolsText()}`
+}
+
+function syncPromptToolsIntoTemplate() {
+  if (page.value !== 'studioPromptEdit') {
+    return
+  }
+
+  const template = model.value.templateContent || ''
+  const block = promptToolsBlock()
+  const managedBlockPattern = /建议使用的工具：\n(?:- .*(?:\n|$)|\{\{tools}}(?:\n|$))*/m
+  if (template.includes('{{tools}}')) {
+    model.value.templateContent = template.replace(/\{\{tools}}/g, promptToolsText())
+    return
+  }
+  if (managedBlockPattern.test(template)) {
+    model.value.templateContent = template.replace(managedBlockPattern, block)
+    return
+  }
+  if (selectedPromptToolNames.value.length) {
+    model.value.templateContent = `${template.trimEnd()}\n\n${block}`
+  }
+}
+
+function insertPromptToolsPlaceholder() {
+  syncPromptToolsIntoTemplate()
 }
 
 function tryAutoGenerateToolAssets() {
@@ -1266,6 +1542,13 @@ async function updateSelections(token) {
     .map(item => item.toolName)
   tokenSelectionOpen.value = true
 }
+async function updateTokenPromptSelections(token) {
+  activeToken.value = token
+  selectedTokenPrompts.value = tokenPromptSelections.value
+    .filter(item => item.tokenId === token.id && item.enabled === 1)
+    .map(item => item.promptName)
+  tokenPromptSelectionOpen.value = true
+}
 async function updateUserRoles(user) {
   activeUser.value = user
   selectedUserRoles.value = userRoles.value
@@ -1287,9 +1570,19 @@ async function updateRoleTools(role) {
   selectedRoleTools.value = roleTools.value.filter(item => item.roleCode === role.roleCode).map(item => item.toolName)
   toolPermissionOpen.value = true
 }
+async function updateRolePrompts(role) {
+  activeRole.value = role
+  selectedRolePrompts.value = rolePrompts.value.filter(item => item.roleCode === role.roleCode).map(item => item.promptName)
+  promptPermissionOpen.value = true
+}
 async function saveRoleTools() {
   await api(`/roles/${activeRole.value.roleCode}/tools`, { method:'PUT', body:{ codes:selectedRoleTools.value } })
   toolPermissionOpen.value = false
+  await load()
+}
+async function saveRolePrompts() {
+  await api(`/roles/${activeRole.value.roleCode}/prompts`, { method:'PUT', body:{ codes:selectedRolePrompts.value } })
+  promptPermissionOpen.value = false
   await load()
 }
 async function saveTokenSelections() {
@@ -1306,6 +1599,20 @@ async function saveTokenSelections() {
   })
 
   tokenSelectionOpen.value = false
+  await load()
+}
+async function saveTokenPromptSelections() {
+  const prompts = selectedTokenPrompts.value.map(promptName => ({
+    promptName,
+    enabled: 1
+  }))
+
+  await api(`/tokens/${activeToken.value.id}/prompt-selections`, {
+    method: 'PUT',
+    body: { prompts }
+  })
+
+  tokenPromptSelectionOpen.value = false
   await load()
 }
 function showDynamicToolDetail(tool) {
@@ -1426,6 +1733,89 @@ async function sendToolEditor() {
     toolDebugLoading.value = false
   }
 }
+async function savePromptEditor() {
+  promptSaving.value = true
+  try {
+    const method = model.value.id ? 'PUT' : 'POST'
+    const url = model.value.id ? `/api/share/studio/prompts/${model.value.id}` : '/api/share/studio/prompts'
+    const result = await api(url, {
+      method,
+      body: buildSaveBody()
+    })
+    model.value = { ...model.value, ...result }
+    message.success(model.value.id ? 'Prompt 已保存' : 'Prompt 已创建')
+    return result
+  } catch (error) {
+    message.error(error.message || '保存失败')
+    throw error
+  } finally {
+    promptSaving.value = false
+  }
+}
+
+async function previewPromptEditor() {
+  promptPreviewLoading.value = true
+  try {
+    const args = promptPreviewArgs.value ? JSON.parse(promptPreviewArgs.value) : {}
+    promptPreviewResult.value = await api('/api/share/studio/prompts/debug', {
+      method: 'POST',
+      body: { arguments: args, prompt: buildSaveBody() }
+    })
+    message.success('预览已生成')
+  } catch (error) {
+    promptPreviewResult.value = { success: false, errorMessage: error.message }
+    message.error(error.message || '预览失败')
+  } finally {
+    promptPreviewLoading.value = false
+  }
+}
+
+async function publishPrompt(prompt) {
+  const result = await api(`/api/share/studio/prompts/${prompt.id}/publish`, { method: 'POST' })
+  if (model.value.id === prompt.id) {
+    model.value = { ...model.value, ...result }
+  }
+  message.success('Prompt 已公开发布')
+  await load()
+}
+
+async function publishPrivatePrompt(prompt) {
+  const result = await api(`/api/share/studio/prompts/${prompt.id}/publish-private`, { method: 'POST' })
+  if (model.value.id === prompt.id) {
+    model.value = { ...model.value, ...result }
+  }
+  message.success('Prompt 已设为不公开')
+  await load()
+}
+
+async function unpublishPrompt(prompt) {
+  const result = await api(`/api/share/studio/prompts/${prompt.id}/unpublish`, { method: 'POST' })
+  if (model.value.id === prompt.id) {
+    model.value = { ...model.value, ...result }
+  }
+  message.success('Prompt 已下线')
+  await load()
+}
+
+async function toggleOnlinePrompt(prompt) {
+  if (Number(prompt.publishStatus) !== 0) {
+    await unpublishPrompt(prompt)
+    return
+  }
+  await publishPrivatePrompt(prompt)
+}
+
+async function toggleVisibilityPrompt(prompt) {
+  if (Number(prompt.publishStatus) === 0) {
+    message.warning('先上线，再设置公开范围')
+    return
+  }
+  if (Number(prompt.publishStatus) === 2) {
+    await publishPrivatePrompt(prompt)
+    return
+  }
+  await publishPrompt(prompt)
+}
 async function publishTool(tool) {
   const result = await api(`/api/share/studio/tools/${tool.id}/publish`, { method: 'POST' })
   if (model.value.id === tool.id) {
@@ -1511,7 +1901,9 @@ function showLogin() {
   drawer.value = false
   userRoleOpen.value = false
   toolPermissionOpen.value = false
+  promptPermissionOpen.value = false
   tokenSelectionOpen.value = false
+  tokenPromptSelectionOpen.value = false
   dynamicToolDetailOpen.value = false
   auditDetailOpen.value = false
   apiDebugOpen.value = false
@@ -1539,6 +1931,10 @@ watch(selectedToolRequestKeys, () => {
 
 watch(selectedToolDataSourceIds, () => {
   tryAutoGenerateToolAssets()
+})
+
+watch(selectedPromptToolNames, () => {
+  syncPromptToolsIntoTemplate()
 })
 
 function loginSuccess() {
@@ -1570,7 +1966,7 @@ function loginSuccess() {
             <a :class="['hub-nav-tab', page === 'studioHome' ? 'active' : '']" @click.prevent="changePage('studioHome')">首页</a>
             <a class="hub-nav-tab">Skills 创作</a>
             <a :class="['hub-nav-tab', ['studioTools','studioToolEdit'].includes(page) ? 'active' : '']" @click.prevent="changePage('studioTools')">Tools 创作</a>
-            <a class="hub-nav-tab">Prompts 创作</a>
+            <a :class="['hub-nav-tab', ['studioPrompts','studioPromptEdit'].includes(page) ? 'active' : '']" @click.prevent="changePage('studioPrompts')">Prompts 创作</a>
             <a :class="['hub-nav-tab', ['studioApis','studioApiEdit'].includes(page) ? 'active' : '']" @click.prevent="changePage('studioApis')">API 创作</a>
           </div>
           <div class="hub-nav-right">
@@ -1804,7 +2200,7 @@ function loginSuccess() {
               <h3>Tools 创作</h3>
               <p>把脚本逻辑和企业能力编排成可调用的 MCP 工具。</p>
             </a>
-            <a class="studio-lane prompt">
+            <a class="studio-lane prompt" @click.prevent="changePage('studioPrompts')">
               <span class="studio-lane-icon"><AuditOutlined /></span>
               <small>03</small>
               <h3>Prompts 创作</h3>
@@ -1896,6 +2292,82 @@ function loginSuccess() {
           </section>
         </template>
 
+        <template v-else-if="page === 'studioPrompts'">
+          <section class="api-library-shell tool-library-shell">
+            <div class="api-library-head">
+              <span class="api-section-kicker">Prompt Workspace</span>
+              <h2>Prompts 创作</h2>
+              <p>沉淀企业工作流模板，告诉 Agent 应该按什么流程、使用哪些工具、输出什么结构。</p>
+              <div class="api-library-search">
+                <SearchOutlined />
+                <input v-model="promptKeyword" type="text" placeholder="搜索 Prompt 名称、标题、描述、模板或工具..." />
+              </div>
+            </div>
+
+            <div class="api-library-toolbar">
+              <div class="api-status-switch">
+                <button type="button" :class="{active: promptStatusFilter === 'all'}" @click="promptStatusFilter = 'all'">全部</button>
+                <button type="button" :class="{active: promptStatusFilter === 'online'}" @click="promptStatusFilter = 'online'">已上线</button>
+                <button type="button" :class="{active: promptStatusFilter === 'draft'}" @click="promptStatusFilter = 'draft'">草稿</button>
+              </div>
+              <div class="api-library-side">
+                <span>共 {{ filteredStudioPrompts.length }} 个 Prompt</span>
+                <button type="button" class="api-library-new" @click="openCreate"><PlusOutlined />新建</button>
+              </div>
+            </div>
+            <div class="api-visibility-note">
+              <span><i class="public"></i>公开：进入社区</span>
+              <span><i class="private"></i>不公开：已上线但只在自己的创作空间可见</span>
+            </div>
+
+            <div v-if="filteredStudioPrompts.length" class="api-library-grid">
+              <article v-for="item in filteredStudioPrompts" :key="item.id" class="api-library-card tool-library-card">
+                <div class="api-card-top">
+                  <span class="api-card-icon"><AuditOutlined /></span>
+                  <div class="api-card-badges">
+                    <span :class="['api-card-status', publishClass(item.publishStatus)]">{{ publishLabel(item.publishStatus) }}</span>
+                    <span v-if="Number(item.publishStatus) !== 0" :class="['api-card-visibility', visibilityClass(item.publishStatus)]">{{ visibilityLabel(item.publishStatus) }}</span>
+                  </div>
+                </div>
+                <div class="api-card-title-row">
+                  <h3>{{ item.title || '未命名 Prompt' }}</h3>
+                  <code>{{ item.promptName || '-' }}</code>
+                </div>
+                <p>{{ item.description || '还没有填写描述，建议说明这个模板适合什么工作流。' }}</p>
+                <div class="tool-card-meta">
+                  <span>MCP Prompt</span>
+                  <span>{{ parseJsonArray(item.argumentsSchema).length }} 个参数</span>
+                  <span>{{ parseJsonArray(item.linkedToolNames).length }} 个建议工具</span>
+                </div>
+                <div class="tool-card-whitelist">
+                  <span v-for="name in parseJsonArray(item.linkedToolNames)" :key="name">{{ name }}</span>
+                  <span v-if="!parseJsonArray(item.linkedToolNames).length">未选择工具</span>
+                </div>
+                <div class="api-card-foot">
+                  <span class="tool-script-preview">{{ compactText(item.templateContent, 34) }}</span>
+                  <div class="tool-card-actions">
+                    <button type="button" @click="openPromptEditor(item)">编辑</button>
+                    <button type="button" :class="Number(item.publishStatus) === 0 ? 'publish' : 'danger'" @click="toggleOnlinePrompt(item)">{{ onlineActionLabel(item.publishStatus) }}</button>
+                    <button type="button" class="private" :disabled="Number(item.publishStatus) === 0" @click="toggleVisibilityPrompt(item)">{{ visibilityActionLabel(item.publishStatus) }}</button>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <div v-else class="api-empty-panel">
+              <div class="api-empty-mark"><AuditOutlined /></div>
+              <h3>{{ rows.length ? '没有匹配的 Prompt' : '还没有创建 Prompt' }}</h3>
+              <p>{{ rows.length ? '换个关键词或筛选条件再看看。' : '先创建一个工作流模板，把工具使用顺序、参数要求和输出格式沉淀下来。' }}</p>
+              <div class="api-empty-steps">
+                <span>定义参数</span>
+                <span>选择工具</span>
+                <span>预览发布</span>
+              </div>
+              <button v-if="!rows.length" type="button" @click="openCreate"><PlusOutlined />新建 Prompt</button>
+            </div>
+          </section>
+        </template>
+
         <template v-else-if="page === 'studioApis'">
           <section class="api-library-shell">
             <div class="api-library-head">
@@ -1965,6 +2437,115 @@ function loginSuccess() {
                 <span>发布能力</span>
               </div>
               <button v-if="!rows.length" type="button" @click="openCreate"><PlusOutlined />新建 HTTP API</button>
+            </div>
+          </section>
+        </template>
+
+        <template v-else-if="page === 'studioPromptEdit'">
+          <section class="tool-editor-shell">
+            <div class="api-editor-header">
+              <div>
+                <button type="button" class="api-back-btn" @click="changePage('studioPrompts')">← 返回列表</button>
+                <span class="api-section-kicker">MCP Prompt</span>
+                <h2>{{ model.id ? '编辑 Prompt' : '新建 Prompt' }}</h2>
+                <p>Prompt 模板负责沉淀工作流：写清楚 Agent 应该使用哪些工具、按什么顺序执行，以及最终如何组织答案。</p>
+              </div>
+              <aside>
+                <span>当前模板</span>
+                <b>{{ model.promptName || '未命名 Prompt' }}</b>
+                <small>{{ Number(model.publishStatus) === 0 ? '草稿状态，可先预览再上线' : `${publishLabel(model.publishStatus)}，${visibilityLabel(model.publishStatus)}` }}</small>
+              </aside>
+            </div>
+
+            <div class="tool-editor-board">
+              <aside class="tool-editor-meta">
+                <div class="tool-editor-panel-head">
+                  <b>基本信息</b>
+                  <span>Prompt 名称会出现在 prompts/list</span>
+                </div>
+                <label>
+                  <span>Prompt 名称</span>
+                  <input v-model="model.promptName" placeholder="如 analyze_user_growth" />
+                </label>
+                <label>
+                  <span>标题</span>
+                  <input v-model="model.title" placeholder="如 用户增长分析流程" />
+                </label>
+                <label>
+                  <span>描述</span>
+                  <textarea v-model="model.description" spellcheck="false" placeholder="说明这个模板适合什么任务"></textarea>
+                </label>
+
+                <div class="tool-editor-panel-head compact">
+                  <b>参数</b>
+                  <button type="button" @click="addPromptArgument"><PlusOutlined />新增</button>
+                </div>
+                <p class="tool-api-empty">模板里的 <code v-pre>{{topic}}</code> 对应参数名 topic，可从模板自动提取。</p>
+                <div v-if="promptArguments().length" class="prompt-param-list">
+                  <div v-for="(arg, index) in promptArguments()" :key="arg._key" class="prompt-param-item">
+                    <input :value="arg.name" placeholder="参数名" @input="updatePromptArgument(index, 'name', $event.target.value)" />
+                    <input :value="arg.description" placeholder="描述" @input="updatePromptArgument(index, 'description', $event.target.value)" />
+                    <input :value="arg.defaultValue" placeholder="默认值" @input="updatePromptArgument(index, 'defaultValue', $event.target.value)" />
+                    <label class="prompt-param-check">
+                      <input type="checkbox" :checked="Boolean(arg.required)" @change="updatePromptArgument(index, 'required', $event.target.checked)" />
+                      <span>必填</span>
+                    </label>
+                    <button type="button" @click="removePromptArgument(index)">删除</button>
+                  </div>
+                </div>
+                <p v-else class="tool-api-empty">暂无参数，可以手动新增，或从模板内容自动提取。</p>
+
+                <div class="tool-editor-panel-head compact">
+                  <b>建议工具</b>
+                  <span>已选 {{ selectedPromptToolNames.length }} 个</span>
+                </div>
+                <a-select
+                  v-model:value="selectedPromptToolNames"
+                  mode="multiple"
+                  show-search
+                  allow-clear
+                  :options="promptToolOptions"
+                  option-filter-prop="label"
+                  placeholder="选择这个流程建议使用的 Tool"
+                  class="tool-api-select"
+                  popupClassName="dark-select-dropdown tool-api-dropdown"
+                  max-tag-count="responsive"
+                />
+              </aside>
+
+              <section class="tool-script-editor">
+                <div class="tool-editor-panel-head">
+                  <b>模板内容</b>
+                  <span class="tool-head-actions">
+                    <button type="button" @click="extractPromptArgumentsFromTemplate">提取参数</button>
+                    <button type="button" @click="insertPromptToolsPlaceholder">插入工具清单</button>
+                  </span>
+                </div>
+                <textarea v-model="model.templateContent" spellcheck="false"></textarea>
+                <div class="tool-editor-actions">
+                  <button type="button" class="tool-save-btn" :disabled="promptSaving" @click="savePromptEditor">{{ promptSaving ? '保存中' : '保存 Prompt' }}</button>
+                  <button type="button" class="tool-run-btn" :disabled="promptPreviewLoading" @click="previewPromptEditor">{{ promptPreviewLoading ? '预览中' : '预览渲染' }}</button>
+                  <button v-if="model.id" type="button" class="tool-online-btn" @click="toggleOnlinePrompt(model)">
+                    {{ onlineActionLabel(model.publishStatus) }}
+                  </button>
+                  <button v-if="model.id" type="button" class="tool-online-btn" :disabled="Number(model.publishStatus) === 0" @click="toggleVisibilityPrompt(model)">
+                    {{ visibilityActionLabel(model.publishStatus) }}
+                  </button>
+                </div>
+              </section>
+
+              <aside class="tool-debug-panel">
+                <div class="tool-editor-panel-head">
+                  <b>预览参数</b>
+                  <button type="button" @click="promptPreviewArgs = buildPromptPreviewArgs()">重置</button>
+                </div>
+                <textarea v-model="promptPreviewArgs" spellcheck="false"></textarea>
+                <div class="tool-editor-panel-head compact">
+                  <b>渲染结果</b>
+                  <span>{{ promptPreviewResult?.success === false ? '失败' : 'Preview' }}</span>
+                </div>
+                <pre>{{ promptPreviewResult?.renderedContent || promptPreviewResult?.errorMessage || '点击「预览渲染」后显示 prompts/get 最终返回的文本' }}</pre>
+              </aside>
             </div>
           </section>
         </template>
@@ -2221,9 +2802,9 @@ function loginSuccess() {
         <a-menu-item key="dashboard"><AppstoreOutlined /><span>概览</span></a-menu-item>
         <div class="nav-caption">系统治理</div>
         <a-menu-item key="users"><TeamOutlined /><span>用户</span></a-menu-item>
-        <a-menu-item key="roles"><SafetyCertificateOutlined /><span>角色与工具权限</span></a-menu-item>
+        <a-menu-item key="roles"><SafetyCertificateOutlined /><span>角色与能力权限</span></a-menu-item>
         <div class="nav-caption">访问控制</div>
-        <a-menu-item key="tokens"><KeyOutlined /><span>Token 与工具选择</span></a-menu-item>
+        <a-menu-item key="tokens"><KeyOutlined /><span>Token 与能力选择</span></a-menu-item>
         <div class="nav-caption">能力展示</div>
         <a-menu-item key="requests"><SettingOutlined /><span>请求配置</span></a-menu-item>
         <a-menu-item key="dataSources"><DatabaseOutlined /><span>数据源</span></a-menu-item>
@@ -2235,7 +2816,7 @@ function loginSuccess() {
     </a-layout-sider>
     <a-layout-content class="layout-content">
       <header class="console-topbar"><div class="top-search"><SearchOutlined /><span>搜索页面、工具或配置</span><kbd>⌘ K</kbd></div><div class="top-actions"><a-button @click="changePage('shareHome')">Bear 社区</a-button><a-button @click="changePage('studioHome')">创作空间</a-button><a-button type="text" shape="circle" :icon="h(BellOutlined)" /><div class="user-chip"><span class="avatar">D</span><span><b>demo-admin</b><small>管理员</small></span></div></div></header>
-      <div class="page-head"><div><div class="breadcrumb">MCP 管理后台 <span>/</span> {{ navSections[page] }}</div><h1 class="page-title">{{ title }}</h1><div class="page-desc">{{ desc }}</div></div><a-button v-if="['users','roles','tokens','requests','dataSources'].includes(page)" type="primary" class="create-btn" :icon="h(PlusOutlined)" @click="openCreate">新建{{ title.replace('与工具权限','').replace('与工具选择','') }}</a-button></div>
+      <div class="page-head"><div><div class="breadcrumb">MCP 管理后台 <span>/</span> {{ navSections[page] }}</div><h1 class="page-title">{{ title }}</h1><div class="page-desc">{{ desc }}</div></div><a-button v-if="['users','roles','tokens','requests','dataSources'].includes(page)" type="primary" class="create-btn" :icon="h(PlusOutlined)" @click="openCreate">新建{{ title.replace('与工具权限','').replace('与工具选择','').replace('与能力权限','').replace('与能力选择','') }}</a-button></div>
       <template v-if="page === 'dashboard'">
         <a-row :gutter="16" class="metric-grid"><a-col v-for="[label,key,icon,color,note] in [['用户', 'users', TeamOutlined, 'violet', '当前数据库统计'],['角色','roles',SafetyCertificateOutlined, 'cyan', '当前数据库统计'],['有效 Token','activeTokens',KeyOutlined, 'orange', '当前数据库统计'],['启用请求','enabledRequests',DatabaseOutlined, 'green', '当前数据库统计'],['动态工具','enabledDynamicTools',ThunderboltOutlined, 'pink', '当前数据库统计'],['今日调用','todayCalls',AuditOutlined, 'cyan', '今日审计统计']]" :key="key" :span="4"><a-card class="metric"><div class="metric-top"><span>{{ label }}</span><span :class="['metric-icon', color]"><component :is="icon" /></span></div><a-statistic :value="dashboard[key] || 0" /><div class="metric-note"><span class="trend">●</span> {{ note }}</div></a-card></a-col></a-row>
         <div class="surface dashboard-table"><div class="table-toolbar"><div><b>最近调用</b><small>最新 100 条 MCP 工具调用记录</small></div><a-button @click="load">刷新数据</a-button></div><a-table :data-source="rows" :columns="[{title:'时间',dataIndex:'createTime'},{title:'工具',dataIndex:'toolName'},{title:'用户',dataIndex:'userName'},{title:'状态',dataIndex:'status'},{title:'耗时(ms)',dataIndex:'durationMs'}]" row-key="id" :pagination="false" /></div>
@@ -2285,7 +2866,7 @@ function loginSuccess() {
         </div>
         <a-empty v-if="!loading && !rows.length" description="还没有 API，先新建一个外部 HTTP API" :image-style="{height:'56px'}" />
       </template>
-      <template v-else><div class="surface"><div class="table-toolbar"><div><b>{{ title }}列表</b><small>共 {{ rows.length }} 条记录<span v-if="page==='tools'"> · 由创作空间发布</span></small></div><div class="table-tools"><a-input placeholder="搜索名称或编码" class="table-search"><template #prefix><SearchOutlined /></template></a-input><a-button @click="load">刷新</a-button></div></div><a-table :loading="loading" :data-source="rows" :columns="[...dataColumns,{title:'操作',key:'action'}]" row-key="id"><template #bodyCell="{column,record}"><template v-if="column.key==='action'"><a-button v-if="page==='users'" type="link" @click="updateUserRoles(record)">分配角色</a-button><a-button v-if="page==='roles'" type="link" @click="updateRoleTools(record)">配置工具</a-button><a-button v-if="page==='tokens'" type="link" @click="updateSelections(record)">工具选择</a-button><a-button v-if="page==='tools'" type="link" @click="showDynamicToolDetail(record)">查看详情</a-button><a-button v-if="page==='audits'" type="link" @click="showAuditDetail(record)">查看详情</a-button><a-button v-if="!['tools','audits'].includes(page)" type="link" @click="edit(record)">编辑</a-button><a-button v-if="page==='dataSources'" type="link" danger @click="removeRow(record)">删除</a-button></template></template></a-table></div></template>
+      <template v-else><div class="surface"><div class="table-toolbar"><div><b>{{ title }}列表</b><small>共 {{ rows.length }} 条记录<span v-if="page==='tools'"> · 由创作空间发布</span></small></div><div class="table-tools"><a-input placeholder="搜索名称或编码" class="table-search"><template #prefix><SearchOutlined /></template></a-input><a-button @click="load">刷新</a-button></div></div><a-table :loading="loading" :data-source="rows" :columns="[...dataColumns,{title:'操作',key:'action'}]" row-key="id"><template #bodyCell="{column,record}"><template v-if="column.key==='action'"><a-button v-if="page==='users'" type="link" @click="updateUserRoles(record)">分配角色</a-button><a-button v-if="page==='roles'" type="link" @click="updateRoleTools(record)">配置工具</a-button><a-button v-if="page==='roles'" type="link" @click="updateRolePrompts(record)">配置 Prompt</a-button><a-button v-if="page==='tokens'" type="link" @click="updateSelections(record)">工具选择</a-button><a-button v-if="page==='tokens'" type="link" @click="updateTokenPromptSelections(record)">Prompt 选择</a-button><a-button v-if="page==='tools'" type="link" @click="showDynamicToolDetail(record)">查看详情</a-button><a-button v-if="page==='audits'" type="link" @click="showAuditDetail(record)">查看详情</a-button><a-button v-if="!['tools','audits'].includes(page)" type="link" @click="edit(record)">编辑</a-button><a-button v-if="page==='dataSources'" type="link" danger @click="removeRow(record)">删除</a-button></template></template></a-table></div></template>
     </a-layout-content>
   </a-layout>
   </template>
@@ -2868,7 +3449,7 @@ function loginSuccess() {
     </template>
   </a-modal>
   <a-modal v-model:open="userRoleOpen" :title="`分配角色 · ${activeUser?.displayName || activeUser?.username || ''}`" width="720px" class="tool-permission-modal" @ok="saveUserRoles">
-    <p class="permission-hint">用户通过角色获得工具资格。分配角色后，还需要在“角色与工具权限”里配置该角色能使用哪些工具。</p>
+    <p class="permission-hint">用户通过角色获得 Tool 和 Prompt 资格。分配角色后，还需要在“角色与能力权限”里配置该角色能使用哪些能力。</p>
     <section class="tool-option-section">
       <div class="tool-option-title">
         <span class="tool-type-dot builtin"></span>
@@ -2902,6 +3483,21 @@ function loginSuccess() {
     </a-checkbox-group>
     <template #footer><a-button @click="toolPermissionOpen=false">取消</a-button><a-button type="primary" @click="saveRoleTools">保存工具权限</a-button></template>
   </a-modal>
+  <a-modal v-model:open="promptPermissionOpen" :title="`配置 Prompt 权限 · ${activeRole?.roleName || ''}`" width="720px" class="tool-permission-modal" @ok="saveRolePrompts">
+    <p class="permission-hint">角色 Prompt 权限是 prompts/list / prompts/get 的资格上限。Token 是否实际可见，还需要在 Token Prompt 选择中单独配置。</p>
+    <section class="tool-option-section">
+      <div class="tool-option-title"><span class="tool-type-dot dynamic"></span>Prompt 模板 <small>由创作空间发布</small></div>
+      <a-checkbox-group v-model:value="selectedRolePrompts" class="tool-option-grid">
+        <a-checkbox v-for="prompt in promptOptions" :key="prompt.promptName" :value="prompt.promptName" :disabled="prompt.enabled !== 1 || Number(prompt.publishStatus) === 0">
+          <b>{{ prompt.promptName }}</b>
+          <span>{{ prompt.title || prompt.description || '暂无描述' }}</span>
+          <em>{{ Number(prompt.publishStatus) === 0 ? '草稿未上线' : Number(prompt.publishStatus) === 2 ? '公开' : '不公开' }}</em>
+        </a-checkbox>
+      </a-checkbox-group>
+      <a-empty v-if="!promptOptions.length" description="暂无 Prompt 模板" :image-style="{height:'48px'}" />
+    </section>
+    <template #footer><a-button @click="promptPermissionOpen=false">取消</a-button><a-button type="primary" @click="saveRolePrompts">保存 Prompt 权限</a-button></template>
+  </a-modal>
   <a-modal v-model:open="tokenSelectionOpen" :title="`Token 工具选择 · ${activeToken?.tokenName || ''}`" width="720px" class="tool-permission-modal" @ok="saveTokenSelections">
     <p class="permission-hint">Token 工具选择决定这把 Token 实际加载、展示和允许调用哪些工具；最终调用还会再经过角色工具权限校验。</p>
     <a-checkbox-group v-model:value="selectedTokenTools" class="tool-option-groups">
@@ -2909,6 +3505,21 @@ function loginSuccess() {
       <section class="tool-option-section"><div class="tool-option-title"><span class="tool-type-dot dynamic"></span>动态工具 <small>由创作空间发布</small></div><div class="tool-option-grid"><a-checkbox v-for="tool in dynamicToolOptions" :key="tool.toolName" :value="tool.toolName" :disabled="tool.enabled !== 1"><b>{{ tool.toolName }}</b><span>{{ tool.toolDescription || '暂无描述' }}</span></a-checkbox></div><a-empty v-if="!dynamicToolOptions.length" description="暂无已发布动态工具" :image-style="{height:'48px'}" /></section>
     </a-checkbox-group>
     <template #footer><a-button @click="tokenSelectionOpen=false">取消</a-button><a-button type="primary" @click="saveTokenSelections">保存工具选择</a-button></template>
+  </a-modal>
+  <a-modal v-model:open="tokenPromptSelectionOpen" :title="`Token Prompt 选择 · ${activeToken?.tokenName || ''}`" width="720px" class="tool-permission-modal" @ok="saveTokenPromptSelections">
+    <p class="permission-hint">Token Prompt 选择决定这把 Token 的 prompts/list 实际返回哪些模板；最终还会再经过角色 Prompt 权限校验。</p>
+    <section class="tool-option-section">
+      <div class="tool-option-title"><span class="tool-type-dot dynamic"></span>Prompt 模板 <small>由创作空间发布</small></div>
+      <a-checkbox-group v-model:value="selectedTokenPrompts" class="tool-option-grid">
+        <a-checkbox v-for="prompt in promptOptions" :key="prompt.promptName" :value="prompt.promptName" :disabled="prompt.enabled !== 1 || Number(prompt.publishStatus) === 0">
+          <b>{{ prompt.promptName }}</b>
+          <span>{{ prompt.title || prompt.description || '暂无描述' }}</span>
+          <em>{{ Number(prompt.publishStatus) === 0 ? '草稿未上线' : Number(prompt.publishStatus) === 2 ? '公开' : '不公开' }}</em>
+        </a-checkbox>
+      </a-checkbox-group>
+      <a-empty v-if="!promptOptions.length" description="暂无 Prompt 模板" :image-style="{height:'48px'}" />
+    </section>
+    <template #footer><a-button @click="tokenPromptSelectionOpen=false">取消</a-button><a-button type="primary" @click="saveTokenPromptSelections">保存 Prompt 选择</a-button></template>
   </a-modal>
   </a-config-provider>
   </template>
