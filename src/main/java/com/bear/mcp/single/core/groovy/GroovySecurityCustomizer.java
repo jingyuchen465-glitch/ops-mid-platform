@@ -1,9 +1,13 @@
 package com.bear.mcp.single.core.groovy;
 
+import org.codehaus.groovy.ast.ClassNode;
+import org.codehaus.groovy.ast.expr.ConstructorCallExpression;
 import org.codehaus.groovy.ast.expr.MethodCallExpression;
+import org.codehaus.groovy.ast.expr.StaticMethodCallExpression;
 import org.codehaus.groovy.control.customizers.SecureASTCustomizer;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Groovy 动态脚本安全限制。
@@ -58,6 +62,12 @@ public final class GroovySecurityCustomizer {
         customizer.setReceiversBlackList(BLOCKED_CLASSES);
 
         customizer.addExpressionCheckers(expression -> {
+            if (expression instanceof ConstructorCallExpression constructorCall) {
+                assertClassAllowed(constructorCall.getType());
+            }
+            if (expression instanceof StaticMethodCallExpression staticMethodCall) {
+                assertClassAllowed(staticMethodCall.getOwnerType());
+            }
             if (expression instanceof MethodCallExpression methodCall) {
                 String methodName = methodCall.getMethodAsString();
                 if (methodName != null && BLOCKED_METHODS.contains(methodName)) {
@@ -80,13 +90,36 @@ public final class GroovySecurityCustomizer {
         }
         for (String blockedClass : BLOCKED_CLASSES) {
             String simpleName = blockedClass.substring(blockedClass.lastIndexOf('.') + 1);
-            if (script.contains(blockedClass) || script.contains(simpleName + ".")) {
+            if (script.contains(blockedClass)
+                    || script.contains(simpleName + ".")
+                    || containsBlockedConstructor(script, blockedClass)
+                    || containsBlockedConstructor(script, simpleName)) {
                 throw new SecurityException("脚本包含禁止使用的类: " + blockedClass);
             }
         }
         for (String blockedMethod : BLOCKED_METHODS) {
             if (script.matches("(?s).*\\." + blockedMethod + "\\s*\\(.*")) {
                 throw new SecurityException("脚本包含禁止调用的方法: " + blockedMethod);
+            }
+        }
+    }
+
+    private static boolean containsBlockedConstructor(String script, String className) {
+        return Pattern.compile("(?s).*\\bnew\\s+" + Pattern.quote(className) + "\\s*\\(.*")
+                .matcher(script)
+                .matches();
+    }
+
+    private static void assertClassAllowed(ClassNode classNode) {
+        if (classNode == null) {
+            return;
+        }
+        String className = classNode.getName();
+        String simpleName = classNode.getNameWithoutPackage();
+        for (String blockedClass : BLOCKED_CLASSES) {
+            String blockedSimpleName = blockedClass.substring(blockedClass.lastIndexOf('.') + 1);
+            if (blockedClass.equals(className) || blockedSimpleName.equals(simpleName)) {
+                throw new SecurityException("禁止使用类: " + blockedClass);
             }
         }
     }

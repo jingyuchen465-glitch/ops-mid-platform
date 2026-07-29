@@ -30,6 +30,8 @@ const dataSourceConfigs = ref([])
 const drawer = ref(false)
 const model = ref({})
 const rawToken = ref('')
+const oneTimeTokenOpen = ref(false)
+const oneTimeTokenName = ref('')
 const dynamicToolDetailOpen = ref(false)
 const activeDynamicTool = ref(null)
 const communityDetailOpen = ref(false)
@@ -744,8 +746,42 @@ async function save() {
   const method = model.value.id ? 'PUT' : 'POST'
   const body = buildSaveBody()
   const result = await api(model.value.id ? `${base}/${model.value.id}` : base, { method, body })
-  if (page.value === 'tokens' && result?.rawToken) rawToken.value = result.rawToken
+  if (page.value === 'tokens' && result?.rawToken) {
+    rawToken.value = result.rawToken
+    oneTimeTokenName.value = result.token?.tokenName || body.tokenName || '新建 Token'
+    oneTimeTokenOpen.value = true
+  }
   drawer.value = false; await load()
+}
+
+async function copyRawToken() {
+  if (!rawToken.value) {
+    return
+  }
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(rawToken.value)
+    } else {
+      const textarea = document.createElement('textarea')
+      textarea.value = rawToken.value
+      textarea.setAttribute('readonly', 'readonly')
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+    }
+    message.success('Token 已复制')
+  } catch (error) {
+    message.error('复制失败，请手动选中 Token 复制')
+  }
+}
+
+function closeOneTimeTokenModal() {
+  oneTimeTokenOpen.value = false
+  rawToken.value = ''
+  oneTimeTokenName.value = ''
 }
 async function removeRow(record) {
   if (page.value !== 'dataSources') {
@@ -2253,7 +2289,7 @@ function loginSuccess() {
     </a-layout-content>
   </a-layout>
   </template>
-  <a-drawer v-model:open="drawer" :title="drawerTitle" :width="['requests','studioApis','dataSources'].includes(page) ? 760 : 600" class="console-drawer" @close="rawToken=''">
+  <a-drawer v-model:open="drawer" :title="drawerTitle" :width="['requests','studioApis','dataSources'].includes(page) ? 760 : 600" class="console-drawer">
     <a-form v-if="page === 'tokens'" layout="vertical" class="token-form">
       <section class="form-section">
         <div class="form-section-head">
@@ -2572,9 +2608,33 @@ function loginSuccess() {
     <a-form v-else layout="vertical" class="entity-form">
       <template v-for="(value,key) in model" :key="key"><a-form-item v-if="!['id','tokenHash','tokenPrefix','createTime','updateTime','lastUsedTime','lastUsedIp'].includes(key)" :label="key"><a-textarea v-if="['headers','bodyTemplate','paramsDefault','inputSchema','groovyScript','linkedRequestKeys','linkedDataSourceIds','description','argsSchema'].includes(key)" v-model:value="model[key]" class="code-area" :auto-size="{minRows:2,maxRows:8}" /><a-input v-else v-model:value="model[key]" /></a-form-item></template>
     </a-form>
-    <div v-if="rawToken" class="raw-token"><b>请立即保存 Token，之后后台不会再返回完整明文：</b><br>{{ rawToken }}</div>
     <template #footer><a-space><a-button @click="drawer=false">取消</a-button><a-button v-if="page === 'dataSources'" :loading="dataSourceTesting" @click="testDataSourceConnection">测试连接</a-button><a-button type="primary" @click="save">保存</a-button></a-space></template>
   </a-drawer>
+  <a-modal
+    v-model:open="oneTimeTokenOpen"
+    title="Token 创建成功"
+    width="720px"
+    class="tool-permission-modal one-time-token-modal"
+    :maskClosable="false"
+    @cancel="closeOneTimeTokenModal"
+  >
+    <section class="tool-option-section">
+      <div class="tool-option-title">
+        <div>
+          <b>{{ oneTimeTokenName }}</b>
+          <small>完整 Token 只展示一次，关闭后无法再次查看</small>
+        </div>
+      </div>
+      <p class="permission-hint detail-desc">请立即复制并保存到 MCP Client 或安全的密钥管理位置。数据库只保存 Token Hash 和展示前缀，后台无法找回完整明文。</p>
+      <pre class="detail-code token-plain-code">{{ rawToken }}</pre>
+    </section>
+    <template #footer>
+      <a-space>
+        <a-button @click="copyRawToken">复制 Token</a-button>
+        <a-button type="primary" @click="closeOneTimeTokenModal">我已保存</a-button>
+      </a-space>
+    </template>
+  </a-modal>
   <a-modal v-model:open="apiDebugOpen" :title="`调试 API · ${activeStudioApi?.name || ''}`" width="860px" class="tool-permission-modal dynamic-tool-detail-modal">
     <section class="tool-option-section">
       <div class="tool-option-title">
