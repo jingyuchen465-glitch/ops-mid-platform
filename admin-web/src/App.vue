@@ -41,6 +41,7 @@ const debugParams = ref('{}')
 const debugResult = ref(null)
 const debugLoading = ref(false)
 const apiSaving = ref(false)
+const dataSourceTesting = ref(false)
 const apiEditorTab = ref('body')
 const apiEditorDebugParams = ref('{}')
 const apiKeyword = ref('')
@@ -67,7 +68,9 @@ const builtinTools = [
   { name: 'list_request_configs', description: '查询 API 请求配置' },
   { name: 'create_dynamic_tool', description: '创建动态 Tool 草稿' },
   { name: 'list_dynamic_tools', description: '查询动态 Tool 配置' },
-  { name: 'update_dynamic_tool_script', description: '更新动态 Tool 脚本' }
+  { name: 'update_dynamic_tool_script', description: '更新动态 Tool 脚本' },
+  { name: 'list_data_sources', description: '查询已发布数据源' },
+  { name: 'query_data_source', description: '只读查询数据源' }
 ]
 const tokenPermissionOptions = [
   { label: '工具列表 + 工具调用', value: '["mcp:tools:read","mcp:tools:call"]' },
@@ -91,18 +94,26 @@ const publishStatusOptions = [
   { label: '上架不公开', value: 1 },
   { label: '公开', value: 2 }
 ]
+const dataSourceDbTypeOptions = [
+  { label: 'MYSQL', value: 'MYSQL' },
+  { label: 'TIDB', value: 'TIDB' }
+]
+const dataSourcePublishStatusOptions = [
+  { label: '草稿', value: 0 },
+  { label: '已发布', value: 1 }
+]
 const menu = [
   ['dashboard', '概览', AppstoreOutlined], ['users', '用户', TeamOutlined], ['roles', '角色与工具权限', TeamOutlined], ['tokens', 'Token 与工具选择', KeyOutlined],
-  ['requests', '请求配置', SettingOutlined], ['tools', '动态工具', ThunderboltOutlined], ['audits', '审计日志', AuditOutlined]
+  ['requests', '请求配置', SettingOutlined], ['dataSources', '数据源', DatabaseOutlined], ['tools', '动态工具', ThunderboltOutlined], ['audits', '审计日志', AuditOutlined]
 ]
 const communityPages = ['shareHome', 'shareTools', 'shareApis']
 const studioPages = ['studioHome', 'studioTools', 'studioToolEdit', 'studioApis', 'studioApiEdit']
 const sharePages = [...communityPages, ...studioPages]
 const isSharePage = computed(() => sharePages.includes(page.value))
 const isCommunityPage = computed(() => communityPages.includes(page.value))
-const navSections = { dashboard: '概览', users: '系统治理', roles: '系统治理', tokens: '访问控制', requests: '能力展示', tools: '能力展示', audits: '运行观测', shareHome: '首页', shareTools: 'MCP Tools', shareApis: 'API 能力', studioHome: '首页', studioTools: 'Tools 创作', studioApis: 'API 创作' }
-const title = computed(() => ({ dashboard:'运行概览', users:'用户', roles:'角色与工具权限', tokens:'Token 与工具选择', requests:'请求配置', tools:'动态工具', audits:'调用审计', shareHome:'发现优质 AI 能力', shareTools:'MCP Tools', shareApis:'API 能力', studioHome:'Bear 创作空间', studioTools:'Tools 创作', studioToolEdit:'新建 Tool', studioApis:'API 创作', studioApiEdit:'新建 API' })[page.value])
-const desc = computed(() => ({ dashboard:'当前数据库中的 MCP 治理状态', users:'角色是工具权限上限，用户通过角色获得资格', roles:'角色决定资格上限，实际工具权限由角色工具表维护', tokens:'每把 Token 单独选择要暴露和实际允许调用的工具', requests:'展示动态工具可引用的企业请求配置；完整创作在创作空间完成', tools:'这里只展示已发布的动态工具；创建与编辑在创作空间完成', audits:'保留每一次 MCP 工具调用的结果摘要与耗时', shareHome:'公开的 Tool 和 API 会先进入社区，被团队发现、复用，再进入 Token 配置链路。', shareTools:'浏览已公开的 MCP Tool。能否调用仍由角色权限和 Token 工具选择决定。', shareApis:'浏览已公开的 API 配置，它们是动态 Tool 编排时可复用的基础能力。', studioHome:'创作 Skills、Tools、Prompts、API，分享到社区', studioTools:'把已接入的 API 配置包装成 AI Agent 可见和可调用的 MCP Tool', studioToolEdit:'编写工具描述、入参 Schema 和 Groovy 脚本，调试通过后发布上线', studioApis:'创建外部 HTTP API 配置，调试通过后发布给后续动态工具使用', studioApiEdit:'配置外部 HTTP API，保存并调试真实响应' })[page.value])
+const navSections = { dashboard: '概览', users: '系统治理', roles: '系统治理', tokens: '访问控制', requests: '能力展示', dataSources: '能力展示', tools: '能力展示', audits: '运行观测', shareHome: '首页', shareTools: 'MCP Tools', shareApis: 'API 能力', studioHome: '首页', studioTools: 'Tools 创作', studioApis: 'API 创作' }
+const title = computed(() => ({ dashboard:'运行概览', users:'用户', roles:'角色与工具权限', tokens:'Token 与工具选择', requests:'请求配置', dataSources:'数据源', tools:'动态工具', audits:'调用审计', shareHome:'发现优质 AI 能力', shareTools:'MCP Tools', shareApis:'API 能力', studioHome:'Bear 创作空间', studioTools:'Tools 创作', studioToolEdit:'新建 Tool', studioApis:'API 创作', studioApiEdit:'新建 API' })[page.value])
+const desc = computed(() => ({ dashboard:'当前数据库中的 MCP 治理状态', users:'角色是工具权限上限，用户通过角色获得资格', roles:'角色决定资格上限，实际工具权限由角色工具表维护', tokens:'每把 Token 单独选择要暴露和实际允许调用的工具', requests:'展示动态工具可引用的企业请求配置；完整创作在创作空间完成', dataSources:'维护外部数据库连接配置，为后续 query_data_source 和动态 Tool runSql 提供受控数据入口', tools:'这里只展示已发布的动态工具；创建与编辑在创作空间完成', audits:'保留每一次 MCP 工具调用的结果摘要与耗时', shareHome:'公开的 Tool 和 API 会先进入社区，被团队发现、复用，再进入 Token 配置链路。', shareTools:'浏览已公开的 MCP Tool。能否调用仍由角色权限和 Token 工具选择决定。', shareApis:'浏览已公开的 API 配置，它们是动态 Tool 编排时可复用的基础能力。', studioHome:'创作 Skills、Tools、Prompts、API，分享到社区', studioTools:'把已接入的 API 配置包装成 AI Agent 可见和可调用的 MCP Tool', studioToolEdit:'编写工具描述、入参 Schema 和 Groovy 脚本，调试通过后发布上线', studioApis:'创建外部 HTTP API 配置，调试通过后发布给后续动态工具使用', studioApiEdit:'配置外部 HTTP API，保存并调试真实响应' })[page.value])
 const studioApiStats = computed(() => {
   const all = rows.value.length
   const online = rows.value.filter(item => Number(item.publishStatus) !== 0).length
@@ -286,6 +297,7 @@ const columns = computed(() => ({
  users:[['username','用户名'],['displayName','展示名称'],['roleCodes','角色'],['isEnabled','状态']],
  tokens:[['tokenName','Token 名称'],['userId','所属用户'],['permissions','访问范围'],['tokenPrefix','展示前缀'],['isActive','状态'],['expireTime','过期时间']],
  requests:[['requestId','接口 ID'],['configKey','配置 Key'],['name','名称'],['type','协议'],['publishStatus','发布'],['isEnabled','状态']],
+ dataSources:[['name','名称'],['datasourceKey','数据源 Key'],['dbType','类型'],['jdbcUrl','JDBC URL'],['username','用户名'],['passwordSet','密码'],['publishStatus','发布']],
  tools:[['toolName','工具名'],['toolDescription','工具描述'],['linkedRequestKeys','API 白名单'],['publishStatus','发布'],['inputSchema','入参 Schema'],['groovyScript','脚本摘要'],['enabled','状态']],
  audits:[['createTime','调用时间'],['userName','用户'],['toolName','工具'],['status','状态'],['durationMs','耗时(ms)']],
  roles:[['roleCode','角色编码'],['roleName','角色名称'],['isEnabled','状态']]
@@ -359,10 +371,19 @@ function formatTableCell(dataIndex, text, record) {
   if (dataIndex === 'groovyScript' && page.value === 'tools') {
     return compactText(text, 48)
   }
+  if (dataIndex === 'jdbcUrl' && page.value === 'dataSources') {
+    return compactText(text, 56)
+  }
+  if (dataIndex === 'passwordSet' && page.value === 'dataSources') {
+    return text ? '已设置' : '未设置'
+  }
   if (dataIndex === 'isEnabled' || dataIndex === 'isActive' || dataIndex === 'enabled') {
     return Number(text) === 1 ? '启用' : '禁用'
   }
   if (dataIndex === 'publishStatus') {
+    if (page.value === 'dataSources') {
+      return Number(text) === 1 ? '已发布' : '草稿'
+    }
     return ['草稿','上架不公开','公开'][Number(text)] || '-'
   }
   return text ?? '-'
@@ -555,6 +576,7 @@ async function load() {
       ])
     }
     else if (page.value === 'requests') rows.value = await api('/request-configs')
+    else if (page.value === 'dataSources') rows.value = await api('/data-sources')
     else if (page.value === 'studioTools') {
       [rows.value, requestConfigs.value] = await Promise.all([
         api('/api/share/studio/tools'),
@@ -605,11 +627,15 @@ function emptyModel() {
   if (page.value === 'roles') return { roleCode:'', roleName:'', description:'', isEnabled:1 }
   if (page.value === 'tokens') return { userId: users.value[0]?.id, tokenName:'新建 Token', permissions:'["mcp:tools:read","mcp:tools:call"]', isActive:1 }
   if (page.value === 'requests' || page.value === 'studioApis' || page.value === 'studioApiEdit') return emptyApiModel()
+  if (page.value === 'dataSources') return emptyDataSourceModel()
   if (page.value === 'tools') return { toolName:'', toolDescription:'', inputSchema:'{"type":"object","properties":{}}', groovyScript:'return [message: params.message]', linkedRequestKeys:'[]', enabled:1 }
   return {}
 }
 function emptyApiModel() {
   return { requestId:'API' + Date.now(), configKey:'', name:'', type:'HTTP', method:'GET', url:'', headers:'{}', bodyTemplate:'', paramsDefault:'{}', connectTimeoutMs:5000, readTimeoutMs:15000, serviceName:'', methodName:'', argsSchema:'{}', creatorId: users.value[0]?.id, isEnabled:1, rateLimitPerMinute:0, publishStatus:0, description:'', category:'' }
+}
+function emptyDataSourceModel() {
+  return { name:'', datasourceKey:'', dbType:'MYSQL', jdbcUrl:'jdbc:mysql://localhost:3306/demo?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai', username:'', password:'', extraJdbcProps:'{}', description:'', publishStatus:0 }
 }
 function emptyToolModel() {
   const script = defaultToolScript()
@@ -671,12 +697,37 @@ function edit(row) {
   drawer.value=true
 }
 async function save() {
-  const base = { users:'/users', roles:'/roles', tokens:'/tokens', requests:'/request-configs', tools:'/dynamic-tools', studioApis:'/api/share/studio/apis' }[page.value]
+  const base = { users:'/users', roles:'/roles', tokens:'/tokens', requests:'/request-configs', dataSources:'/data-sources', tools:'/dynamic-tools', studioApis:'/api/share/studio/apis' }[page.value]
   const method = model.value.id ? 'PUT' : 'POST'
   const body = buildSaveBody()
   const result = await api(model.value.id ? `${base}/${model.value.id}` : base, { method, body })
   if (page.value === 'tokens' && result?.rawToken) rawToken.value = result.rawToken
   drawer.value = false; await load()
+}
+async function removeRow(record) {
+  if (page.value !== 'dataSources') {
+    return
+  }
+  if (!window.confirm(`确定删除数据源「${record.name || record.datasourceKey}」？`)) {
+    return
+  }
+  await api(`/data-sources/${record.id}`, { method: 'DELETE' })
+  message.success('已删除数据源')
+  await load()
+}
+async function testDataSourceConnection() {
+  if (page.value !== 'dataSources') {
+    return
+  }
+  dataSourceTesting.value = true
+  try {
+    const body = buildSaveBody()
+    const url = model.value.id ? `/data-sources/${model.value.id}/test-connection` : '/data-sources/test-connection'
+    await api(url, { method: 'POST', body })
+    message.success('数据源连接成功')
+  } finally {
+    dataSourceTesting.value = false
+  }
 }
 function buildSaveBody() {
   const body = { ...model.value }
@@ -688,6 +739,13 @@ function buildSaveBody() {
   }
   if (page.value === 'users' && body.id) {
     delete body.password
+  }
+  if (page.value === 'dataSources') {
+    delete body.passwordSet
+    delete body.lastOperatorId
+    if (body.id && !body.password) {
+      delete body.password
+    }
   }
   if (page.value === 'studioApis' || page.value === 'studioApiEdit') {
     body.type = 'HTTP'
@@ -1897,6 +1955,7 @@ function loginSuccess() {
         <a-menu-item key="tokens"><KeyOutlined /><span>Token 与工具选择</span></a-menu-item>
         <div class="nav-caption">能力展示</div>
         <a-menu-item key="requests"><SettingOutlined /><span>请求配置</span></a-menu-item>
+        <a-menu-item key="dataSources"><DatabaseOutlined /><span>数据源</span></a-menu-item>
         <a-menu-item key="tools"><ThunderboltOutlined /><span>动态工具</span></a-menu-item>
         <div class="nav-caption">运行观测</div>
         <a-menu-item key="audits"><AuditOutlined /><span>审计日志</span></a-menu-item>
@@ -1905,7 +1964,7 @@ function loginSuccess() {
     </a-layout-sider>
     <a-layout-content class="layout-content">
       <header class="console-topbar"><div class="top-search"><SearchOutlined /><span>搜索页面、工具或配置</span><kbd>⌘ K</kbd></div><div class="top-actions"><a-button @click="changePage('shareHome')">Bear 社区</a-button><a-button @click="changePage('studioHome')">创作空间</a-button><a-button type="text" shape="circle" :icon="h(BellOutlined)" /><div class="user-chip"><span class="avatar">D</span><span><b>demo-admin</b><small>管理员</small></span></div></div></header>
-      <div class="page-head"><div><div class="breadcrumb">MCP 管理后台 <span>/</span> {{ navSections[page] }}</div><h1 class="page-title">{{ title }}</h1><div class="page-desc">{{ desc }}</div></div><a-button v-if="['users','roles','tokens','requests'].includes(page)" type="primary" class="create-btn" :icon="h(PlusOutlined)" @click="openCreate">新建{{ title.replace('与工具权限','').replace('与工具选择','') }}</a-button></div>
+      <div class="page-head"><div><div class="breadcrumb">MCP 管理后台 <span>/</span> {{ navSections[page] }}</div><h1 class="page-title">{{ title }}</h1><div class="page-desc">{{ desc }}</div></div><a-button v-if="['users','roles','tokens','requests','dataSources'].includes(page)" type="primary" class="create-btn" :icon="h(PlusOutlined)" @click="openCreate">新建{{ title.replace('与工具权限','').replace('与工具选择','') }}</a-button></div>
       <template v-if="page === 'dashboard'">
         <a-row :gutter="16" class="metric-grid"><a-col v-for="[label,key,icon,color,note] in [['用户', 'users', TeamOutlined, 'violet', '当前数据库统计'],['角色','roles',SafetyCertificateOutlined, 'cyan', '当前数据库统计'],['有效 Token','activeTokens',KeyOutlined, 'orange', '当前数据库统计'],['启用请求','enabledRequests',DatabaseOutlined, 'green', '当前数据库统计'],['动态工具','enabledDynamicTools',ThunderboltOutlined, 'pink', '当前数据库统计'],['今日调用','todayCalls',AuditOutlined, 'cyan', '今日审计统计']]" :key="key" :span="4"><a-card class="metric"><div class="metric-top"><span>{{ label }}</span><span :class="['metric-icon', color]"><component :is="icon" /></span></div><a-statistic :value="dashboard[key] || 0" /><div class="metric-note"><span class="trend">●</span> {{ note }}</div></a-card></a-col></a-row>
         <div class="surface dashboard-table"><div class="table-toolbar"><div><b>最近调用</b><small>最新 100 条 MCP 工具调用记录</small></div><a-button @click="load">刷新数据</a-button></div><a-table :data-source="rows" :columns="[{title:'时间',dataIndex:'createTime'},{title:'工具',dataIndex:'toolName'},{title:'用户',dataIndex:'userName'},{title:'状态',dataIndex:'status'},{title:'耗时(ms)',dataIndex:'durationMs'}]" row-key="id" :pagination="false" /></div>
@@ -1955,11 +2014,11 @@ function loginSuccess() {
         </div>
         <a-empty v-if="!loading && !rows.length" description="还没有 API，先新建一个外部 HTTP API" :image-style="{height:'56px'}" />
       </template>
-      <template v-else><div class="surface"><div class="table-toolbar"><div><b>{{ title }}列表</b><small>共 {{ rows.length }} 条记录<span v-if="page==='tools'"> · 由创作空间发布</span></small></div><div class="table-tools"><a-input placeholder="搜索名称或编码" class="table-search"><template #prefix><SearchOutlined /></template></a-input><a-button @click="load">刷新</a-button></div></div><a-table :loading="loading" :data-source="rows" :columns="[...dataColumns,{title:'操作',key:'action'}]" row-key="id"><template #bodyCell="{column,record}"><template v-if="column.key==='action'"><a-button v-if="page==='users'" type="link" @click="updateUserRoles(record)">分配角色</a-button><a-button v-if="page==='roles'" type="link" @click="updateRoleTools(record)">配置工具</a-button><a-button v-if="page==='tokens'" type="link" @click="updateSelections(record)">工具选择</a-button><a-button v-if="page==='tools'" type="link" @click="showDynamicToolDetail(record)">查看详情</a-button><a-button v-if="page==='audits'" type="link" @click="showAuditDetail(record)">查看详情</a-button><a-button v-if="!['tools','audits'].includes(page)" type="link" @click="edit(record)">编辑</a-button></template></template></a-table></div></template>
+      <template v-else><div class="surface"><div class="table-toolbar"><div><b>{{ title }}列表</b><small>共 {{ rows.length }} 条记录<span v-if="page==='tools'"> · 由创作空间发布</span></small></div><div class="table-tools"><a-input placeholder="搜索名称或编码" class="table-search"><template #prefix><SearchOutlined /></template></a-input><a-button @click="load">刷新</a-button></div></div><a-table :loading="loading" :data-source="rows" :columns="[...dataColumns,{title:'操作',key:'action'}]" row-key="id"><template #bodyCell="{column,record}"><template v-if="column.key==='action'"><a-button v-if="page==='users'" type="link" @click="updateUserRoles(record)">分配角色</a-button><a-button v-if="page==='roles'" type="link" @click="updateRoleTools(record)">配置工具</a-button><a-button v-if="page==='tokens'" type="link" @click="updateSelections(record)">工具选择</a-button><a-button v-if="page==='tools'" type="link" @click="showDynamicToolDetail(record)">查看详情</a-button><a-button v-if="page==='audits'" type="link" @click="showAuditDetail(record)">查看详情</a-button><a-button v-if="!['tools','audits'].includes(page)" type="link" @click="edit(record)">编辑</a-button><a-button v-if="page==='dataSources'" type="link" danger @click="removeRow(record)">删除</a-button></template></template></a-table></div></template>
     </a-layout-content>
   </a-layout>
   </template>
-  <a-drawer v-model:open="drawer" :title="drawerTitle" :width="['requests','studioApis'].includes(page) ? 760 : 600" class="console-drawer" @close="rawToken=''">
+  <a-drawer v-model:open="drawer" :title="drawerTitle" :width="['requests','studioApis','dataSources'].includes(page) ? 760 : 600" class="console-drawer" @close="rawToken=''">
     <a-form v-if="page === 'tokens'" layout="vertical" class="token-form">
       <section class="form-section">
         <div class="form-section-head">
@@ -2211,11 +2270,75 @@ function loginSuccess() {
         </a-row>
       </section>
     </a-form>
+    <a-form v-else-if="page === 'dataSources'" layout="vertical" class="entity-form request-form">
+      <section class="form-section">
+        <div class="form-section-head">
+          <b>基础信息</b>
+          <span>数据源发布后可作为 MCP 查询能力和动态 Tool runSql 的配置来源</span>
+        </div>
+
+        <a-row :gutter="12">
+          <a-col :span="12">
+            <a-form-item label="数据源名称">
+              <a-input v-model:value="model.name" size="large" placeholder="例如：课堂演示库" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="数据源 Key">
+              <a-input v-model:value="model.datasourceKey" size="large" :disabled="Boolean(model.id)" placeholder="例如：classroom_demo" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+
+        <a-form-item label="数据源说明">
+          <a-textarea v-model:value="model.description" class="code-area" placeholder="说明这个库包含哪些业务数据、适合哪些查询场景" :auto-size="{minRows:3,maxRows:5}" />
+        </a-form-item>
+      </section>
+
+      <section class="form-section">
+        <div class="form-section-head">
+          <b>连接信息</b>
+          <span>密码只会保存为密文，列表和编辑接口不会返回明文</span>
+        </div>
+
+        <a-row :gutter="12">
+          <a-col :span="8">
+            <a-form-item label="数据库类型">
+              <a-select v-model:value="model.dbType" :options="dataSourceDbTypeOptions" size="large" popupClassName="dark-select-dropdown" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="8">
+            <a-form-item label="用户名">
+              <a-input v-model:value="model.username" size="large" placeholder="数据库用户名" />
+            </a-form-item>
+          </a-col>
+          <a-col :span="8">
+            <a-form-item :label="model.id ? '密码（留空不修改）' : '密码'">
+              <a-input-password v-model:value="model.password" size="large" placeholder="数据库密码" />
+            </a-form-item>
+          </a-col>
+        </a-row>
+
+        <a-form-item label="JDBC URL">
+          <a-input v-model:value="model.jdbcUrl" size="large" placeholder="jdbc:mysql://localhost:3306/demo" />
+        </a-form-item>
+
+        <a-form-item label="额外 JDBC 参数 JSON">
+          <a-textarea v-model:value="model.extraJdbcProps" class="code-area" :auto-size="{minRows:3,maxRows:6}" placeholder='例如：{"useUnicode":"true"}' />
+        </a-form-item>
+      </section>
+
+      <section class="form-section compact">
+        <a-form-item label="发布状态">
+          <a-segmented v-model:value="model.publishStatus" :options="dataSourcePublishStatusOptions" block class="status-segmented publish-segmented" />
+        </a-form-item>
+      </section>
+    </a-form>
     <a-form v-else layout="vertical" class="entity-form">
       <template v-for="(value,key) in model" :key="key"><a-form-item v-if="!['id','tokenHash','tokenPrefix','createTime','updateTime','lastUsedTime','lastUsedIp'].includes(key)" :label="key"><a-textarea v-if="['headers','bodyTemplate','paramsDefault','inputSchema','groovyScript','linkedRequestKeys','description','argsSchema'].includes(key)" v-model:value="model[key]" class="code-area" :auto-size="{minRows:2,maxRows:8}" /><a-input v-else v-model:value="model[key]" /></a-form-item></template>
     </a-form>
     <div v-if="rawToken" class="raw-token"><b>请立即保存 Token，之后后台不会再返回完整明文：</b><br>{{ rawToken }}</div>
-    <template #footer><a-space><a-button @click="drawer=false">取消</a-button><a-button type="primary" @click="save">保存</a-button></a-space></template>
+    <template #footer><a-space><a-button @click="drawer=false">取消</a-button><a-button v-if="page === 'dataSources'" :loading="dataSourceTesting" @click="testDataSourceConnection">测试连接</a-button><a-button type="primary" @click="save">保存</a-button></a-space></template>
   </a-drawer>
   <a-modal v-model:open="apiDebugOpen" :title="`调试 API · ${activeStudioApi?.name || ''}`" width="860px" class="tool-permission-modal dynamic-tool-detail-modal">
     <section class="tool-option-section">

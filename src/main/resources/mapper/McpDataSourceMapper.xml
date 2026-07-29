@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bear.mcp.single.core.mapper.McpDataSourceMapper">
+    <sql id="BaseColumns">
+        id, name, datasource_key, db_type, jdbc_url, username, password_encrypted,
+        extra_jdbc_props, description, publish_status, last_operator_id, create_time, update_time
+    </sql>
+
+    <select id="findById" resultType="com.bear.mcp.single.core.entity.McpDataSourceEntity">
+        SELECT <include refid="BaseColumns" />
+        FROM mcp_data_source
+        WHERE id = #{id}
+        LIMIT 1
+    </select>
+
+    <select id="findByDatasourceKey" resultType="com.bear.mcp.single.core.entity.McpDataSourceEntity">
+        SELECT <include refid="BaseColumns" />
+        FROM mcp_data_source
+        WHERE datasource_key = #{datasourceKey}
+        LIMIT 1
+    </select>
+
+    <select id="findAll" resultType="com.bear.mcp.single.core.entity.McpDataSourceEntity">
+        SELECT <include refid="BaseColumns" />
+        FROM mcp_data_source
+        ORDER BY id DESC
+    </select>
+
+    <select id="findPublished" resultType="com.bear.mcp.single.core.entity.McpDataSourceEntity">
+        SELECT <include refid="BaseColumns" />
+        FROM mcp_data_source
+        WHERE publish_status = 1
+        ORDER BY name ASC
+    </select>
+
+    <insert id="insert" parameterType="com.bear.mcp.single.core.entity.McpDataSourceEntity" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO mcp_data_source (
+            name, datasource_key, db_type, jdbc_url, username, password_encrypted,
+            extra_jdbc_props, description, publish_status, last_operator_id
+        )
+        VALUES (
+            #{name}, #{datasourceKey}, #{dbType}, #{jdbcUrl}, #{username}, #{passwordEncrypted},
+            #{extraJdbcProps}, #{description}, #{publishStatus}, #{lastOperatorId}
+        )
+    </insert>
+
+    <update id="update" parameterType="com.bear.mcp.single.core.entity.McpDataSourceEntity">
+        UPDATE mcp_data_source
+        SET name = #{name},
+            db_type = #{dbType},
+            jdbc_url = #{jdbcUrl},
+            username = #{username},
+            <if test="passwordEncrypted != null and passwordEncrypted != ''">
+                password_encrypted = #{passwordEncrypted},
+            </if>
+            extra_jdbc_props = #{extraJdbcProps},
+            description = #{description},
+            publish_status = #{publishStatus},
+            last_operator_id = #{lastOperatorId}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM mcp_data_source WHERE id = #{id}
+    </delete>
+</mapper>
