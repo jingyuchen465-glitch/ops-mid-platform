@@ -19,6 +19,8 @@ public record TokenAuthInfo(
         /** 用户通过角色获得的工具资格集合。 */
         Set<String> allowedTools,
         /** 用户通过角色获得的 Prompt 资格集合。 */
-        Set<String> allowedPrompts
+        Set<String> allowedPrompts,
+        /** 用户通过角色获得的 Resource 资格集合。 */
+        Set<String> allowedResources
 ) {
 }

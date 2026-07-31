@@ -1,9 +1,13 @@
 DROP TABLE IF EXISTS mcp_audit_log;
+DROP TABLE IF EXISTS mcp_user_resource_selection;
 DROP TABLE IF EXISTS mcp_user_prompt_selection;
 DROP TABLE IF EXISTS mcp_user_tool_selection;
+DROP TABLE IF EXISTS mcp_role_resource;
 DROP TABLE IF EXISTS mcp_role_prompt;
 DROP TABLE IF EXISTS mcp_role_tool;
 DROP TABLE IF EXISTS mcp_user_role;
+DROP TABLE IF EXISTS mcp_skill;
+DROP TABLE IF EXISTS mcp_resource;
 DROP TABLE IF EXISTS mcp_prompt_template;
 DROP TABLE IF EXISTS mcp_dynamic_tool;
 DROP TABLE IF EXISTS mcp_data_source;
@@ -59,6 +63,14 @@ CREATE TABLE mcp_role_prompt (
     UNIQUE KEY uk_mcp_role_prompt (role_code, prompt_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='角色 Prompt 权限表';
 
+CREATE TABLE mcp_role_resource (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
+    role_code VARCHAR(64) NOT NULL COMMENT '角色编码',
+    resource_uri VARCHAR(255) NOT NULL COMMENT 'MCP Resource URI',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    UNIQUE KEY uk_mcp_role_resource (role_code, resource_uri)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='角色 Resource 权限表';
+
 CREATE TABLE mcp_user_token (
     id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT 'Token 主键',
     user_id BIGINT NOT NULL COMMENT '用户 ID',
@@ -95,6 +107,14 @@ CREATE TABLE mcp_user_prompt_selection (
     CONSTRAINT fk_mcp_prompt_selection_token FOREIGN KEY (token_id) REFERENCES mcp_user_token (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Token Prompt 选择表';
 
+CREATE TABLE mcp_user_resource_selection (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
+    token_id BIGINT NOT NULL COMMENT 'Token ID',
+    resource_uri VARCHAR(255) NOT NULL COMMENT 'MCP Resource URI',
+    is_enabled TINYINT NOT NULL DEFAULT 1 COMMENT '是否启用',
+    KEY idx_mcp_resource_selection_token (token_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Token Resource 选择表';
+
 CREATE TABLE mcp_dynamic_tool (
     id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
     tool_name VARCHAR(128) NOT NULL COMMENT 'MCP 工具名',
@@ -124,6 +144,42 @@ CREATE TABLE mcp_prompt_template (
     UNIQUE KEY uk_mcp_prompt_template_name (prompt_name),
     KEY idx_mcp_prompt_template_creator (creator_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Prompt 模板表';
+
+CREATE TABLE mcp_resource (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
+    resource_uri VARCHAR(255) NOT NULL COMMENT 'MCP Resource URI',
+    name VARCHAR(128) NOT NULL COMMENT '资源名称',
+    description TEXT NULL COMMENT '资源描述',
+    mime_type VARCHAR(128) NOT NULL DEFAULT 'text/markdown' COMMENT '资源 MIME 类型',
+    object_key VARCHAR(512) NOT NULL COMMENT '对象存储 key',
+    file_name VARCHAR(255) NULL COMMENT '原始文件名',
+    file_size BIGINT NULL COMMENT '文件大小',
+    creator_id BIGINT NULL COMMENT '创建者用户 ID',
+    is_enabled TINYINT NOT NULL DEFAULT 0 COMMENT '是否启用',
+    publish_status TINYINT NOT NULL DEFAULT 0 COMMENT '发布状态：0-草稿，1-已上架不公开，2-已上架公开',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_mcp_resource_uri (resource_uri),
+    KEY idx_mcp_resource_creator (creator_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='MCP Resource 资源表';
+
+CREATE TABLE mcp_skill (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
+    skill_code VARCHAR(32) NOT NULL COMMENT 'Skill 编码，如 SKILL0000000001',
+    name VARCHAR(128) NOT NULL COMMENT 'Skill 名称',
+    description TEXT NULL COMMENT 'Skill 描述，用于 Agent 判断何时使用',
+    category VARCHAR(64) NULL COMMENT '分类',
+    object_key VARCHAR(512) NOT NULL COMMENT 'TOS 中的 SKILL.md 对象 key',
+    file_name VARCHAR(255) NULL COMMENT '原始文件名',
+    file_size BIGINT NULL COMMENT '文件大小',
+    creator_id BIGINT NULL COMMENT '创建者用户 ID',
+    is_enabled TINYINT NOT NULL DEFAULT 0 COMMENT '是否启用',
+    publish_status TINYINT NOT NULL DEFAULT 0 COMMENT '发布状态：0-草稿，1-已上架不公开，2-已上架公开',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_mcp_skill_code (skill_code),
+    KEY idx_mcp_skill_creator (creator_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='MCP Skill 表';
 
 CREATE TABLE mcp_request_config (
     id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
@@ -210,6 +266,7 @@ INSERT INTO mcp_role_tool (role_code, tool_name) VALUES
 ('ADMIN', 'update_dynamic_tool_script'),
 ('ADMIN', 'list_data_sources'),
 ('ADMIN', 'query_data_source'),
+('ADMIN', 'get_skill'),
 ('ADMIN', 'echo_dynamic');
 
 -- 原始 Token mcp_dev_token 只用于课堂 curl 演示，数据库只保存它的 SHA-256 哈希。
@@ -238,6 +295,7 @@ INSERT INTO mcp_user_tool_selection (token_id, tool_name, tool_type, is_enabled)
 (1, 'update_dynamic_tool_script', 'BUILTIN', 1),
 (1, 'list_data_sources', 'BUILTIN', 1),
 (1, 'query_data_source', 'BUILTIN', 1),
+(1, 'get_skill', 'BUILTIN', 1),
 (1, 'echo_dynamic', 'DYNAMIC', 1);
 
 INSERT INTO mcp_request_config (

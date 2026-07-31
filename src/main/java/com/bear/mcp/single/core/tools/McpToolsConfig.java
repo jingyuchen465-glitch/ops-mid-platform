@@ -19,9 +19,10 @@ public class McpToolsConfig {
                                              CalculatorTools calculatorTools,
                                              RequestConfigTools requestConfigTools,
                                              DynamicStudioTools dynamicStudioTools,
-                                             DataSourceTools dataSourceTools) {
+                                             DataSourceTools dataSourceTools,
+                                             GetSkillTool getSkillTool) {
         return MethodToolCallbackProvider.builder()
-                .toolObjects(systemTools, calculatorTools, requestConfigTools, dynamicStudioTools, dataSourceTools)
+                .toolObjects(systemTools, calculatorTools, requestConfigTools, dynamicStudioTools, dataSourceTools, getSkillTool)
                 .build();
     }
 }

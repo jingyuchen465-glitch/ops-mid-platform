@@ -180,6 +180,30 @@ body { margin:0; min-width:1180px; background:radial-gradient(ellipse 70% 45% at
 .tool-api-options small{color:#78869b;font-size:11px;line-height:1.45;word-break:break-word}
 .tool-api-options p{margin:0;padding:12px;border:1px dashed rgba(148,163,184,.25);border-radius:8px;color:#8b98ad;font-size:12px;line-height:1.6}
 .tool-script-editor textarea{min-height:548px;background:#080a10;color:#d8f5e6}
+.resource-editor-board{grid-template-columns:minmax(320px,.72fr) minmax(620px,1.28fr);min-height:560px}
+.resource-upload-box{display:flex!important;flex-direction:column;gap:8px;padding:18px;border:1px dashed rgba(34,211,238,.3);border-radius:12px;background:linear-gradient(135deg,rgba(34,211,238,.08),rgba(139,92,246,.08));cursor:pointer}
+.resource-upload-box input{display:none}
+.resource-upload-box span{display:flex!important;align-items:center;gap:8px;margin:0!important;color:#dffbff!important;font-size:14px!important;font-weight:800!important}
+.resource-upload-box small{color:#8fa0b8;font-size:12px;line-height:1.5;word-break:break-all}
+.resource-storage-panel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.resource-storage-panel div{min-width:0;padding:14px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:#11141d}
+.resource-storage-panel div:last-child{grid-column:1/-1}
+.resource-storage-panel span{display:block;margin-bottom:7px;color:#7f8da4;font-size:12px}
+.resource-storage-panel b,.resource-storage-panel code{color:#dbeafe;font:13px/1.5 Consolas,Menlo,monospace;word-break:break-all}
+.resource-markdown-preview{min-height:548px;max-height:640px;padding:22px 24px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:#080a10;color:#d8f5e6;overflow:auto;font:14px/1.78 "PingFang SC",Inter,"Microsoft YaHei",sans-serif}
+.resource-markdown-preview h1,.resource-markdown-preview h2,.resource-markdown-preview h3,.resource-markdown-preview h4,.resource-markdown-preview h5,.resource-markdown-preview h6{margin:22px 0 12px;color:#f1fff6;font-weight:850;line-height:1.32}
+.resource-markdown-preview h1:first-child,.resource-markdown-preview h2:first-child,.resource-markdown-preview h3:first-child{margin-top:0}
+.resource-markdown-preview h1{font-size:24px}
+.resource-markdown-preview h2{font-size:20px}
+.resource-markdown-preview h3{font-size:17px}
+.resource-markdown-preview p{margin:0 0 14px;color:#d8f5e6}
+.resource-markdown-preview ul,.resource-markdown-preview ol{margin:0 0 16px 22px;padding:0}
+.resource-markdown-preview li{margin:7px 0;padding-left:2px}
+.resource-markdown-preview code{padding:2px 5px;border:1px solid rgba(34,211,238,.18);border-radius:5px;background:rgba(34,211,238,.08);color:#bff7e6;font-family:Consolas,Menlo,monospace}
+.resource-markdown-preview pre{margin:0 0 16px;padding:14px;border:1px solid rgba(255,255,255,.08);border-radius:10px;background:#05070c;color:#d7deea;overflow:auto}
+.resource-markdown-preview pre code{padding:0;border:0;background:transparent;color:inherit}
+.resource-markdown-preview strong{color:#ffffff;font-weight:850}
+.resource-markdown-preview .md-empty{color:#7f8da4}
 .tool-editor-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
 .tool-editor-actions button{height:38px;padding:0 15px;border:1px solid rgba(255,255,255,.12);border-radius:9px;background:#171a24;color:#dbe4f3;font-weight:750;cursor:pointer}
 .tool-editor-actions button:disabled{opacity:.62;cursor:wait}

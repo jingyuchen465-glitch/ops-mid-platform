@@ -2,17 +2,22 @@ package com.bear.mcp.single.admin.service;
 
 import com.bear.mcp.single.admin.req.AdminTokenPromptSelectionItemReq;
 import com.bear.mcp.single.admin.req.AdminTokenPromptSelectionSaveReq;
+import com.bear.mcp.single.admin.req.AdminTokenResourceSelectionItemReq;
+import com.bear.mcp.single.admin.req.AdminTokenResourceSelectionSaveReq;
 import com.bear.mcp.single.admin.req.AdminTokenSaveReq;
 import com.bear.mcp.single.admin.req.AdminTokenSelectionItemReq;
 import com.bear.mcp.single.admin.req.AdminTokenSelectionSaveReq;
 import com.bear.mcp.single.admin.res.AdminTokenCreatedRes;
 import com.bear.mcp.single.admin.res.AdminTokenPromptSelectionRes;
+import com.bear.mcp.single.admin.res.AdminTokenResourceSelectionRes;
 import com.bear.mcp.single.admin.res.AdminTokenRes;
 import com.bear.mcp.single.admin.res.AdminTokenSelectionRes;
 import com.bear.mcp.single.core.entity.McpUserPromptSelectionEntity;
+import com.bear.mcp.single.core.entity.McpUserResourceSelectionEntity;
 import com.bear.mcp.single.core.entity.McpUserTokenEntity;
 import com.bear.mcp.single.core.entity.McpUserToolSelectionEntity;
 import com.bear.mcp.single.core.mapper.McpUserPromptSelectionMapper;
+import com.bear.mcp.single.core.mapper.McpUserResourceSelectionMapper;
 import com.bear.mcp.single.core.mapper.McpUserTokenMapper;
 import com.bear.mcp.single.core.mapper.McpUserToolSelectionMapper;
 import org.springframework.stereotype.Service;
@@ -30,13 +35,16 @@ public class AdminTokenService {
     private final McpUserTokenMapper tokenMapper;
     private final McpUserToolSelectionMapper selectionMapper;
     private final McpUserPromptSelectionMapper promptSelectionMapper;
+    private final McpUserResourceSelectionMapper resourceSelectionMapper;
 
     public AdminTokenService(McpUserTokenMapper tokenMapper,
                              McpUserToolSelectionMapper selectionMapper,
-                             McpUserPromptSelectionMapper promptSelectionMapper) {
+                             McpUserPromptSelectionMapper promptSelectionMapper,
+                             McpUserResourceSelectionMapper resourceSelectionMapper) {
         this.tokenMapper = tokenMapper;
         this.selectionMapper = selectionMapper;
         this.promptSelectionMapper = promptSelectionMapper;
+        this.resourceSelectionMapper = resourceSelectionMapper;
     }
 
     public List<AdminTokenRes> list() {
@@ -73,6 +81,10 @@ public class AdminTokenService {
         return promptSelectionMapper.findAll().stream().map(this::toPromptSelectionRes).toList();
     }
 
+    public List<AdminTokenResourceSelectionRes> listResourceSelections() {
+        return resourceSelectionMapper.findAll().stream().map(this::toResourceSelectionRes).toList();
+    }
+
     @Transactional
     public void replaceSelections(Long tokenId, AdminTokenSelectionSaveReq req) {
         selectionMapper.deleteByTokenId(tokenId);
@@ -98,11 +110,27 @@ public class AdminTokenService {
         }
     }
 
+    @Transactional
+    public void replaceResourceSelections(Long tokenId, AdminTokenResourceSelectionSaveReq req) {
+        resourceSelectionMapper.deleteByTokenId(tokenId);
+        for (AdminTokenResourceSelectionItemReq item : safeResources(req.getResources())) {
+            McpUserResourceSelectionEntity entity = new McpUserResourceSelectionEntity();
+            entity.setTokenId(tokenId);
+            entity.setResourceUri(item.getResourceUri());
+            entity.setEnabled(item.getEnabled() == null ? 1 : item.getEnabled());
+            resourceSelectionMapper.insert(entity);
+        }
+    }
+
     private List<AdminTokenSelectionItemReq> safe(List<AdminTokenSelectionItemReq> values) {
         return values == null ? List.of() : values;
     }
 
     private List<AdminTokenPromptSelectionItemReq> safePrompts(List<AdminTokenPromptSelectionItemReq> values) {
+        return values == null ? List.of() : values;
+    }
+
+    private List<AdminTokenResourceSelectionItemReq> safeResources(List<AdminTokenResourceSelectionItemReq> values) {
         return values == null ? List.of() : values;
     }
 
@@ -155,6 +183,15 @@ public class AdminTokenService {
         res.setId(entity.getId());
         res.setTokenId(entity.getTokenId());
         res.setPromptName(entity.getPromptName());
+        res.setEnabled(entity.getEnabled());
+        return res;
+    }
+
+    private AdminTokenResourceSelectionRes toResourceSelectionRes(McpUserResourceSelectionEntity entity) {
+        AdminTokenResourceSelectionRes res = new AdminTokenResourceSelectionRes();
+        res.setId(entity.getId());
+        res.setTokenId(entity.getTokenId());
+        res.setResourceUri(entity.getResourceUri());
         res.setEnabled(entity.getEnabled());
         return res;
     }

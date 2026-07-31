@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bear.mcp.single.core.mapper.McpUserResourceSelectionMapper">
+    <select id="findEnabledByTokenId" resultType="com.bear.mcp.single.core.entity.McpUserResourceSelectionEntity">
+        SELECT id, token_id, resource_uri, is_enabled AS enabled
+        FROM mcp_user_resource_selection
+        WHERE token_id = #{tokenId} AND is_enabled = 1
+        ORDER BY id ASC
+    </select>
+    <select id="findAll" resultType="com.bear.mcp.single.core.entity.McpUserResourceSelectionEntity">
+        SELECT id, token_id, resource_uri, is_enabled AS enabled FROM mcp_user_resource_selection ORDER BY id DESC
+    </select>
+    <delete id="deleteByTokenId">DELETE FROM mcp_user_resource_selection WHERE token_id=#{tokenId}</delete>
+    <insert id="insert" parameterType="com.bear.mcp.single.core.entity.McpUserResourceSelectionEntity">
+        INSERT INTO mcp_user_resource_selection (token_id, resource_uri, is_enabled) VALUES (#{tokenId}, #{resourceUri}, #{enabled})
+    </insert>
+</mapper>

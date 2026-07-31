@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+set -e
+
+export LANG="${LANG:-en_US.UTF-8}"
+export LC_ALL="${LC_ALL:-en_US.UTF-8}"
+
+VERSION="0.1.0"
+DEFAULT_BASE_URL="${BEAR_MCP_BASE_URL:-http://localhost:8090}"
+SKILLS_DIR=".cursor/skills"
+
+usage() {
+  cat <<EOF
+bear-skill v${VERSION}
+
+用法:
+  bear-skill install <skillCode> [--base-url URL] [--global] [-C DIR]
+  bear-skill --help
+  bear-skill --version
+
+示例:
+  bear-skill install SKILL0000000001 --base-url http://localhost:8090
+  bear-skill install SKILL0000000001 --global
+EOF
+}
+
+die() {
+  echo "错误: $1" >&2
+  exit 1
+}
+
+CMD="${1:-}"
+SKILL_CODE=""
+BASE_URL="$DEFAULT_BASE_URL"
+TARGET_DIR=""
+GLOBAL=0
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    install)
+      SKILL_CODE="${2:-}"
+      shift 2
+      ;;
+    --base-url)
+      BASE_URL="${2%/}"
+      shift 2
+      ;;
+    -C|--dir)
+      TARGET_DIR="$2"
+      shift 2
+      ;;
+    --global)
+      GLOBAL=1
+      shift
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    --version|-v)
+      echo "bear-skill v${VERSION}"
+      exit 0
+      ;;
+    *)
+      die "未知参数: $1"
+      ;;
+  esac
+done
+
+[[ "$CMD" == "install" || -n "$SKILL_CODE" ]] || { usage; die "请指定 install <skillCode>"; }
+[[ "$SKILL_CODE" =~ ^SKILL[0-9]{10}$ ]] || die "skillCode 格式错误，应为 SKILL+10位数字"
+
+if [[ $GLOBAL -eq 1 ]]; then
+  INSTALL_DIR="${HOME}/${SKILLS_DIR}"
+elif [[ -n "$TARGET_DIR" ]]; then
+  INSTALL_DIR="$TARGET_DIR"
+else
+  INSTALL_DIR="${PWD}/${SKILLS_DIR}"
+fi
+
+DOWNLOAD_URL="${BASE_URL}/api/public/skills/${SKILL_CODE}/download"
+TMP_ZIP="$(mktemp -t bear-skill-XXXXXX.zip)"
+
+echo "正在下载 Skill: $SKILL_CODE"
+echo "  来源: $DOWNLOAD_URL"
+echo "  目标: $INSTALL_DIR"
+
+command -v curl >/dev/null 2>&1 || die "需要 curl"
+HTTP_CODE="$(curl -sfL -w "%{http_code}" -o "$TMP_ZIP" "$DOWNLOAD_URL" 2>/dev/null || true)"
+if [[ "$HTTP_CODE" != "200" ]]; then
+  rm -f "$TMP_ZIP"
+  die "下载失败 (HTTP $HTTP_CODE)，请确认 skillCode 正确且 Skill 已上线"
+fi
+
+mkdir -p "$INSTALL_DIR"
+cd "$INSTALL_DIR"
+
+extract_zip() {
+  local zipfile="$1"
+  if unzip -O UTF-8 -o -q "$zipfile" 2>/dev/null; then return 0; fi
+  if command -v ditto >/dev/null 2>&1 && [[ "$(uname -s)" == "Darwin" ]]; then
+    if ditto -x -k "$zipfile" . 2>/dev/null; then return 0; fi
+  fi
+  unzip -o -q "$zipfile" 2>/dev/null
+}
+
+if ! (command -v unzip >/dev/null 2>&1 || command -v ditto >/dev/null 2>&1); then
+  rm -f "$TMP_ZIP"
+  die "需要 unzip 或 ditto"
+fi
+
+if ! extract_zip "$TMP_ZIP"; then
+  rm -f "$TMP_ZIP"
+  die "解压失败"
+fi
+rm -f "$TMP_ZIP"
+
+EXTRACTED_DIR="$(find . -maxdepth 1 -mindepth 1 -type d 2>/dev/null | head -1)"
+EXTRACTED_DIR="${EXTRACTED_DIR#./}"
+echo "安装完成: $INSTALL_DIR/$EXTRACTED_DIR/"
+echo "Skill 已安装到 Cursor，可在 Cursor 中直接使用。"

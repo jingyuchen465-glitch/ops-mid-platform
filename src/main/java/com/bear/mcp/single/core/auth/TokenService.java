@@ -2,12 +2,14 @@ package com.bear.mcp.single.core.auth;
 
 import com.bear.mcp.single.core.entity.McpRoleEntity;
 import com.bear.mcp.single.core.entity.McpRolePromptEntity;
+import com.bear.mcp.single.core.entity.McpRoleResourceEntity;
 import com.bear.mcp.single.core.entity.McpRoleToolEntity;
 import com.bear.mcp.single.core.entity.McpUserEntity;
 import com.bear.mcp.single.core.entity.McpUserRoleEntity;
 import com.bear.mcp.single.core.entity.McpUserTokenEntity;
 import com.bear.mcp.single.core.mapper.McpRoleMapper;
 import com.bear.mcp.single.core.mapper.McpRolePromptMapper;
+import com.bear.mcp.single.core.mapper.McpRoleResourceMapper;
 import com.bear.mcp.single.core.mapper.McpRoleToolMapper;
 import com.bear.mcp.single.core.mapper.McpUserMapper;
 import com.bear.mcp.single.core.mapper.McpUserRoleMapper;
@@ -54,18 +56,25 @@ public class TokenService {
      */
     private final McpRolePromptMapper rolePromptMapper;
 
+    /**
+     * mcp_role_resource：角色能读取哪些 Resource，是 Resource 权限上限。
+     */
+    private final McpRoleResourceMapper roleResourceMapper;
+
     public TokenService(McpUserTokenMapper tokenMapper,
                         McpUserMapper userMapper,
                         McpUserRoleMapper userRoleMapper,
                         McpRoleMapper roleMapper,
                         McpRoleToolMapper roleToolMapper,
-                        McpRolePromptMapper rolePromptMapper) {
+                        McpRolePromptMapper rolePromptMapper,
+                        McpRoleResourceMapper roleResourceMapper) {
         this.tokenMapper = tokenMapper;
         this.userMapper = userMapper;
         this.userRoleMapper = userRoleMapper;
         this.roleMapper = roleMapper;
         this.roleToolMapper = roleToolMapper;
         this.rolePromptMapper = rolePromptMapper;
+        this.roleResourceMapper = roleResourceMapper;
     }
 
     public Optional<TokenAuthInfo> validate(String token) {
@@ -121,6 +130,11 @@ public class TokenService {
                 .map(McpRolePromptEntity::getPromptName)
                 .collect(Collectors.toSet());
 
+        Set<String> allowedResources = activeRoleCodes.isEmpty() ? Set.of()
+                : roleResourceMapper.findByRoleCodes(activeRoleCodes).stream()
+                .map(McpRoleResourceEntity::getResourceUri)
+                .collect(Collectors.toSet());
+
         /*
          * 只要鉴权通过，就刷新最后使用时间。
          * 它方便管理端观察 Token 是否还在被真实调用。
@@ -132,7 +146,8 @@ public class TokenService {
                 userEntity.getUsername(),
                 activeRoleCodes,
                 allowedTools,
-                allowedPrompts
+                allowedPrompts,
+                allowedResources
         ));
     }
 

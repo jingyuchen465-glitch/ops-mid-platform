@@ -22,11 +22,14 @@ mybatis:
   mapper-locations: classpath*:mapper/*.xml
   configuration:
     map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
 
 logging:
   level:
     root: INFO
     com.bear.mcp.single: DEBUG
+    com.bear.mcp.single.core.mapper: WARN
+    org.mybatis: WARN
     org.springframework.ai.mcp: INFO
 
 bear:
@@ -35,3 +38,11 @@ bear:
     jwt-expire-seconds: 7200
   mcp:
     demo-token: mcp_dev_token
+  storage:
+    tos:
+      endpoint: ${BEAR_TOS_ENDPOINT:tos-cn-shanghai.volces.com}
+      region: ${BEAR_TOS_REGION:cn-shanghai}
+      bucket: ${BEAR_TOS_BUCKET:yq-admin-11-dev}
+      access-key: ${BEAR_TOS_ACCESS_KEY:}
+      secret-key: ${BEAR_TOS_SECRET_KEY:}
+      upload-expire-seconds: ${BEAR_TOS_UPLOAD_EXPIRE_SECONDS:600}

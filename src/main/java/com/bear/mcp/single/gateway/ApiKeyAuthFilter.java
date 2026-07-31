@@ -83,6 +83,7 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
                         tokenAuthInfo.roleCodes(),
                         tokenAuthInfo.allowedTools(),
                         tokenAuthInfo.allowedPrompts(),
+                        tokenAuthInfo.allowedResources(),
                         sessionId,
                         clientIp(currentRequest)
                 ));

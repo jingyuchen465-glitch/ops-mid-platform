@@ -13,15 +13,20 @@ const dashboard = ref({})
 const roles = ref([])
 const roleTools = ref([])
 const rolePrompts = ref([])
+const roleResources = ref([])
 const userRoles = ref([])
 const tokenSelections = ref([])
 const tokenPromptSelections = ref([])
+const tokenResourceSelections = ref([])
 const dynamicToolOptions = ref([])
 const promptOptions = ref([])
+const resourceOptions = ref([])
 const toolPermissionOpen = ref(false)
 const promptPermissionOpen = ref(false)
+const resourcePermissionOpen = ref(false)
 const tokenSelectionOpen = ref(false)
 const tokenPromptSelectionOpen = ref(false)
+const tokenResourceSelectionOpen = ref(false)
 const userRoleOpen = ref(false)
 const activeUser = ref(null)
 const activeRole = ref(null)
@@ -29,8 +34,10 @@ const activeToken = ref(null)
 const selectedUserRoles = ref([])
 const selectedRoleTools = ref([])
 const selectedRolePrompts = ref([])
+const selectedRoleResources = ref([])
 const selectedTokenTools = ref([])
 const selectedTokenPrompts = ref([])
+const selectedTokenResources = ref([])
 const users = ref([])
 const requestConfigs = ref([])
 const dataSourceConfigs = ref([])
@@ -56,14 +63,28 @@ const apiEditorTab = ref('body')
 const apiEditorDebugParams = ref('{}')
 const apiKeyword = ref('')
 const apiStatusFilter = ref('all')
+const skillKeyword = ref('')
+const skillStatusFilter = ref('all')
+const skillPreviewText = ref('')
+const skillPreviewLoading = ref(false)
+const skillPreviewHtml = computed(() => renderMarkdown(skillPreviewText.value))
+const skillSaving = ref(false)
+const skillSelectedFile = ref(null)
 const toolKeyword = ref('')
 const toolStatusFilter = ref('all')
 const promptKeyword = ref('')
 const promptStatusFilter = ref('all')
+const resourceKeyword = ref('')
+const resourceStatusFilter = ref('all')
+const resourcePreviewText = ref('')
+const resourcePreviewLoading = ref(false)
+const resourcePreviewHtml = computed(() => renderMarkdown(resourcePreviewText.value))
 const promptPreviewArgs = ref('{}')
 const promptPreviewResult = ref(null)
 const promptPreviewLoading = ref(false)
 const promptSaving = ref(false)
+const resourceSaving = ref(false)
+const resourceSelectedFile = ref(null)
 const promptArgumentItems = ref([])
 const toolDebugParams = ref('{\n  "pageNum": 1,\n  "pageSize": 10\n}')
 const toolDebugResult = ref(null)
@@ -87,7 +108,8 @@ const builtinTools = [
   { name: 'list_dynamic_tools', description: '查询动态 Tool 配置' },
   { name: 'update_dynamic_tool_script', description: '更新动态 Tool 脚本' },
   { name: 'list_data_sources', description: '查询已发布数据源' },
-  { name: 'query_data_source', description: '只读查询数据源' }
+  { name: 'query_data_source', description: '只读查询数据源' },
+  { name: 'get_skill', description: '按 Skill ID 获取可安装的 Cursor Skill 文件' }
 ]
 const tokenPermissionOptions = [
   { label: '工具列表 + 工具调用', value: '["mcp:tools:read","mcp:tools:call"]' },
@@ -121,16 +143,16 @@ const dataSourcePublishStatusOptions = [
 ]
 const menu = [
   ['dashboard', '概览', AppstoreOutlined], ['users', '用户', TeamOutlined], ['roles', '角色与能力权限', TeamOutlined], ['tokens', 'Token 与能力选择', KeyOutlined],
-  ['requests', '请求配置', SettingOutlined], ['dataSources', '数据源', DatabaseOutlined], ['tools', '动态工具', ThunderboltOutlined], ['audits', '审计日志', AuditOutlined]
+  ['requests', '请求配置', SettingOutlined], ['dataSources', '数据源', DatabaseOutlined], ['resources', '资源', DatabaseOutlined], ['tools', '动态工具', ThunderboltOutlined], ['audits', '审计日志', AuditOutlined]
 ]
 const communityPages = ['shareHome', 'shareTools', 'shareApis']
-const studioPages = ['studioHome', 'studioTools', 'studioToolEdit', 'studioPrompts', 'studioPromptEdit', 'studioApis', 'studioApiEdit']
+const studioPages = ['studioHome', 'studioSkills', 'studioSkillEdit', 'studioTools', 'studioToolEdit', 'studioPrompts', 'studioPromptEdit', 'studioResources', 'studioResourceEdit', 'studioApis', 'studioApiEdit']
 const sharePages = [...communityPages, ...studioPages]
 const isSharePage = computed(() => sharePages.includes(page.value))
 const isCommunityPage = computed(() => communityPages.includes(page.value))
-const navSections = { dashboard: '概览', users: '系统治理', roles: '系统治理', tokens: '访问控制', requests: '能力展示', dataSources: '能力展示', tools: '能力展示', audits: '运行观测', shareHome: '首页', shareTools: 'MCP Tools', shareApis: 'API 能力', studioHome: '首页', studioTools: 'Tools 创作', studioPrompts: 'Prompts 创作', studioApis: 'API 创作' }
-const title = computed(() => ({ dashboard:'运行概览', users:'用户', roles:'角色与能力权限', tokens:'Token 与能力选择', requests:'请求配置', dataSources:'数据源', tools:'动态工具', audits:'调用审计', shareHome:'发现优质 AI 能力', shareTools:'MCP Tools', shareApis:'API 能力', studioHome:'Bear 创作空间', studioTools:'Tools 创作', studioToolEdit:'新建 Tool', studioPrompts:'Prompts 创作', studioPromptEdit:'新建 Prompt', studioApis:'API 创作', studioApiEdit:'新建 API' })[page.value])
-const desc = computed(() => ({ dashboard:'当前数据库中的 MCP 治理状态', users:'角色是工具和 Prompt 权限上限，用户通过角色获得资格', roles:'角色决定资格上限，工具和 Prompt 都在这里授权', tokens:'每把 Token 单独选择要暴露和实际允许使用的 Tool / Prompt', requests:'展示动态工具可引用的企业请求配置；完整创作在创作空间完成', dataSources:'维护外部数据库连接配置，为后续 query_data_source 和动态 Tool runSql 提供受控数据入口', tools:'这里只展示已发布的动态工具；创建与编辑在创作空间完成', audits:'保留每一次 MCP 工具调用的结果摘要与耗时', shareHome:'公开的 Tool 和 API 会先进入社区，被团队发现、复用，再进入 Token 配置链路。', shareTools:'浏览已公开的 MCP Tool。能否调用仍由角色权限和 Token 工具选择决定。', shareApis:'浏览已公开的 API 配置，它们是动态 Tool 编排时可复用的基础能力。', studioHome:'创作 Skills、Tools、Prompts、API，分享到社区', studioTools:'把已接入的 API 配置包装成 AI Agent 可见和可调用的 MCP Tool', studioToolEdit:'编写工具描述、入参 Schema 和 Groovy 脚本，调试通过后发布上线', studioPrompts:'沉淀企业工作流模板，指导 Agent 按标准流程使用工具', studioPromptEdit:'编写 Prompt 模板、参数和建议工具，预览渲染后发布', studioApis:'创建外部 HTTP API 配置，调试通过后发布给后续动态工具使用', studioApiEdit:'配置外部 HTTP API，保存并调试真实响应' })[page.value])
+const navSections = { dashboard: '概览', users: '系统治理', roles: '系统治理', tokens: '访问控制', requests: '能力展示', dataSources: '能力展示', resources: '能力展示', tools: '能力展示', audits: '运行观测', shareHome: '首页', shareTools: 'MCP Tools', shareApis: 'API 能力', studioHome: '首页', studioSkills: 'Skills 创作', studioTools: 'Tools 创作', studioPrompts: 'Prompts 创作', studioResources: 'Resources 创作', studioApis: 'API 创作' }
+const title = computed(() => ({ dashboard:'运行概览', users:'用户', roles:'角色与能力权限', tokens:'Token 与能力选择', requests:'请求配置', dataSources:'数据源', resources:'资源', tools:'动态工具', audits:'调用审计', shareHome:'发现优质 AI 能力', shareTools:'MCP Tools', shareApis:'API 能力', studioHome:'Bear 创作空间', studioSkills:'Skills 创作', studioSkillEdit:'新建 Skill', studioTools:'Tools 创作', studioToolEdit:'新建 Tool', studioPrompts:'Prompts 创作', studioPromptEdit:'新建 Prompt', studioResources:'Resources 创作', studioResourceEdit:'新建 Resource', studioApis:'API 创作', studioApiEdit:'新建 API' })[page.value])
+const desc = computed(() => ({ dashboard:'当前数据库中的 MCP 治理状态', users:'角色是工具和 Prompt 权限上限，用户通过角色获得资格', roles:'角色决定资格上限，Tool、Prompt、Resource 都在这里授权', tokens:'每把 Token 单独选择要暴露和实际允许使用的 Tool / Prompt / Resource', requests:'展示动态工具可引用的企业请求配置；完整创作在创作空间完成', dataSources:'维护外部数据库连接配置，为后续 query_data_source 和动态 Tool runSql 提供受控数据入口', resources:'展示已创建的 MCP Resource，发布并授权后可通过 resources/list 和 resources/read 读取', tools:'这里只展示已发布的动态工具；创建与编辑在创作空间完成', audits:'保留每一次 MCP 工具调用的结果摘要与耗时', shareHome:'公开的 Tool 和 API 会先进入社区，被团队发现、复用，再进入 Token 配置链路。', shareTools:'浏览已公开的 MCP Tool。能否调用仍由角色权限和 Token 工具选择决定。', shareApis:'浏览已公开的 API 配置，它们是动态 Tool 编排时可复用的基础能力。', studioHome:'创作 Skills、Tools、Prompts、Resources、API，分享到社区', studioSkills:'上传 Markdown Skill，让 Agent 通过 get_skill 安装到 Cursor 本地', studioSkillEdit:'上传 SKILL.md 并维护 Skill ID、名称、描述和发布状态', studioTools:'把已接入的 API 配置包装成 AI Agent 可见和可调用的 MCP Tool', studioToolEdit:'编写工具描述、入参 Schema 和 Groovy 脚本，调试通过后发布上线', studioPrompts:'沉淀企业工作流模板，指导 Agent 按标准流程使用工具', studioPromptEdit:'编写 Prompt 模板、参数和建议工具，预览渲染后发布', studioResources:'上传 Markdown 资源，让 Agent 通过 resources/list 和 resources/read 读取企业知识片段', studioResourceEdit:'上传 Markdown 文件并维护 Resource URI、名称、描述和发布状态', studioApis:'创建外部 HTTP API 配置，调试通过后发布给后续动态工具使用', studioApiEdit:'配置外部 HTTP API，保存并调试真实响应' })[page.value])
 const studioApiStats = computed(() => {
   const all = rows.value.length
   const online = rows.value.filter(item => Number(item.publishStatus) !== 0).length
@@ -222,6 +244,49 @@ const filteredStudioPrompts = computed(() => {
       item.description,
       item.templateContent,
       item.linkedToolNames
+    ].filter(Boolean).join(' ').toLowerCase()
+
+    return matchStatus && (!keyword || searchText.includes(keyword))
+  })
+})
+const filteredStudioSkills = computed(() => {
+  const keyword = skillKeyword.value.trim().toLowerCase()
+
+  return rows.value.filter(item => {
+    const publishStatus = Number(item.publishStatus)
+    const matchStatus =
+      skillStatusFilter.value === 'all'
+      || (skillStatusFilter.value === 'online' && publishStatus !== 0)
+      || (skillStatusFilter.value === 'draft' && publishStatus === 0)
+
+    const searchText = [
+      item.skillCode,
+      item.name,
+      item.description,
+      item.category,
+      item.fileName,
+      item.objectKey
+    ].filter(Boolean).join(' ').toLowerCase()
+
+    return matchStatus && (!keyword || searchText.includes(keyword))
+  })
+})
+const filteredStudioResources = computed(() => {
+  const keyword = resourceKeyword.value.trim().toLowerCase()
+
+  return rows.value.filter(item => {
+    const publishStatus = Number(item.publishStatus)
+    const matchStatus =
+      resourceStatusFilter.value === 'all'
+      || (resourceStatusFilter.value === 'online' && publishStatus !== 0)
+      || (resourceStatusFilter.value === 'draft' && publishStatus === 0)
+
+    const searchText = [
+      item.resourceUri,
+      item.name,
+      item.description,
+      item.fileName,
+      item.objectKey
     ].filter(Boolean).join(' ').toLowerCase()
 
     return matchStatus && (!keyword || searchText.includes(keyword))
@@ -375,6 +440,7 @@ const columns = computed(() => ({
  tokens:[['tokenName','Token 名称'],['userId','所属用户'],['permissions','访问范围'],['tokenPrefix','展示前缀'],['isActive','状态'],['expireTime','过期时间']],
  requests:[['requestId','接口 ID'],['configKey','配置 Key'],['name','名称'],['type','协议'],['publishStatus','发布'],['isEnabled','状态']],
  dataSources:[['name','名称'],['datasourceKey','数据源 Key'],['dbType','类型'],['jdbcUrl','JDBC URL'],['username','用户名'],['passwordSet','密码'],['publishStatus','发布']],
+ resources:[['resourceUri','Resource URI'],['name','名称'],['description','描述'],['mimeType','MIME 类型'],['publishStatus','发布'],['enabled','状态']],
  tools:[['toolName','工具名'],['toolDescription','工具描述'],['linkedRequestKeys','API 白名单'],['linkedDataSourceIds','数据源白名单'],['publishStatus','发布'],['inputSchema','入参 Schema'],['groovyScript','脚本摘要'],['enabled','状态']],
  audits:[['createTime','调用时间'],['userName','用户'],['toolName','工具'],['status','状态'],['durationMs','耗时(ms)']],
  roles:[['roleCode','角色编码'],['roleName','角色名称'],['isEnabled','状态']]
@@ -388,6 +454,12 @@ const dataColumns = computed(() => columns.value.map(([dataIndex,title]) => ({
 
 function pageFromPath() {
   const path = window.location.pathname
+  if (path === '/share/studio/skills') {
+    return 'studioSkills'
+  }
+  if (path === '/share/studio/skills/edit') {
+    return 'studioSkillEdit'
+  }
   if (path === '/share/studio/tools') {
     return 'studioTools'
   }
@@ -399,6 +471,12 @@ function pageFromPath() {
   }
   if (path === '/share/studio/prompts/edit') {
     return 'studioPromptEdit'
+  }
+  if (path === '/share/studio/resources') {
+    return 'studioResources'
+  }
+  if (path === '/share/studio/resources/edit') {
+    return 'studioResourceEdit'
   }
   if (path === '/share/studio/apis') {
     return 'studioApis'
@@ -427,10 +505,14 @@ function pathForPage(key) {
     shareTools: '/share/tools',
     shareApis: '/share/apis',
     studioHome: '/share/studio',
+    studioSkills: '/share/studio/skills',
+    studioSkillEdit: '/share/studio/skills/edit',
     studioTools: '/share/studio/tools',
     studioToolEdit: '/share/studio/tools/edit',
     studioPrompts: '/share/studio/prompts',
     studioPromptEdit: '/share/studio/prompts/edit',
+    studioResources: '/share/studio/resources',
+    studioResourceEdit: '/share/studio/resources/edit',
     studioApis: '/share/studio/apis',
     studioApiEdit: '/share/studio/apis/edit',
     dashboard: '/admin'
@@ -464,6 +546,12 @@ function formatTableCell(dataIndex, text, record) {
   }
   if (dataIndex === 'passwordSet' && page.value === 'dataSources') {
     return text ? '已设置' : '未设置'
+  }
+  if (dataIndex === 'publishStatus' && page.value === 'resources') {
+    return publishLabel(text)
+  }
+  if (dataIndex === 'enabled' && page.value === 'resources') {
+    return Number(text) === 1 ? '启用' : '禁用'
   }
   if (dataIndex === 'isEnabled' || dataIndex === 'isActive' || dataIndex === 'enabled') {
     return Number(text) === 1 ? '启用' : '禁用'
@@ -657,6 +745,14 @@ async function load() {
       rows.value = await api('/api/share/community/apis')
     }
     else if (page.value === 'studioHome') rows.value = await api('/api/share/studio/apis')
+    else if (page.value === 'studioSkills') {
+      rows.value = await api('/api/share/studio/skills')
+    }
+    else if (page.value === 'studioSkillEdit') {
+      if (!model.value.skillCode) {
+        model.value = emptySkillModel()
+      }
+    }
     else if (page.value === 'dashboard') { dashboard.value = await api('/dashboard'); rows.value = dashboard.value.recentAudits || [] }
     else if (page.value === 'users') {
       [rows.value, roles.value, userRoles.value] = await Promise.all([
@@ -667,26 +763,31 @@ async function load() {
       users.value = rows.value
     }
     else if (page.value === 'roles') {
-      [rows.value, roleTools.value, rolePrompts.value, dynamicToolOptions.value, promptOptions.value] = await Promise.all([
+      [rows.value, roleTools.value, rolePrompts.value, roleResources.value, dynamicToolOptions.value, promptOptions.value, resourceOptions.value] = await Promise.all([
         api('/roles'),
         api('/role-tools'),
         api('/role-prompts'),
+        api('/role-resources'),
         api('/dynamic-tools'),
-        api('/prompt-templates')
+        api('/prompt-templates'),
+        api('/resources')
       ])
     }
     else if (page.value === 'tokens') {
-      [rows.value, users.value, tokenSelections.value, tokenPromptSelections.value, dynamicToolOptions.value, promptOptions.value] = await Promise.all([
+      [rows.value, users.value, tokenSelections.value, tokenPromptSelections.value, tokenResourceSelections.value, dynamicToolOptions.value, promptOptions.value, resourceOptions.value] = await Promise.all([
         api('/tokens'),
         api('/users'),
         api('/token-selections'),
         api('/token-prompt-selections'),
+        api('/token-resource-selections'),
         api('/dynamic-tools'),
-        api('/prompt-templates')
+        api('/prompt-templates'),
+        api('/resources')
       ])
     }
     else if (page.value === 'requests') rows.value = await api('/request-configs')
     else if (page.value === 'dataSources') rows.value = await api('/data-sources')
+    else if (page.value === 'resources') rows.value = await api('/resources')
     else if (page.value === 'studioTools') {
       [rows.value, requestConfigs.value, dataSourceConfigs.value] = await Promise.all([
         api('/api/share/studio/tools'),
@@ -715,6 +816,14 @@ async function load() {
         model.value = emptyPromptModel()
         syncPromptArgumentsFromModel()
         promptPreviewArgs.value = buildPromptPreviewArgs()
+      }
+    }
+    else if (page.value === 'studioResources') {
+      rows.value = await api('/api/share/studio/resources')
+    }
+    else if (page.value === 'studioResourceEdit') {
+      if (!model.value.resourceUri) {
+        model.value = emptyResourceModel()
       }
     }
     else if (page.value === 'studioApis') rows.value = await api('/api/share/studio/apis')
@@ -758,7 +867,9 @@ function emptyModel() {
   if (page.value === 'requests' || page.value === 'studioApis' || page.value === 'studioApiEdit') return emptyApiModel()
   if (page.value === 'dataSources') return emptyDataSourceModel()
   if (page.value === 'tools') return { toolName:'', toolDescription:'', inputSchema:'{"type":"object","properties":{}}', groovyScript:'return [message: params.message]', linkedRequestKeys:'[]', linkedDataSourceIds:'[]', enabled:1 }
+  if (page.value === 'studioSkills' || page.value === 'studioSkillEdit') return emptySkillModel()
   if (page.value === 'studioPrompts' || page.value === 'studioPromptEdit') return emptyPromptModel()
+  if (page.value === 'studioResources' || page.value === 'studioResourceEdit') return emptyResourceModel()
   return {}
 }
 function emptyApiModel() {
@@ -766,6 +877,19 @@ function emptyApiModel() {
 }
 function emptyDataSourceModel() {
   return { name:'', datasourceKey:'', dbType:'MYSQL', jdbcUrl:'jdbc:mysql://localhost:3306/demo?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai', username:'', password:'', extraJdbcProps:'{}', description:'', publishStatus:0 }
+}
+function emptySkillModel() {
+  return {
+    skillCode: '',
+    name: '',
+    description: '',
+    category: '',
+    objectKey: '',
+    fileName: '',
+    fileSize: null,
+    enabled: 0,
+    publishStatus: 0
+  }
 }
 function emptyToolModel() {
   const script = defaultToolScript()
@@ -796,7 +920,24 @@ function emptyPromptModel() {
     publishStatus: 0
   }
 }
+function emptyResourceModel() {
+  return {
+    resourceUri: '',
+    name: '',
+    description: '',
+    mimeType: 'text/markdown',
+    objectKey: '',
+    fileName: '',
+    fileSize: null,
+    enabled: 0,
+    publishStatus: 0
+  }
+}
 function openCreate() {
+  if (page.value === 'studioSkills') {
+    openSkillEditor()
+    return
+  }
   if (page.value === 'studioApis') {
     openApiEditor()
     return
@@ -809,7 +950,21 @@ function openCreate() {
     openPromptEditor()
     return
   }
+  if (page.value === 'studioResources') {
+    openResourceEditor()
+    return
+  }
   model.value = emptyModel(); drawer.value=true
+}
+function openSkillEditor(row) {
+  model.value = row ? { ...row } : emptySkillModel()
+  skillSelectedFile.value = null
+  skillPreviewText.value = ''
+  page.value = 'studioSkillEdit'
+  window.history.pushState({}, '', pathForPage('studioSkillEdit'))
+  if (row?.id && row?.objectKey) {
+    loadSkillPreview(row.id)
+  }
 }
 function openToolEditor(row) {
   model.value = row ? { ...row } : emptyToolModel()
@@ -845,6 +1000,16 @@ function openPromptEditor(row) {
   page.value = 'studioPromptEdit'
   window.history.pushState({}, '', pathForPage('studioPromptEdit'))
 }
+function openResourceEditor(row) {
+  model.value = row ? { ...row } : emptyResourceModel()
+  resourceSelectedFile.value = null
+  resourcePreviewText.value = ''
+  page.value = 'studioResourceEdit'
+  window.history.pushState({}, '', pathForPage('studioResourceEdit'))
+  if (row?.id && row?.objectKey) {
+    loadResourcePreview(row.id)
+  }
+}
 function edit(row) {
   model.value = { ...row }
   if (page.value === 'tokens') {
@@ -854,12 +1019,20 @@ function edit(row) {
     openApiEditor(row)
     return
   }
+  if (page.value === 'studioSkills') {
+    openSkillEditor(row)
+    return
+  }
   if (page.value === 'studioTools') {
     openToolEditor(row)
     return
   }
   if (page.value === 'studioPrompts') {
     openPromptEditor(row)
+    return
+  }
+  if (page.value === 'studioResources') {
+    openResourceEditor(row)
     return
   }
   drawer.value=true
@@ -962,12 +1135,21 @@ function buildSaveBody() {
     body.enabled = body.publishStatus === 0 ? 0 : 1
     body.linkedDataSourceIds = body.linkedDataSourceIds || '[]'
   }
+  if (page.value === 'studioSkills' || page.value === 'studioSkillEdit') {
+    body.publishStatus = Number(body.publishStatus || 0)
+    body.enabled = body.publishStatus === 0 ? 0 : 1
+  }
   if (page.value === 'studioPrompts' || page.value === 'studioPromptEdit') {
     body.publishStatus = Number(body.publishStatus || 0)
     body.enabled = body.publishStatus === 0 ? 0 : 1
     syncPromptArgumentsToModel()
     body.argumentsSchema = model.value.argumentsSchema || '[]'
     body.linkedToolNames = body.linkedToolNames || '[]'
+  }
+  if (page.value === 'studioResources' || page.value === 'studioResourceEdit') {
+    body.publishStatus = Number(body.publishStatus || 0)
+    body.enabled = body.publishStatus === 0 ? 0 : 1
+    body.mimeType = 'text/markdown'
   }
   return body
 }
@@ -978,6 +1160,107 @@ function defaultToolScript() {
 
 function defaultPromptTemplate() {
   return '你是企业 AI 工作流助手。\n\n任务：围绕 {{topic}} 完成分析。\n\n建议流程：\n1. 先理解用户目标，确认缺失参数。\n2. 优先使用下方建议工具完成事实查询。\n3. 如果工具返回 rows，不要原样堆砌，先提炼关键结论。\n4. 最终输出：结论、依据、下一步建议。\n\n建议使用的工具：\n{{tools}}'
+}
+
+function renderMarkdown(markdown) {
+  if (!markdown) {
+    return '<p class="md-empty">选择 Markdown 文件后显示预览内容。</p>'
+  }
+  const lines = String(markdown).replace(/\r\n/g, '\n').split('\n')
+  const html = []
+  let paragraph = []
+  let listType = ''
+  let codeLines = []
+  let inCode = false
+
+  const flushParagraph = () => {
+    if (!paragraph.length) return
+    html.push(`<p>${renderInline(paragraph.join(' '))}</p>`)
+    paragraph = []
+  }
+  const closeList = () => {
+    if (!listType) return
+    html.push(`</${listType}>`)
+    listType = ''
+  }
+
+  lines.forEach(line => {
+    const raw = line
+    const trimmed = raw.trim()
+    if (trimmed.startsWith('```')) {
+      if (inCode) {
+        html.push(`<pre><code>${escapeHtml(codeLines.join('\n'))}</code></pre>`)
+        codeLines = []
+        inCode = false
+      } else {
+        flushParagraph()
+        closeList()
+        inCode = true
+      }
+      return
+    }
+    if (inCode) {
+      codeLines.push(raw)
+      return
+    }
+    if (!trimmed) {
+      flushParagraph()
+      closeList()
+      return
+    }
+    const heading = trimmed.match(/^(#{1,6})\s+(.+)$/)
+    if (heading) {
+      flushParagraph()
+      closeList()
+      const level = heading[1].length
+      html.push(`<h${level}>${renderInline(heading[2])}</h${level}>`)
+      return
+    }
+    const unordered = trimmed.match(/^[-*]\s+(.+)$/)
+    if (unordered) {
+      flushParagraph()
+      if (listType !== 'ul') {
+        closeList()
+        listType = 'ul'
+        html.push('<ul>')
+      }
+      html.push(`<li>${renderInline(unordered[1])}</li>`)
+      return
+    }
+    const ordered = trimmed.match(/^\d+\.\s+(.+)$/)
+    if (ordered) {
+      flushParagraph()
+      if (listType !== 'ol') {
+        closeList()
+        listType = 'ol'
+        html.push('<ol>')
+      }
+      html.push(`<li>${renderInline(ordered[1])}</li>`)
+      return
+    }
+    paragraph.push(trimmed)
+  })
+  if (inCode) {
+    html.push(`<pre><code>${escapeHtml(codeLines.join('\n'))}</code></pre>`)
+  }
+  flushParagraph()
+  closeList()
+  return html.join('\n')
+}
+
+function renderInline(value) {
+  return escapeHtml(value)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
 }
 
 function defaultToolSchema() {
@@ -1549,6 +1832,13 @@ async function updateTokenPromptSelections(token) {
     .map(item => item.promptName)
   tokenPromptSelectionOpen.value = true
 }
+async function updateTokenResourceSelections(token) {
+  activeToken.value = token
+  selectedTokenResources.value = tokenResourceSelections.value
+    .filter(item => item.tokenId === token.id && item.enabled === 1)
+    .map(item => item.resourceUri)
+  tokenResourceSelectionOpen.value = true
+}
 async function updateUserRoles(user) {
   activeUser.value = user
   selectedUserRoles.value = userRoles.value
@@ -1575,6 +1865,11 @@ async function updateRolePrompts(role) {
   selectedRolePrompts.value = rolePrompts.value.filter(item => item.roleCode === role.roleCode).map(item => item.promptName)
   promptPermissionOpen.value = true
 }
+async function updateRoleResources(role) {
+  activeRole.value = role
+  selectedRoleResources.value = roleResources.value.filter(item => item.roleCode === role.roleCode).map(item => item.resourceUri)
+  resourcePermissionOpen.value = true
+}
 async function saveRoleTools() {
   await api(`/roles/${activeRole.value.roleCode}/tools`, { method:'PUT', body:{ codes:selectedRoleTools.value } })
   toolPermissionOpen.value = false
@@ -1583,6 +1878,11 @@ async function saveRoleTools() {
 async function saveRolePrompts() {
   await api(`/roles/${activeRole.value.roleCode}/prompts`, { method:'PUT', body:{ codes:selectedRolePrompts.value } })
   promptPermissionOpen.value = false
+  await load()
+}
+async function saveRoleResources() {
+  await api(`/roles/${activeRole.value.roleCode}/resources`, { method:'PUT', body:{ codes:selectedRoleResources.value } })
+  resourcePermissionOpen.value = false
   await load()
 }
 async function saveTokenSelections() {
@@ -1613,6 +1913,26 @@ async function saveTokenPromptSelections() {
   })
 
   tokenPromptSelectionOpen.value = false
+  await load()
+}
+async function saveTokenResourceSelections() {
+  const resources = selectedTokenResources.value.map(resourceUri => ({
+    resourceUri,
+    enabled: 1
+  }))
+
+  await api(`/tokens/${activeToken.value.id}/resource-selections`, {
+    method: 'PUT',
+    body: { resources }
+  })
+
+  tokenResourceSelectionOpen.value = false
+  await load()
+}
+async function toggleResourceEnabled(resource) {
+  const enabled = Number(resource.enabled) === 1
+  await api(`/resources/${resource.id}/${enabled ? 'disable' : 'enable'}`, { method: 'POST' })
+  message.success(enabled ? 'Resource 已禁用' : 'Resource 已启用')
   await load()
 }
 function showDynamicToolDetail(tool) {
@@ -1816,6 +2136,352 @@ async function toggleVisibilityPrompt(prompt) {
   }
   await publishPrompt(prompt)
 }
+async function onSkillFileChange(event) {
+  const file = event.target.files?.[0]
+  if (!file) {
+    skillSelectedFile.value = null
+    return
+  }
+  if (!file.name.toLowerCase().endsWith('.md')) {
+    message.warning('Skill 当前只支持 Markdown (.md) 文件')
+    event.target.value = ''
+    skillSelectedFile.value = null
+    return
+  }
+  skillSelectedFile.value = file
+  model.value.fileName = file.name
+  model.value.fileSize = file.size
+  if (!model.value.name) {
+    model.value.name = file.name.replace(/\.md$/i, '')
+  }
+  skillPreviewText.value = await file.text()
+  applySkillFrontmatterHint(skillPreviewText.value)
+}
+
+function applySkillFrontmatterHint(markdown) {
+  const match = String(markdown || '').replace(/\r\n/g, '\n').match(/^---\s*\n([\s\S]*?)\n---/)
+  if (!match) {
+    return
+  }
+  const fields = {}
+  match[1].split('\n').forEach(line => {
+    const item = line.match(/^([a-zA-Z0-9_-]+):\s*(.*)$/)
+    if (item) {
+      fields[item[1]] = item[2].replace(/^['"]|['"]$/g, '').trim()
+    }
+  })
+  if (fields.name && !model.value.name) {
+    model.value.name = fields.name
+  }
+  if (fields.description && !model.value.description) {
+    model.value.description = fields.description
+  }
+}
+
+function skillInstallBaseUrl() {
+  const origin = window.location.origin.replace(/\/$/, '')
+  if (window.location.hostname === 'localhost' && window.location.port === '5173') {
+    return 'http://localhost:8090'
+  }
+  return origin
+}
+
+function skillCliInstallCommand(skillCode) {
+  return `bear-skill install ${skillCode} --base-url ${skillInstallBaseUrl()}`
+}
+
+function skillInstallScriptUrl() {
+  return `${skillInstallBaseUrl()}/api/public/bear-skill/install.sh`
+}
+
+function buildCursorSkillInstallPrompt(skill) {
+  const skillCode = skill?.skillCode || model.value.skillCode
+  const cliCmd = skillCliInstallCommand(skillCode)
+  return '请先检查是否已安装 bear-skill CLI（执行 which bear-skill 或 command -v bear-skill）。\n\n'
+    + '若未安装，请执行以下命令安装（安装到 ~/.local/bin，无需 sudo）：\n'
+    + `  curl -fsSL ${skillInstallScriptUrl()} | bash -s -- --cli-only\n\n`
+    + `若已安装，则直接安装 ${skillCode} 技能：\n`
+    + `  ${cliCmd}\n\n`
+    + '安装完成后，请确认当前项目下存在 .cursor/skills/ 目录，并提示我重启或刷新 Cursor。'
+}
+
+function openCursorSkillInstall(skill) {
+  const skillCode = skill?.skillCode || model.value.skillCode
+  if (!skillCode || Number(skill?.publishStatus ?? model.value.publishStatus) === 0) {
+    message.warning('请先上线 Skill，再安装到 Cursor')
+    return
+  }
+  const prompt = encodeURIComponent(buildCursorSkillInstallPrompt(skill))
+  const deeplink = `cursor://anysphere.cursor-deeplink/prompt?text=${prompt}`
+  try {
+    window.location.href = deeplink
+  } catch (error) {
+    window.open(`https://cursor.com/link/prompt?text=${prompt}`, '_blank')
+  }
+}
+
+function downloadSkillZip(skill) {
+  const skillCode = skill?.skillCode || model.value.skillCode
+  if (!skillCode || Number(skill?.publishStatus ?? model.value.publishStatus) === 0) {
+    message.warning('请先上线 Skill，再下载 ZIP')
+    return
+  }
+  window.open(`${skillInstallBaseUrl()}/api/public/skills/${encodeURIComponent(skillCode)}/download`, '_blank')
+}
+
+async function loadSkillPreview(skillId = model.value.id) {
+  if (!skillId) {
+    skillPreviewText.value = ''
+    return
+  }
+  skillPreviewLoading.value = true
+  try {
+    const presign = await api(`/api/share/studio/skills/${skillId}/presign-download`)
+    const response = await fetch(presign.downloadUrl)
+    if (!response.ok) {
+      throw new Error(`Skill 读取失败：${response.status}`)
+    }
+    skillPreviewText.value = await response.text()
+  } catch (error) {
+    skillPreviewText.value = error.message || 'Skill 读取失败'
+  } finally {
+    skillPreviewLoading.value = false
+  }
+}
+
+async function uploadSkillFileIfNeeded() {
+  if (!skillSelectedFile.value) {
+    return
+  }
+  const file = skillSelectedFile.value
+  const presign = await api('/api/share/studio/skills/presign-upload', {
+    method: 'POST',
+    body: {
+      skillCode: model.value.skillCode,
+      fileName: file.name,
+      fileSize: file.size
+    }
+  })
+  const uploadResponse = await fetch(presign.uploadUrl, {
+    method: 'PUT',
+    body: file
+  })
+  if (!uploadResponse.ok) {
+    throw new Error(`Skill 上传失败：${uploadResponse.status}`)
+  }
+  model.value.skillCode = presign.skillCode
+  model.value.objectKey = presign.objectKey
+  model.value.fileName = file.name
+  model.value.fileSize = file.size
+  skillSelectedFile.value = null
+}
+
+async function saveSkillEditor() {
+  skillSaving.value = true
+  try {
+    await uploadSkillFileIfNeeded()
+    const method = model.value.id ? 'PUT' : 'POST'
+    const url = model.value.id ? `/api/share/studio/skills/${model.value.id}` : '/api/share/studio/skills'
+    const result = await api(url, {
+      method,
+      body: buildSaveBody()
+    })
+    model.value = { ...model.value, ...result }
+    await loadSkillPreview(result.id)
+    message.success(model.value.id ? 'Skill 已保存' : 'Skill 已创建')
+    return result
+  } catch (error) {
+    message.error(error.message || '保存失败')
+    throw error
+  } finally {
+    skillSaving.value = false
+  }
+}
+
+async function publishSkill(skill) {
+  const result = await api(`/api/share/studio/skills/${skill.id}/publish`, { method: 'POST' })
+  if (model.value.id === skill.id) {
+    model.value = { ...model.value, ...result }
+  }
+  message.success('Skill 已公开发布')
+  await load()
+}
+
+async function publishPrivateSkill(skill) {
+  const result = await api(`/api/share/studio/skills/${skill.id}/publish-private`, { method: 'POST' })
+  if (model.value.id === skill.id) {
+    model.value = { ...model.value, ...result }
+  }
+  message.success('Skill 已设为不公开')
+  await load()
+}
+
+async function unpublishSkill(skill) {
+  const result = await api(`/api/share/studio/skills/${skill.id}/unpublish`, { method: 'POST' })
+  if (model.value.id === skill.id) {
+    model.value = { ...model.value, ...result }
+  }
+  message.success('Skill 已下线')
+  await load()
+}
+
+async function toggleOnlineSkill(skill) {
+  if (Number(skill.publishStatus) !== 0) {
+    await unpublishSkill(skill)
+    return
+  }
+  await publishPrivateSkill(skill)
+}
+
+async function toggleVisibilitySkill(skill) {
+  if (Number(skill.publishStatus) === 0) {
+    message.warning('先上线，再设置公开范围')
+    return
+  }
+  if (Number(skill.publishStatus) === 2) {
+    await publishPrivateSkill(skill)
+    return
+  }
+  await publishSkill(skill)
+}
+async function onResourceFileChange(event) {
+  const file = event.target.files?.[0]
+  if (!file) {
+    resourceSelectedFile.value = null
+    return
+  }
+  if (!file.name.toLowerCase().endsWith('.md')) {
+    message.warning('Resource 当前只支持 Markdown (.md) 文件')
+    event.target.value = ''
+    resourceSelectedFile.value = null
+    return
+  }
+  resourceSelectedFile.value = file
+  model.value.fileName = file.name
+  model.value.fileSize = file.size
+  if (!model.value.name) {
+    model.value.name = file.name.replace(/\.md$/i, '')
+  }
+  resourcePreviewText.value = await file.text()
+}
+
+async function loadResourcePreview(resourceId = model.value.id) {
+  if (!resourceId) {
+    resourcePreviewText.value = ''
+    return
+  }
+  resourcePreviewLoading.value = true
+  try {
+    const presign = await api(`/api/share/studio/resources/${resourceId}/presign-download`)
+    const response = await fetch(presign.downloadUrl)
+    if (!response.ok) {
+      throw new Error(`文档读取失败：${response.status}`)
+    }
+    resourcePreviewText.value = await response.text()
+  } catch (error) {
+    resourcePreviewText.value = error.message || '文档读取失败'
+  } finally {
+    resourcePreviewLoading.value = false
+  }
+}
+
+async function uploadResourceFileIfNeeded() {
+  if (!resourceSelectedFile.value) {
+    return
+  }
+  if (!model.value.resourceUri) {
+    throw new Error('请先填写 Resource URI')
+  }
+  const file = resourceSelectedFile.value
+  const presign = await api('/api/share/studio/resources/presign-upload', {
+    method: 'POST',
+    body: {
+      resourceUri: model.value.resourceUri,
+      fileName: file.name,
+      fileSize: file.size
+    }
+  })
+  const uploadResponse = await fetch(presign.uploadUrl, {
+    method: 'PUT',
+    body: file
+  })
+  if (!uploadResponse.ok) {
+    throw new Error(`Markdown 上传失败：${uploadResponse.status}`)
+  }
+  model.value.objectKey = presign.objectKey
+  model.value.fileName = file.name
+  model.value.fileSize = file.size
+  resourceSelectedFile.value = null
+}
+
+async function saveResourceEditor() {
+  resourceSaving.value = true
+  try {
+    await uploadResourceFileIfNeeded()
+    const method = model.value.id ? 'PUT' : 'POST'
+    const url = model.value.id ? `/api/share/studio/resources/${model.value.id}` : '/api/share/studio/resources'
+    const result = await api(url, {
+      method,
+      body: buildSaveBody()
+    })
+    model.value = { ...model.value, ...result }
+    await loadResourcePreview(result.id)
+    message.success(model.value.id ? 'Resource 已保存' : 'Resource 已创建')
+    return result
+  } catch (error) {
+    message.error(error.message || '保存失败')
+    throw error
+  } finally {
+    resourceSaving.value = false
+  }
+}
+
+async function publishResource(resource) {
+  const result = await api(`/api/share/studio/resources/${resource.id}/publish`, { method: 'POST' })
+  if (model.value.id === resource.id) {
+    model.value = { ...model.value, ...result }
+  }
+  message.success('Resource 已公开发布')
+  await load()
+}
+
+async function publishPrivateResource(resource) {
+  const result = await api(`/api/share/studio/resources/${resource.id}/publish-private`, { method: 'POST' })
+  if (model.value.id === resource.id) {
+    model.value = { ...model.value, ...result }
+  }
+  message.success('Resource 已设为不公开')
+  await load()
+}
+
+async function unpublishResource(resource) {
+  const result = await api(`/api/share/studio/resources/${resource.id}/unpublish`, { method: 'POST' })
+  if (model.value.id === resource.id) {
+    model.value = { ...model.value, ...result }
+  }
+  message.success('Resource 已下线')
+  await load()
+}
+
+async function toggleOnlineResource(resource) {
+  if (Number(resource.publishStatus) !== 0) {
+    await unpublishResource(resource)
+    return
+  }
+  await publishPrivateResource(resource)
+}
+
+async function toggleVisibilityResource(resource) {
+  if (Number(resource.publishStatus) === 0) {
+    message.warning('先上线，再设置公开范围')
+    return
+  }
+  if (Number(resource.publishStatus) === 2) {
+    await publishPrivateResource(resource)
+    return
+  }
+  await publishResource(resource)
+}
 async function publishTool(tool) {
   const result = await api(`/api/share/studio/tools/${tool.id}/publish`, { method: 'POST' })
   if (model.value.id === tool.id) {
@@ -1902,8 +2568,10 @@ function showLogin() {
   userRoleOpen.value = false
   toolPermissionOpen.value = false
   promptPermissionOpen.value = false
+  resourcePermissionOpen.value = false
   tokenSelectionOpen.value = false
   tokenPromptSelectionOpen.value = false
+  tokenResourceSelectionOpen.value = false
   dynamicToolDetailOpen.value = false
   auditDetailOpen.value = false
   apiDebugOpen.value = false
@@ -1964,9 +2632,10 @@ function loginSuccess() {
           <div v-else class="hub-nav-tabs">
             <a class="hub-logo" @click.prevent="changePage('studioHome')"><RocketOutlined />Bear 创作空间</a>
             <a :class="['hub-nav-tab', page === 'studioHome' ? 'active' : '']" @click.prevent="changePage('studioHome')">首页</a>
-            <a class="hub-nav-tab">Skills 创作</a>
+            <a :class="['hub-nav-tab', ['studioSkills','studioSkillEdit'].includes(page) ? 'active' : '']" @click.prevent="changePage('studioSkills')">Skills 创作</a>
             <a :class="['hub-nav-tab', ['studioTools','studioToolEdit'].includes(page) ? 'active' : '']" @click.prevent="changePage('studioTools')">Tools 创作</a>
             <a :class="['hub-nav-tab', ['studioPrompts','studioPromptEdit'].includes(page) ? 'active' : '']" @click.prevent="changePage('studioPrompts')">Prompts 创作</a>
+            <a :class="['hub-nav-tab', ['studioResources','studioResourceEdit'].includes(page) ? 'active' : '']" @click.prevent="changePage('studioResources')">Resources 创作</a>
             <a :class="['hub-nav-tab', ['studioApis','studioApiEdit'].includes(page) ? 'active' : '']" @click.prevent="changePage('studioApis')">API 创作</a>
           </div>
           <div class="hub-nav-right">
@@ -2188,7 +2857,7 @@ function loginSuccess() {
           </section>
 
           <section class="studio-lanes">
-            <a class="studio-lane skill">
+            <a class="studio-lane skill" @click.prevent="changePage('studioSkills')">
               <span class="studio-lane-icon"><DatabaseOutlined /></span>
               <small>01</small>
               <h3>Skills 创作</h3>
@@ -2206,12 +2875,96 @@ function loginSuccess() {
               <h3>Prompts 创作</h3>
               <p>维护结构化提示词模板，统一团队提问和输出格式。</p>
             </a>
+            <a class="studio-lane skill" @click.prevent="changePage('studioResources')">
+              <span class="studio-lane-icon"><DatabaseOutlined /></span>
+              <small>04</small>
+              <h3>Resources 创作</h3>
+              <p>上传 Markdown 知识资源，让 Agent 按 URI 读取上下文。</p>
+            </a>
             <a class="studio-lane api" @click.prevent="changePage('studioApis')">
               <span class="studio-lane-icon"><KeyOutlined /></span>
-              <small>04</small>
+              <small>05</small>
               <h3>API 创作</h3>
               <p>接入外部 HTTP API，作为后续工具编排的基础能力。</p>
             </a>
+          </section>
+        </template>
+
+        <template v-else-if="page === 'studioSkills'">
+          <section class="api-library-shell tool-library-shell">
+            <div class="api-library-head">
+              <span class="api-section-kicker">Skill Workspace</span>
+              <h2>Skills 创作</h2>
+              <p>上传单文件 SKILL.md，发布后 Agent 可以通过 get_skill 获取并安装到 Cursor。</p>
+              <div class="api-library-search">
+                <SearchOutlined />
+                <input v-model="skillKeyword" type="text" placeholder="搜索 Skill ID、名称、描述、分类或文件名..." />
+              </div>
+            </div>
+
+            <div class="api-library-toolbar">
+              <div class="api-status-switch">
+                <button type="button" :class="{active: skillStatusFilter === 'all'}" @click="skillStatusFilter = 'all'">全部</button>
+                <button type="button" :class="{active: skillStatusFilter === 'online'}" @click="skillStatusFilter = 'online'">已上线</button>
+                <button type="button" :class="{active: skillStatusFilter === 'draft'}" @click="skillStatusFilter = 'draft'">草稿</button>
+              </div>
+              <div class="api-library-side">
+                <span>共 {{ filteredStudioSkills.length }} 个 Skill</span>
+                <button type="button" class="api-library-new" @click="openCreate"><PlusOutlined />新建</button>
+              </div>
+            </div>
+            <div class="api-visibility-note">
+              <span><i class="public"></i>公开：进入社区展示</span>
+              <span><i class="private"></i>不公开：可通过 get_skill 安装但不进入公开展示</span>
+            </div>
+
+            <div v-if="filteredStudioSkills.length" class="api-library-grid">
+              <article v-for="item in filteredStudioSkills" :key="item.id" class="api-library-card tool-library-card">
+                <div class="api-card-top">
+                  <span class="api-card-icon"><DatabaseOutlined /></span>
+                  <div class="api-card-badges">
+                    <span :class="['api-card-status', publishClass(item.publishStatus)]">{{ publishLabel(item.publishStatus) }}</span>
+                    <span v-if="Number(item.publishStatus) !== 0" :class="['api-card-visibility', visibilityClass(item.publishStatus)]">{{ visibilityLabel(item.publishStatus) }}</span>
+                  </div>
+                </div>
+                <div class="api-card-title-row">
+                  <h3>{{ item.name || '未命名 Skill' }}</h3>
+                  <code>{{ item.skillCode || '-' }}</code>
+                </div>
+                <p>{{ item.description || '还没有填写描述，建议说明这个 Skill 适合什么任务场景。' }}</p>
+                <div class="tool-card-meta">
+                  <span>Cursor Skill</span>
+                  <span>{{ item.category || '未分类' }}</span>
+                  <span>{{ item.fileSize ? `${Math.ceil(item.fileSize / 1024)} KB` : '未记录大小' }}</span>
+                </div>
+                <div class="tool-card-whitelist">
+                  <span>{{ item.fileName || '未上传文件' }}</span>
+                  <span>{{ item.skillCode || '保存时生成 Skill ID' }}</span>
+                </div>
+                <div class="api-card-foot">
+                  <span class="tool-script-preview">{{ compactText(item.description || item.fileName, 34) }}</span>
+                  <div class="tool-card-actions">
+                    <button type="button" @click="openSkillEditor(item)">编辑</button>
+                    <button type="button" :disabled="Number(item.publishStatus) === 0" @click="openCursorSkillInstall(item)">Cursor 安装</button>
+                    <button type="button" :disabled="Number(item.publishStatus) === 0" @click="downloadSkillZip(item)">下载 ZIP</button>
+                    <button type="button" :class="Number(item.publishStatus) === 0 ? 'publish' : 'danger'" @click="toggleOnlineSkill(item)">{{ onlineActionLabel(item.publishStatus) }}</button>
+                    <button type="button" class="private" :disabled="Number(item.publishStatus) === 0" @click="toggleVisibilitySkill(item)">{{ visibilityActionLabel(item.publishStatus) }}</button>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <div v-else class="api-empty-panel">
+              <div class="api-empty-mark"><DatabaseOutlined /></div>
+              <h3>{{ rows.length ? '没有匹配的 Skill' : '还没有创建 Skill' }}</h3>
+              <p>{{ rows.length ? '换个关键词或筛选条件再看看。' : '先上传一个 SKILL.md，保存后通过 get_skill 分发给 Cursor Agent 安装。' }}</p>
+              <div class="api-empty-steps">
+                <span>上传 SKILL.md</span>
+                <span>发布上线</span>
+                <span>get_skill 安装</span>
+              </div>
+              <button v-if="!rows.length" type="button" @click="openCreate"><PlusOutlined />新建 Skill</button>
+            </div>
           </section>
         </template>
 
@@ -2364,6 +3117,82 @@ function loginSuccess() {
                 <span>预览发布</span>
               </div>
               <button v-if="!rows.length" type="button" @click="openCreate"><PlusOutlined />新建 Prompt</button>
+            </div>
+          </section>
+        </template>
+
+        <template v-else-if="page === 'studioResources'">
+          <section class="api-library-shell tool-library-shell">
+            <div class="api-library-head">
+              <span class="api-section-kicker">Resource Workspace</span>
+              <h2>Resources 创作</h2>
+              <p>上传 Markdown 资源，发布后 Agent 可以通过 resources/list 发现，并用 resources/read 读取内容。</p>
+              <div class="api-library-search">
+                <SearchOutlined />
+                <input v-model="resourceKeyword" type="text" placeholder="搜索 Resource URI、名称、描述或文件名..." />
+              </div>
+            </div>
+
+            <div class="api-library-toolbar">
+              <div class="api-status-switch">
+                <button type="button" :class="{active: resourceStatusFilter === 'all'}" @click="resourceStatusFilter = 'all'">全部</button>
+                <button type="button" :class="{active: resourceStatusFilter === 'online'}" @click="resourceStatusFilter = 'online'">已上线</button>
+                <button type="button" :class="{active: resourceStatusFilter === 'draft'}" @click="resourceStatusFilter = 'draft'">草稿</button>
+              </div>
+              <div class="api-library-side">
+                <span>共 {{ filteredStudioResources.length }} 个 Resource</span>
+                <button type="button" class="api-library-new" @click="openCreate"><PlusOutlined />新建</button>
+              </div>
+            </div>
+            <div class="api-visibility-note">
+              <span><i class="public"></i>公开：进入社区</span>
+              <span><i class="private"></i>不公开：已上线但只在权限链路中可选</span>
+            </div>
+
+            <div v-if="filteredStudioResources.length" class="api-library-grid">
+              <article v-for="item in filteredStudioResources" :key="item.id" class="api-library-card tool-library-card">
+                <div class="api-card-top">
+                  <span class="api-card-icon"><DatabaseOutlined /></span>
+                  <div class="api-card-badges">
+                    <span :class="['api-card-status', publishClass(item.publishStatus)]">{{ publishLabel(item.publishStatus) }}</span>
+                    <span v-if="Number(item.publishStatus) !== 0" :class="['api-card-visibility', visibilityClass(item.publishStatus)]">{{ visibilityLabel(item.publishStatus) }}</span>
+                  </div>
+                </div>
+                <div class="api-card-title-row">
+                  <h3>{{ item.name || '未命名 Resource' }}</h3>
+                  <code>{{ item.resourceUri || '-' }}</code>
+                </div>
+                <p>{{ item.description || '还没有填写描述，建议说明这份 Markdown 资源适合什么场景读取。' }}</p>
+                <div class="tool-card-meta">
+                  <span>MCP Resource</span>
+                  <span>{{ item.mimeType || 'text/markdown' }}</span>
+                  <span>{{ item.fileSize ? `${Math.ceil(item.fileSize / 1024)} KB` : '未记录大小' }}</span>
+                </div>
+                <div class="tool-card-whitelist">
+                  <span>{{ item.fileName || '未上传文件' }}</span>
+                  <span>{{ item.resourceUri || '未配置 URI' }}</span>
+                </div>
+                <div class="api-card-foot">
+                  <span class="tool-script-preview">{{ compactText(item.description || item.fileName, 34) }}</span>
+                  <div class="tool-card-actions">
+                    <button type="button" @click="openResourceEditor(item)">编辑</button>
+                    <button type="button" :class="Number(item.publishStatus) === 0 ? 'publish' : 'danger'" @click="toggleOnlineResource(item)">{{ onlineActionLabel(item.publishStatus) }}</button>
+                    <button type="button" class="private" :disabled="Number(item.publishStatus) === 0" @click="toggleVisibilityResource(item)">{{ visibilityActionLabel(item.publishStatus) }}</button>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <div v-else class="api-empty-panel">
+              <div class="api-empty-mark"><DatabaseOutlined /></div>
+              <h3>{{ rows.length ? '没有匹配的 Resource' : '还没有创建 Resource' }}</h3>
+              <p>{{ rows.length ? '换个关键词或筛选条件再看看。' : '先上传一份 Markdown 文件，保存为 MCP Resource，再配置角色和 Token 可见范围。' }}</p>
+              <div class="api-empty-steps">
+                <span>填写 URI</span>
+                <span>上传 Markdown</span>
+                <span>授权读取</span>
+              </div>
+              <button v-if="!rows.length" type="button" @click="openCreate"><PlusOutlined />新建 Resource</button>
             </div>
           </section>
         </template>
@@ -2546,6 +3375,182 @@ function loginSuccess() {
                 </div>
                 <pre>{{ promptPreviewResult?.renderedContent || promptPreviewResult?.errorMessage || '点击「预览渲染」后显示 prompts/get 最终返回的文本' }}</pre>
               </aside>
+            </div>
+          </section>
+        </template>
+
+        <template v-else-if="page === 'studioSkillEdit'">
+          <section class="tool-editor-shell">
+            <div class="api-editor-header">
+              <div>
+                <button type="button" class="api-back-btn" @click="changePage('studioSkills')">← 返回列表</button>
+                <span class="api-section-kicker">Cursor Skill</span>
+                <h2>{{ model.id ? '编辑 Skill' : '新建 Skill' }}</h2>
+                <p>Skill 是可安装的任务说明包。当前先支持单文件 SKILL.md，Agent 通过 get_skill 获取后写入 Cursor Skills 目录。</p>
+              </div>
+              <aside>
+                <span>当前 Skill</span>
+                <b>{{ model.skillCode || '保存时生成 Skill ID' }}</b>
+                <small>{{ Number(model.publishStatus) === 0 ? '草稿状态，发布后 get_skill 才能读取' : `${publishLabel(model.publishStatus)}，${visibilityLabel(model.publishStatus)}` }}</small>
+              </aside>
+            </div>
+
+            <div class="tool-editor-board resource-editor-board">
+              <aside class="tool-editor-meta">
+                <div class="tool-editor-panel-head">
+                  <b>基本信息</b>
+                  <span>Skill ID 用于 get_skill 安装</span>
+                </div>
+                <label>
+                  <span>Skill ID</span>
+                  <input v-model="model.skillCode" placeholder="保存时自动生成" readonly />
+                </label>
+                <label>
+                  <span>名称</span>
+                  <input v-model="model.name" placeholder="如 作业合规检查" />
+                </label>
+                <label>
+                  <span>描述</span>
+                  <textarea v-model="model.description" spellcheck="false" placeholder="说明这个 Skill 适合什么任务场景"></textarea>
+                </label>
+                <label>
+                  <span>分类</span>
+                  <input v-model="model.category" placeholder="如 教学教务 / 研发提效" />
+                </label>
+
+                <div class="tool-editor-panel-head compact">
+                  <b>SKILL.md 文件</b>
+                  <span>{{ model.fileName || '未上传' }}</span>
+                </div>
+                <label class="resource-upload-box">
+                  <input type="file" accept=".md,text/markdown" @change="onSkillFileChange" />
+                  <span><DatabaseOutlined />选择 SKILL.md</span>
+                  <small>{{ skillSelectedFile?.name || model.fileName || '仅支持 .md，建议小于 2MB' }}</small>
+                </label>
+              </aside>
+
+              <section class="tool-script-editor">
+                <div class="tool-editor-panel-head">
+                  <b>Skill 预览</b>
+                  <span>{{ skillPreviewLoading ? '读取中' : '安装时会自动补齐 frontmatter' }}</span>
+                </div>
+                <div class="resource-storage-panel">
+                  <div>
+                    <span>安装目录</span>
+                    <b>{{ model.name || model.skillCode || '-' }}</b>
+                  </div>
+                  <div>
+                    <span>文件大小</span>
+                    <b>{{ model.fileSize ? `${Math.ceil(model.fileSize / 1024)} KB` : '-' }}</b>
+                  </div>
+                  <div>
+                    <span>存储状态</span>
+                    <code>{{ model.objectKey ? '已上传到对象存储' : '保存时自动上传到对象存储' }}</code>
+                  </div>
+                </div>
+                <div class="resource-markdown-preview" v-html="skillPreviewHtml"></div>
+                <div class="tool-editor-actions">
+                  <button type="button" class="tool-save-btn" :disabled="skillSaving" @click="saveSkillEditor">{{ skillSaving ? '保存中' : '保存 Skill' }}</button>
+                  <button v-if="model.id" type="button" class="tool-run-btn" :disabled="skillPreviewLoading" @click="loadSkillPreview()">
+                    {{ skillPreviewLoading ? '读取中' : '刷新预览' }}
+                  </button>
+                  <button v-if="model.id" type="button" class="tool-run-btn" :disabled="Number(model.publishStatus) === 0" @click="openCursorSkillInstall(model)">
+                    Cursor 安装
+                  </button>
+                  <button v-if="model.id" type="button" class="tool-run-btn" :disabled="Number(model.publishStatus) === 0" @click="downloadSkillZip(model)">
+                    下载 ZIP
+                  </button>
+                  <button v-if="model.id" type="button" class="tool-online-btn" @click="toggleOnlineSkill(model)">
+                    {{ onlineActionLabel(model.publishStatus) }}
+                  </button>
+                  <button v-if="model.id" type="button" class="tool-online-btn" :disabled="Number(model.publishStatus) === 0" @click="toggleVisibilitySkill(model)">
+                    {{ visibilityActionLabel(model.publishStatus) }}
+                  </button>
+                </div>
+              </section>
+            </div>
+          </section>
+        </template>
+
+        <template v-else-if="page === 'studioResourceEdit'">
+          <section class="tool-editor-shell">
+            <div class="api-editor-header">
+              <div>
+                <button type="button" class="api-back-btn" @click="changePage('studioResources')">← 返回列表</button>
+                <span class="api-section-kicker">MCP Resource</span>
+                <h2>{{ model.id ? '编辑 Resource' : '新建 Resource' }}</h2>
+                <p>Resource 负责保存可读取的企业上下文。当前先支持 Markdown 文件，内容由 Agent 通过 resources/read 获取。</p>
+              </div>
+              <aside>
+                <span>当前资源</span>
+                <b>{{ model.resourceUri || '未命名 Resource' }}</b>
+                <small>{{ Number(model.publishStatus) === 0 ? '草稿状态，发布后才能进入权限链路' : `${publishLabel(model.publishStatus)}，${visibilityLabel(model.publishStatus)}` }}</small>
+              </aside>
+            </div>
+
+            <div class="tool-editor-board resource-editor-board">
+              <aside class="tool-editor-meta">
+                <div class="tool-editor-panel-head">
+                  <b>基本信息</b>
+                  <span>Resource URI 会出现在 resources/list</span>
+                </div>
+                <label>
+                  <span>Resource URI</span>
+                  <input v-model="model.resourceUri" placeholder="如 bear://docs/homework_rules" />
+                </label>
+                <label>
+                  <span>名称</span>
+                  <input v-model="model.name" placeholder="如 作业提交规则" />
+                </label>
+                <label>
+                  <span>描述</span>
+                  <textarea v-model="model.description" spellcheck="false" placeholder="说明这份资源适合什么场景读取"></textarea>
+                </label>
+
+                <div class="tool-editor-panel-head compact">
+                  <b>Markdown 文件</b>
+                  <span>{{ model.fileName || '未上传' }}</span>
+                </div>
+                <label class="resource-upload-box">
+                  <input type="file" accept=".md,text/markdown" @change="onResourceFileChange" />
+                  <span><DatabaseOutlined />选择 Markdown 文件</span>
+                  <small>{{ resourceSelectedFile?.name || model.fileName || '仅支持 .md，建议小于 2MB' }}</small>
+                </label>
+              </aside>
+
+              <section class="tool-script-editor">
+                <div class="tool-editor-panel-head">
+                  <b>文档预览</b>
+                  <span>{{ resourcePreviewLoading ? '读取中' : '通过预签名地址读取 Markdown 内容' }}</span>
+                </div>
+                <div class="resource-storage-panel">
+                  <div>
+                    <span>MIME 类型</span>
+                    <b>{{ model.mimeType || 'text/markdown' }}</b>
+                  </div>
+                  <div>
+                    <span>文件大小</span>
+                    <b>{{ model.fileSize ? `${Math.ceil(model.fileSize / 1024)} KB` : '-' }}</b>
+                  </div>
+                  <div>
+                    <span>存储状态</span>
+                    <code>{{ model.objectKey ? '已上传到对象存储' : '保存时自动上传到对象存储' }}</code>
+                  </div>
+                </div>
+                <div class="resource-markdown-preview" v-html="resourcePreviewHtml"></div>
+                <div class="tool-editor-actions">
+                  <button type="button" class="tool-save-btn" :disabled="resourceSaving" @click="saveResourceEditor">{{ resourceSaving ? '保存中' : '保存 Resource' }}</button>
+                  <button v-if="model.id" type="button" class="tool-run-btn" :disabled="resourcePreviewLoading" @click="loadResourcePreview()">
+                    {{ resourcePreviewLoading ? '读取中' : '刷新预览' }}
+                  </button>
+                  <button v-if="model.id" type="button" class="tool-online-btn" @click="toggleOnlineResource(model)">
+                    {{ onlineActionLabel(model.publishStatus) }}
+                  </button>
+                  <button v-if="model.id" type="button" class="tool-online-btn" :disabled="Number(model.publishStatus) === 0" @click="toggleVisibilityResource(model)">
+                    {{ visibilityActionLabel(model.publishStatus) }}
+                  </button>
+                </div>
+              </section>
             </div>
           </section>
         </template>
@@ -2808,6 +3813,7 @@ function loginSuccess() {
         <div class="nav-caption">能力展示</div>
         <a-menu-item key="requests"><SettingOutlined /><span>请求配置</span></a-menu-item>
         <a-menu-item key="dataSources"><DatabaseOutlined /><span>数据源</span></a-menu-item>
+        <a-menu-item key="resources"><DatabaseOutlined /><span>资源</span></a-menu-item>
         <a-menu-item key="tools"><ThunderboltOutlined /><span>动态工具</span></a-menu-item>
         <div class="nav-caption">运行观测</div>
         <a-menu-item key="audits"><AuditOutlined /><span>审计日志</span></a-menu-item>
@@ -2866,7 +3872,7 @@ function loginSuccess() {
         </div>
         <a-empty v-if="!loading && !rows.length" description="还没有 API，先新建一个外部 HTTP API" :image-style="{height:'56px'}" />
       </template>
-      <template v-else><div class="surface"><div class="table-toolbar"><div><b>{{ title }}列表</b><small>共 {{ rows.length }} 条记录<span v-if="page==='tools'"> · 由创作空间发布</span></small></div><div class="table-tools"><a-input placeholder="搜索名称或编码" class="table-search"><template #prefix><SearchOutlined /></template></a-input><a-button @click="load">刷新</a-button></div></div><a-table :loading="loading" :data-source="rows" :columns="[...dataColumns,{title:'操作',key:'action'}]" row-key="id"><template #bodyCell="{column,record}"><template v-if="column.key==='action'"><a-button v-if="page==='users'" type="link" @click="updateUserRoles(record)">分配角色</a-button><a-button v-if="page==='roles'" type="link" @click="updateRoleTools(record)">配置工具</a-button><a-button v-if="page==='roles'" type="link" @click="updateRolePrompts(record)">配置 Prompt</a-button><a-button v-if="page==='tokens'" type="link" @click="updateSelections(record)">工具选择</a-button><a-button v-if="page==='tokens'" type="link" @click="updateTokenPromptSelections(record)">Prompt 选择</a-button><a-button v-if="page==='tools'" type="link" @click="showDynamicToolDetail(record)">查看详情</a-button><a-button v-if="page==='audits'" type="link" @click="showAuditDetail(record)">查看详情</a-button><a-button v-if="!['tools','audits'].includes(page)" type="link" @click="edit(record)">编辑</a-button><a-button v-if="page==='dataSources'" type="link" danger @click="removeRow(record)">删除</a-button></template></template></a-table></div></template>
+      <template v-else><div class="surface"><div class="table-toolbar"><div><b>{{ title }}列表</b><small>共 {{ rows.length }} 条记录<span v-if="page==='tools' || page==='resources'"> · 由创作空间发布</span></small></div><div class="table-tools"><a-input placeholder="搜索名称或编码" class="table-search"><template #prefix><SearchOutlined /></template></a-input><a-button @click="load">刷新</a-button></div></div><a-table :loading="loading" :data-source="rows" :columns="[...dataColumns,{title:'操作',key:'action'}]" row-key="id"><template #bodyCell="{column,record}"><template v-if="column.key==='action'"><a-button v-if="page==='users'" type="link" @click="updateUserRoles(record)">分配角色</a-button><a-button v-if="page==='roles'" type="link" @click="updateRoleTools(record)">配置工具</a-button><a-button v-if="page==='roles'" type="link" @click="updateRolePrompts(record)">配置 Prompt</a-button><a-button v-if="page==='roles'" type="link" @click="updateRoleResources(record)">配置 Resource</a-button><a-button v-if="page==='tokens'" type="link" @click="updateSelections(record)">工具选择</a-button><a-button v-if="page==='tokens'" type="link" @click="updateTokenPromptSelections(record)">Prompt 选择</a-button><a-button v-if="page==='tokens'" type="link" @click="updateTokenResourceSelections(record)">Resource 选择</a-button><a-button v-if="page==='tools'" type="link" @click="showDynamicToolDetail(record)">查看详情</a-button><a-button v-if="page==='resources'" type="link" @click="openResourceEditor(record)">查看资源</a-button><a-button v-if="page==='resources'" type="link" :danger="Number(record.enabled) === 1" @click="toggleResourceEnabled(record)">{{ Number(record.enabled) === 1 ? '禁用' : '启用' }}</a-button><a-button v-if="page==='audits'" type="link" @click="showAuditDetail(record)">查看详情</a-button><a-button v-if="!['tools','resources','audits'].includes(page)" type="link" @click="edit(record)">编辑</a-button><a-button v-if="page==='dataSources'" type="link" danger @click="removeRow(record)">删除</a-button></template></template></a-table></div></template>
     </a-layout-content>
   </a-layout>
   </template>
@@ -3498,6 +4504,21 @@ function loginSuccess() {
     </section>
     <template #footer><a-button @click="promptPermissionOpen=false">取消</a-button><a-button type="primary" @click="saveRolePrompts">保存 Prompt 权限</a-button></template>
   </a-modal>
+  <a-modal v-model:open="resourcePermissionOpen" :title="`配置 Resource 权限 · ${activeRole?.roleName || ''}`" width="720px" class="tool-permission-modal" @ok="saveRoleResources">
+    <p class="permission-hint">角色 Resource 权限是 resources/list / resources/read 的资格上限。Token 是否实际可见，还需要在 Token Resource 选择中单独配置。</p>
+    <section class="tool-option-section">
+      <div class="tool-option-title"><span class="tool-type-dot dynamic"></span>Markdown 资源 <small>由创作空间发布</small></div>
+      <a-checkbox-group v-model:value="selectedRoleResources" class="tool-option-grid">
+        <a-checkbox v-for="resource in resourceOptions" :key="resource.resourceUri" :value="resource.resourceUri" :disabled="resource.enabled !== 1 || Number(resource.publishStatus) === 0">
+          <b>{{ resource.name || resource.resourceUri }}</b>
+          <span>{{ resource.resourceUri }}</span>
+          <em>{{ Number(resource.publishStatus) === 0 ? '草稿未上线' : Number(resource.publishStatus) === 2 ? '公开' : '不公开' }}</em>
+        </a-checkbox>
+      </a-checkbox-group>
+      <a-empty v-if="!resourceOptions.length" description="暂无 Resource" :image-style="{height:'48px'}" />
+    </section>
+    <template #footer><a-button @click="resourcePermissionOpen=false">取消</a-button><a-button type="primary" @click="saveRoleResources">保存 Resource 权限</a-button></template>
+  </a-modal>
   <a-modal v-model:open="tokenSelectionOpen" :title="`Token 工具选择 · ${activeToken?.tokenName || ''}`" width="720px" class="tool-permission-modal" @ok="saveTokenSelections">
     <p class="permission-hint">Token 工具选择决定这把 Token 实际加载、展示和允许调用哪些工具；最终调用还会再经过角色工具权限校验。</p>
     <a-checkbox-group v-model:value="selectedTokenTools" class="tool-option-groups">
@@ -3520,6 +4541,21 @@ function loginSuccess() {
       <a-empty v-if="!promptOptions.length" description="暂无 Prompt 模板" :image-style="{height:'48px'}" />
     </section>
     <template #footer><a-button @click="tokenPromptSelectionOpen=false">取消</a-button><a-button type="primary" @click="saveTokenPromptSelections">保存 Prompt 选择</a-button></template>
+  </a-modal>
+  <a-modal v-model:open="tokenResourceSelectionOpen" :title="`Token Resource 选择 · ${activeToken?.tokenName || ''}`" width="720px" class="tool-permission-modal" @ok="saveTokenResourceSelections">
+    <p class="permission-hint">Token Resource 选择决定这把 Token 的 resources/list 实际返回哪些资源；最终还会再经过角色 Resource 权限校验。</p>
+    <section class="tool-option-section">
+      <div class="tool-option-title"><span class="tool-type-dot dynamic"></span>Markdown 资源 <small>由创作空间发布</small></div>
+      <a-checkbox-group v-model:value="selectedTokenResources" class="tool-option-grid">
+        <a-checkbox v-for="resource in resourceOptions" :key="resource.resourceUri" :value="resource.resourceUri" :disabled="resource.enabled !== 1 || Number(resource.publishStatus) === 0">
+          <b>{{ resource.name || resource.resourceUri }}</b>
+          <span>{{ resource.resourceUri }}</span>
+          <em>{{ Number(resource.publishStatus) === 0 ? '草稿未上线' : Number(resource.publishStatus) === 2 ? '公开' : '不公开' }}</em>
+        </a-checkbox>
+      </a-checkbox-group>
+      <a-empty v-if="!resourceOptions.length" description="暂无 Resource" :image-style="{height:'48px'}" />
+    </section>
+    <template #footer><a-button @click="tokenResourceSelectionOpen=false">取消</a-button><a-button type="primary" @click="saveTokenResourceSelections">保存 Resource 选择</a-button></template>
   </a-modal>
   </a-config-provider>
   </template>

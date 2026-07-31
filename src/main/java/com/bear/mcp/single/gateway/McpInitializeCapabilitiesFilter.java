@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 
-/** 给 Spring AI initialize 响应补充数据库动态 Prompt 能力声明。 */
+/** 给 Spring AI initialize 响应补充数据库动态 Prompt / Resource 能力声明。 */
 @Component
 @Order(19)
 public class McpInitializeCapabilitiesFilter extends OncePerRequestFilter {
@@ -54,7 +54,7 @@ public class McpInitializeCapabilitiesFilter extends OncePerRequestFilter {
 
         try {
             String original = new String(responseWrapper.getContentAsByteArray(), StandardCharsets.UTF_8);
-            String modified = addPromptCapability(original);
+            String modified = addDynamicCapabilities(original);
             responseWrapper.resetBuffer();
             responseWrapper.getOutputStream().write(modified.getBytes(StandardCharsets.UTF_8));
         } catch (Exception ignored) {
@@ -62,7 +62,7 @@ public class McpInitializeCapabilitiesFilter extends OncePerRequestFilter {
         responseWrapper.copyBodyToResponse();
     }
 
-    private String addPromptCapability(String originalResponse) throws Exception {
+    private String addDynamicCapabilities(String originalResponse) throws Exception {
         String json = extractJson(originalResponse);
         if (json == null || json.isBlank()) {
             return originalResponse;
@@ -82,6 +82,10 @@ public class McpInitializeCapabilitiesFilter extends OncePerRequestFilter {
         ObjectNode prompts = objectMapper.createObjectNode();
         prompts.put("listChanged", false);
         capabilities.set("prompts", prompts);
+        ObjectNode resources = objectMapper.createObjectNode();
+        resources.put("subscribe", false);
+        resources.put("listChanged", false);
+        capabilities.set("resources", resources);
         return wrapLike(originalResponse, objectMapper.writeValueAsString(responseNode));
     }
 

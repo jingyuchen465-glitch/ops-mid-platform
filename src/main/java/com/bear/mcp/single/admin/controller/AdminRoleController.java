@@ -4,6 +4,7 @@ import com.bear.mcp.single.admin.req.AdminCodeListReq;
 import com.bear.mcp.single.admin.req.AdminRoleSaveReq;
 import com.bear.mcp.single.admin.res.AdminRoleRes;
 import com.bear.mcp.single.admin.res.AdminRolePromptRes;
+import com.bear.mcp.single.admin.res.AdminRoleResourceRes;
 import com.bear.mcp.single.admin.res.AdminRoleToolRes;
 import com.bear.mcp.single.admin.service.AdminRoleService;
 import com.bear.mcp.single.common.api.ApiResponse;
@@ -48,6 +49,11 @@ public class AdminRoleController {
         return ApiResponse.success(roleService.listPrompts());
     }
 
+    @GetMapping("/role-resources")
+    public ApiResponse<List<AdminRoleResourceRes>> listResources() {
+        return ApiResponse.success(roleService.listResources());
+    }
+
     @PutMapping("/roles/{roleCode}/tools")
     public ApiResponse<Void> replaceTools(@PathVariable String roleCode,
                                           @RequestBody AdminCodeListReq req) {
@@ -59,6 +65,13 @@ public class AdminRoleController {
     public ApiResponse<Void> replacePrompts(@PathVariable String roleCode,
                                             @RequestBody AdminCodeListReq req) {
         roleService.replacePrompts(roleCode, req);
+        return ApiResponse.success();
+    }
+
+    @PutMapping("/roles/{roleCode}/resources")
+    public ApiResponse<Void> replaceResources(@PathVariable String roleCode,
+                                              @RequestBody AdminCodeListReq req) {
+        roleService.replaceResources(roleCode, req);
         return ApiResponse.success();
     }
 }
