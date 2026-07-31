@@ -107,6 +107,9 @@ const builtinTools = [
   { name: 'create_dynamic_tool', description: '创建动态 Tool 草稿' },
   { name: 'list_dynamic_tools', description: '查询动态 Tool 配置' },
   { name: 'update_dynamic_tool_script', description: '更新动态 Tool 脚本' },
+  { name: 'create_resource', description: '直接创建或更新 Markdown Resource' },
+  { name: 'create_prompt', description: '直接创建或更新 MCP Prompt 模板' },
+  { name: 'create_skill', description: '直接创建或更新 Bear Skill' },
   { name: 'list_data_sources', description: '查询已发布数据源' },
   { name: 'query_data_source', description: '只读查询数据源' },
   { name: 'get_skill', description: '按 Skill ID 获取可安装的 Cursor Skill 文件' }
@@ -1817,6 +1820,62 @@ function normalizePermissions(value) {
   }
 
   return String(value)
+}
+function uniqueValues(values) {
+  return Array.from(new Set(values.filter(value => value !== undefined && value !== null && value !== '')))
+}
+function selectableToolNames() {
+  const builtinNames = builtinTools.map(tool => tool.name)
+  const dynamicNames = dynamicToolOptions.value
+    .filter(tool => Number(tool.enabled) === 1)
+    .map(tool => tool.toolName)
+  return uniqueValues([...builtinNames, ...dynamicNames])
+}
+function selectablePromptNames() {
+  return promptOptions.value
+    .filter(prompt => Number(prompt.enabled) === 1 && Number(prompt.publishStatus) !== 0)
+    .map(prompt => prompt.promptName)
+}
+function selectableResourceUris() {
+  return resourceOptions.value
+    .filter(resource => Number(resource.enabled) === 1 && Number(resource.publishStatus) !== 0)
+    .map(resource => resource.resourceUri)
+}
+function selectAllRoleTools() {
+  selectedRoleTools.value = selectableToolNames()
+}
+function selectAllTokenTools() {
+  selectedTokenTools.value = selectableToolNames()
+}
+function selectAllRolePrompts() {
+  selectedRolePrompts.value = selectablePromptNames()
+}
+function selectAllTokenPrompts() {
+  selectedTokenPrompts.value = selectablePromptNames()
+}
+function selectAllRoleResources() {
+  selectedRoleResources.value = selectableResourceUris()
+}
+function selectAllTokenResources() {
+  selectedTokenResources.value = selectableResourceUris()
+}
+function clearRoleTools() {
+  selectedRoleTools.value = []
+}
+function clearTokenTools() {
+  selectedTokenTools.value = []
+}
+function clearRolePrompts() {
+  selectedRolePrompts.value = []
+}
+function clearTokenPrompts() {
+  selectedTokenPrompts.value = []
+}
+function clearRoleResources() {
+  selectedRoleResources.value = []
+}
+function clearTokenResources() {
+  selectedTokenResources.value = []
 }
 async function updateSelections(token) {
   activeToken.value = token
@@ -4483,6 +4542,7 @@ function loginSuccess() {
   </a-modal>
   <a-modal v-model:open="toolPermissionOpen" :title="`配置工具权限 · ${activeRole?.roleName || ''}`" width="720px" class="tool-permission-modal" @ok="saveRoleTools">
     <p class="permission-hint">角色工具权限是资格上限。Token 是否实际展示和调用工具，还需要在 Token 工具选择中单独配置。</p>
+    <div class="permission-bulk-actions"><a-button size="small" @click="selectAllRoleTools">全选</a-button><a-button size="small" @click="clearRoleTools">清空</a-button></div>
     <a-checkbox-group v-model:value="selectedRoleTools" class="tool-option-groups">
       <section class="tool-option-section"><div class="tool-option-title"><span class="tool-type-dot builtin"></span>内置工具 <small>由 Spring AI 注册</small></div><div class="tool-option-grid"><a-checkbox v-for="tool in builtinTools" :key="tool.name" :value="tool.name"><b>{{ tool.name }}</b><span>{{ tool.description }}</span></a-checkbox></div></section>
       <section class="tool-option-section"><div class="tool-option-title"><span class="tool-type-dot dynamic"></span>动态工具 <small>由创作空间发布</small></div><div class="tool-option-grid"><a-checkbox v-for="tool in dynamicToolOptions" :key="tool.toolName" :value="tool.toolName" :disabled="tool.enabled !== 1"><b>{{ tool.toolName }}</b><span>{{ tool.toolDescription || '暂无描述' }}</span></a-checkbox></div><a-empty v-if="!dynamicToolOptions.length" description="暂无已发布动态工具" :image-style="{height:'48px'}" /></section>
@@ -4491,6 +4551,7 @@ function loginSuccess() {
   </a-modal>
   <a-modal v-model:open="promptPermissionOpen" :title="`配置 Prompt 权限 · ${activeRole?.roleName || ''}`" width="720px" class="tool-permission-modal" @ok="saveRolePrompts">
     <p class="permission-hint">角色 Prompt 权限是 prompts/list / prompts/get 的资格上限。Token 是否实际可见，还需要在 Token Prompt 选择中单独配置。</p>
+    <div class="permission-bulk-actions"><a-button size="small" @click="selectAllRolePrompts">全选</a-button><a-button size="small" @click="clearRolePrompts">清空</a-button></div>
     <section class="tool-option-section">
       <div class="tool-option-title"><span class="tool-type-dot dynamic"></span>Prompt 模板 <small>由创作空间发布</small></div>
       <a-checkbox-group v-model:value="selectedRolePrompts" class="tool-option-grid">
@@ -4506,6 +4567,7 @@ function loginSuccess() {
   </a-modal>
   <a-modal v-model:open="resourcePermissionOpen" :title="`配置 Resource 权限 · ${activeRole?.roleName || ''}`" width="720px" class="tool-permission-modal" @ok="saveRoleResources">
     <p class="permission-hint">角色 Resource 权限是 resources/list / resources/read 的资格上限。Token 是否实际可见，还需要在 Token Resource 选择中单独配置。</p>
+    <div class="permission-bulk-actions"><a-button size="small" @click="selectAllRoleResources">全选</a-button><a-button size="small" @click="clearRoleResources">清空</a-button></div>
     <section class="tool-option-section">
       <div class="tool-option-title"><span class="tool-type-dot dynamic"></span>Markdown 资源 <small>由创作空间发布</small></div>
       <a-checkbox-group v-model:value="selectedRoleResources" class="tool-option-grid">
@@ -4521,6 +4583,7 @@ function loginSuccess() {
   </a-modal>
   <a-modal v-model:open="tokenSelectionOpen" :title="`Token 工具选择 · ${activeToken?.tokenName || ''}`" width="720px" class="tool-permission-modal" @ok="saveTokenSelections">
     <p class="permission-hint">Token 工具选择决定这把 Token 实际加载、展示和允许调用哪些工具；最终调用还会再经过角色工具权限校验。</p>
+    <div class="permission-bulk-actions"><a-button size="small" @click="selectAllTokenTools">全选</a-button><a-button size="small" @click="clearTokenTools">清空</a-button></div>
     <a-checkbox-group v-model:value="selectedTokenTools" class="tool-option-groups">
       <section class="tool-option-section"><div class="tool-option-title"><span class="tool-type-dot builtin"></span>内置工具 <small>由 Spring AI 注册</small></div><div class="tool-option-grid"><a-checkbox v-for="tool in builtinTools" :key="tool.name" :value="tool.name"><b>{{ tool.name }}</b><span>{{ tool.description }}</span></a-checkbox></div></section>
       <section class="tool-option-section"><div class="tool-option-title"><span class="tool-type-dot dynamic"></span>动态工具 <small>由创作空间发布</small></div><div class="tool-option-grid"><a-checkbox v-for="tool in dynamicToolOptions" :key="tool.toolName" :value="tool.toolName" :disabled="tool.enabled !== 1"><b>{{ tool.toolName }}</b><span>{{ tool.toolDescription || '暂无描述' }}</span></a-checkbox></div><a-empty v-if="!dynamicToolOptions.length" description="暂无已发布动态工具" :image-style="{height:'48px'}" /></section>
@@ -4529,6 +4592,7 @@ function loginSuccess() {
   </a-modal>
   <a-modal v-model:open="tokenPromptSelectionOpen" :title="`Token Prompt 选择 · ${activeToken?.tokenName || ''}`" width="720px" class="tool-permission-modal" @ok="saveTokenPromptSelections">
     <p class="permission-hint">Token Prompt 选择决定这把 Token 的 prompts/list 实际返回哪些模板；最终还会再经过角色 Prompt 权限校验。</p>
+    <div class="permission-bulk-actions"><a-button size="small" @click="selectAllTokenPrompts">全选</a-button><a-button size="small" @click="clearTokenPrompts">清空</a-button></div>
     <section class="tool-option-section">
       <div class="tool-option-title"><span class="tool-type-dot dynamic"></span>Prompt 模板 <small>由创作空间发布</small></div>
       <a-checkbox-group v-model:value="selectedTokenPrompts" class="tool-option-grid">
@@ -4544,6 +4608,7 @@ function loginSuccess() {
   </a-modal>
   <a-modal v-model:open="tokenResourceSelectionOpen" :title="`Token Resource 选择 · ${activeToken?.tokenName || ''}`" width="720px" class="tool-permission-modal" @ok="saveTokenResourceSelections">
     <p class="permission-hint">Token Resource 选择决定这把 Token 的 resources/list 实际返回哪些资源；最终还会再经过角色 Resource 权限校验。</p>
+    <div class="permission-bulk-actions"><a-button size="small" @click="selectAllTokenResources">全选</a-button><a-button size="small" @click="clearTokenResources">清空</a-button></div>
     <section class="tool-option-section">
       <div class="tool-option-title"><span class="tool-type-dot dynamic"></span>Markdown 资源 <small>由创作空间发布</small></div>
       <a-checkbox-group v-model:value="selectedTokenResources" class="tool-option-grid">

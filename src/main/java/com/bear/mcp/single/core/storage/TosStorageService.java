@@ -7,9 +7,11 @@ import com.volcengine.tos.model.object.GetObjectV2Input;
 import com.volcengine.tos.model.object.GetObjectV2Output;
 import com.volcengine.tos.model.object.PreSignedURLInput;
 import com.volcengine.tos.model.object.PreSignedURLOutput;
+import com.volcengine.tos.model.object.PutObjectInput;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 
 /** 课堂版 Resource 使用的火山 TOS 服务。 */
@@ -58,6 +60,17 @@ public class TosStorageService {
         } catch (Exception e) {
             throw new IllegalStateException("TOS 读取 Resource 失败: " + e.getMessage(), e);
         }
+    }
+
+    public void uploadString(String objectKey, String content) {
+        validateConfig();
+        byte[] bytes = (content != null ? content : "").getBytes(StandardCharsets.UTF_8);
+        PutObjectInput input = new PutObjectInput()
+                .setBucket(properties.getBucket())
+                .setKey(normalizeObjectKey(objectKey))
+                .setContent(new ByteArrayInputStream(bytes))
+                .setContentLength(bytes.length);
+        client().putObject(input);
     }
 
     public String downloadStringQuietly(String objectKey) {

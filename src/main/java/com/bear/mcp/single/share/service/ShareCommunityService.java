@@ -6,9 +6,11 @@ import com.bear.mcp.single.core.mapper.McpDynamicToolMapper;
 import com.bear.mcp.single.core.mapper.McpRequestConfigMapper;
 import com.bear.mcp.single.share.res.ShareCommunityApiRes;
 import com.bear.mcp.single.share.res.ShareCommunityToolRes;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.context.ApplicationContext;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.stereotype.Service;
 
 import java.lang.reflect.Method;
@@ -69,13 +71,14 @@ public class ShareCommunityService {
         Map<String, ShareCommunityToolRes> byToolName = new LinkedHashMap<>();
 
         for (String beanName : applicationContext.getBeanNamesForType(Object.class, false, false)) {
-            Class<?> beanType = applicationContext.getType(beanName);
+            Object bean = applicationContext.getBean(beanName);
+            Class<?> beanType = AopUtils.getTargetClass(bean);
             if (beanType == null || !beanType.getPackageName().startsWith("com.bear.mcp.single")) {
                 continue;
             }
 
             for (Method method : beanType.getMethods()) {
-                Tool tool = method.getAnnotation(Tool.class);
+                Tool tool = AnnotatedElementUtils.findMergedAnnotation(method, Tool.class);
                 if (tool == null) {
                     continue;
                 }
@@ -137,6 +140,15 @@ public class ShareCommunityService {
     private String resolveBuiltinCategory(Class<?> beanType) {
         if (beanType.getSimpleName().contains("Calculator")) {
             return "计算工具";
+        }
+        if (beanType.getSimpleName().contains("Resource")) {
+            return "Resource 工具";
+        }
+        if (beanType.getSimpleName().contains("Prompt")) {
+            return "Prompt 工具";
+        }
+        if (beanType.getSimpleName().contains("Skill")) {
+            return "Skill 工具";
         }
         return "系统工具";
     }
