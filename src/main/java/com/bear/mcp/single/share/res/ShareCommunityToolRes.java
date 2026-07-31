@@ -64,4 +64,24 @@ public class ShareCommunityToolRes {
      * 发布状态：社区只返回 2。
      */
     private Integer publishStatus;
+
+    /**
+     * 点赞对象类型。
+     */
+    private String likeTargetType;
+
+    /**
+     * 点赞对象键。
+     */
+    private String likeTargetKey;
+
+    /**
+     * 点赞数。
+     */
+    private Long likeCount;
+
+    /**
+     * 当前用户是否已点赞。
+     */
+    private Boolean liked;
 }

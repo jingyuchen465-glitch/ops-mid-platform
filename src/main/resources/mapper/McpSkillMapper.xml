@@ -24,6 +24,13 @@
         WHERE creator_id = #{creatorId} OR creator_id IS NULL
         ORDER BY id DESC
     </select>
+    <select id="findPublished" resultType="com.bear.mcp.single.core.entity.McpSkillEntity">
+        SELECT <include refid="BaseColumns" />
+        FROM mcp_skill
+        WHERE is_enabled = 1
+          AND publish_status = 2
+        ORDER BY id DESC
+    </select>
     <select id="findAll" resultType="com.bear.mcp.single.core.entity.McpSkillEntity">
         SELECT <include refid="BaseColumns" /> FROM mcp_skill ORDER BY id DESC
     </select>

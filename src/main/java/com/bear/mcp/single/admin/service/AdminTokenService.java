@@ -1,5 +1,7 @@
 package com.bear.mcp.single.admin.service;
 
+import cn.hutool.crypto.SecureUtil;
+import cn.hutool.crypto.symmetric.AES;
 import com.bear.mcp.single.admin.req.AdminTokenPromptSelectionItemReq;
 import com.bear.mcp.single.admin.req.AdminTokenPromptSelectionSaveReq;
 import com.bear.mcp.single.admin.req.AdminTokenResourceSelectionItemReq;
@@ -12,6 +14,10 @@ import com.bear.mcp.single.admin.res.AdminTokenPromptSelectionRes;
 import com.bear.mcp.single.admin.res.AdminTokenResourceSelectionRes;
 import com.bear.mcp.single.admin.res.AdminTokenRes;
 import com.bear.mcp.single.admin.res.AdminTokenSelectionRes;
+import com.bear.mcp.single.common.exception.BusinessException;
+import com.bear.mcp.single.share.res.ShareCursorInstallRes;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
 import com.bear.mcp.single.core.entity.McpUserPromptSelectionEntity;
 import com.bear.mcp.single.core.entity.McpUserResourceSelectionEntity;
 import com.bear.mcp.single.core.entity.McpUserTokenEntity;
@@ -26,9 +32,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
+import java.net.URLEncoder;
 import java.util.Base64;
+import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 public class AdminTokenService {
@@ -36,25 +46,36 @@ public class AdminTokenService {
     private final McpUserToolSelectionMapper selectionMapper;
     private final McpUserPromptSelectionMapper promptSelectionMapper;
     private final McpUserResourceSelectionMapper resourceSelectionMapper;
+    private final ObjectMapper objectMapper;
+    private final AES tokenAes;
 
     public AdminTokenService(McpUserTokenMapper tokenMapper,
                              McpUserToolSelectionMapper selectionMapper,
                              McpUserPromptSelectionMapper promptSelectionMapper,
-                             McpUserResourceSelectionMapper resourceSelectionMapper) {
+                             McpUserResourceSelectionMapper resourceSelectionMapper,
+                             ObjectMapper objectMapper,
+                             @Value("${bear.admin.jwt-secret}") String secret) {
         this.tokenMapper = tokenMapper;
         this.selectionMapper = selectionMapper;
         this.promptSelectionMapper = promptSelectionMapper;
         this.resourceSelectionMapper = resourceSelectionMapper;
+        this.objectMapper = objectMapper;
+        this.tokenAes = SecureUtil.aes(aesKey(secret));
     }
 
     public List<AdminTokenRes> list() {
         return tokenMapper.findAll().stream().map(this::toTokenRes).toList();
     }
 
+    public List<AdminTokenRes> listByUserId(Long userId) {
+        return tokenMapper.findByUserId(userId).stream().map(this::toTokenRes).toList();
+    }
+
     public AdminTokenCreatedRes create(AdminTokenSaveReq req) {
         McpUserTokenEntity entity = toTokenEntity(req);
         String rawToken = "mcp_" + randomToken();
         entity.setTokenHash(sha256(rawToken));
+        entity.setTokenEncrypted(tokenAes.encryptBase64(rawToken));
         entity.setTokenPrefix(rawToken.substring(0, Math.min(16, rawToken.length())) + "...");
         normalize(entity);
         tokenMapper.insert(entity);
@@ -65,12 +86,95 @@ public class AdminTokenService {
         return res;
     }
 
+    public AdminTokenCreatedRes createForUser(Long userId, AdminTokenSaveReq req) {
+        req.setUserId(userId);
+        return create(req);
+    }
+
     public AdminTokenRes update(Long id, AdminTokenSaveReq req) {
         McpUserTokenEntity entity = toTokenEntity(req);
         entity.setId(id);
         normalize(entity);
         tokenMapper.update(entity);
         return toTokenRes(entity);
+    }
+
+    public AdminTokenRes updateForUser(Long userId, Long id, AdminTokenSaveReq req) {
+        McpUserTokenEntity oldEntity = tokenMapper.findById(id);
+        if (oldEntity == null || !userId.equals(oldEntity.getUserId())) {
+            throw new BusinessException(404, "Token 不存在");
+        }
+        req.setUserId(userId);
+        return update(id, req);
+    }
+
+    public List<AdminTokenSelectionRes> listSelectionsByUserId(Long userId) {
+        Set<Long> tokenIds = tokenMapper.findByUserId(userId).stream().map(McpUserTokenEntity::getId).collect(java.util.stream.Collectors.toSet());
+        return selectionMapper.findAll().stream()
+                .filter(item -> tokenIds.contains(item.getTokenId()))
+                .map(this::toSelectionRes)
+                .toList();
+    }
+
+    public List<AdminTokenPromptSelectionRes> listPromptSelectionsByUserId(Long userId) {
+        Set<Long> tokenIds = tokenMapper.findByUserId(userId).stream().map(McpUserTokenEntity::getId).collect(java.util.stream.Collectors.toSet());
+        return promptSelectionMapper.findAll().stream()
+                .filter(item -> tokenIds.contains(item.getTokenId()))
+                .map(this::toPromptSelectionRes)
+                .toList();
+    }
+
+    public List<AdminTokenResourceSelectionRes> listResourceSelectionsByUserId(Long userId) {
+        Set<Long> tokenIds = tokenMapper.findByUserId(userId).stream().map(McpUserTokenEntity::getId).collect(java.util.stream.Collectors.toSet());
+        return resourceSelectionMapper.findAll().stream()
+                .filter(item -> tokenIds.contains(item.getTokenId()))
+                .map(this::toResourceSelectionRes)
+                .toList();
+    }
+
+    @Transactional
+    public void replaceSelectionsForUser(Long userId, Long tokenId, AdminTokenSelectionSaveReq req) {
+        ensureOwner(userId, tokenId);
+        replaceSelections(tokenId, req);
+    }
+
+    @Transactional
+    public void replacePromptSelectionsForUser(Long userId, Long tokenId, AdminTokenPromptSelectionSaveReq req) {
+        ensureOwner(userId, tokenId);
+        replacePromptSelections(tokenId, req);
+    }
+
+    @Transactional
+    public void replaceResourceSelectionsForUser(Long userId, Long tokenId, AdminTokenResourceSelectionSaveReq req) {
+        ensureOwner(userId, tokenId);
+        replaceResourceSelections(tokenId, req);
+    }
+
+    public ShareCursorInstallRes cursorInstallLink(Long userId, Long tokenId, String baseUrl) {
+        McpUserTokenEntity entity = ensureOwner(userId, tokenId);
+        String rawToken = plainToken(entity);
+        String mcpUrl = normalizeBaseUrl(baseUrl) + "/mcp";
+        String serverName = "bear-mcp-" + entity.getId();
+        try {
+            Map<String, Object> config = Map.of(
+                    "type", "http",
+                    "url", mcpUrl,
+                    "headers", Map.of("Authorization", "Bearer " + rawToken)
+            );
+            String configJson = objectMapper.writeValueAsString(config);
+            String encodedConfig = Base64.getEncoder().encodeToString(configJson.getBytes(StandardCharsets.UTF_8));
+            String deeplink = "cursor://anysphere.cursor-deeplink/mcp/install?name="
+                    + URLEncoder.encode(serverName, StandardCharsets.UTF_8)
+                    + "&config="
+                    + URLEncoder.encode(encodedConfig, StandardCharsets.UTF_8);
+            ShareCursorInstallRes res = new ShareCursorInstallRes();
+            res.setServerName(serverName);
+            res.setConfigJson(configJson);
+            res.setDeeplink(deeplink);
+            return res;
+        } catch (Exception exception) {
+            throw new BusinessException(500, "生成 Cursor 配置失败");
+        }
     }
 
     public List<AdminTokenSelectionRes> listSelections() {
@@ -135,6 +239,13 @@ public class AdminTokenService {
     }
 
     private void normalize(McpUserTokenEntity entity) {
+        if (entity.getUserId() == null) {
+            throw new BusinessException(400, "用户ID不能为空");
+        }
+        if (entity.getTokenName() == null || entity.getTokenName().trim().isEmpty()) {
+            throw new BusinessException(400, "Token名称不能为空");
+        }
+        entity.setTokenName(entity.getTokenName().trim());
         if (entity.getIsActive() == null) {
             entity.setIsActive(1);
         }
@@ -165,6 +276,8 @@ public class AdminTokenService {
         res.setLastUsedIp(entity.getLastUsedIp());
         res.setIsActive(entity.getIsActive());
         res.setCreateTime(entity.getCreateTime());
+        res.setCursorInstallable(entity.getTokenEncrypted() != null && !entity.getTokenEncrypted().isBlank()
+                || "mcp_dev_token...".equals(entity.getTokenPrefix()));
         return res;
     }
 
@@ -208,6 +321,49 @@ public class AdminTokenService {
             return HexFormat.of().formatHex(digest);
         } catch (Exception exception) {
             throw new IllegalStateException(exception);
+        }
+    }
+
+    private McpUserTokenEntity ensureOwner(Long userId, Long tokenId) {
+        McpUserTokenEntity entity = tokenMapper.findById(tokenId);
+        if (entity == null || !userId.equals(entity.getUserId())) {
+            throw new BusinessException(404, "Token 不存在");
+        }
+        return entity;
+    }
+
+    private String plainToken(McpUserTokenEntity entity) {
+        if (entity.getTokenEncrypted() != null && !entity.getTokenEncrypted().isBlank()) {
+            try {
+                return tokenAes.decryptStr(entity.getTokenEncrypted());
+            } catch (Exception exception) {
+                throw new BusinessException(500, "Token 解密失败");
+            }
+        }
+        if ("mcp_dev_token...".equals(entity.getTokenPrefix())) {
+            return "mcp_dev_token";
+        }
+        throw new BusinessException(400, "历史 Token 没有保存明文，无法一键配置到 Cursor，请新建一把 Token");
+    }
+
+    private String normalizeBaseUrl(String baseUrl) {
+        if (baseUrl == null || baseUrl.isBlank()) {
+            throw new BusinessException(400, "baseUrl 不能为空");
+        }
+        String value = baseUrl.trim();
+        while (value.endsWith("/")) {
+            value = value.substring(0, value.length() - 1);
+        }
+        return value;
+    }
+
+    private byte[] aesKey(String secret) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(secret.getBytes(StandardCharsets.UTF_8));
+            return Arrays.copyOf(digest, 16);
+        } catch (Exception e) {
+            throw new IllegalStateException("初始化 Token 加密器失败", e);
         }
     }
 }

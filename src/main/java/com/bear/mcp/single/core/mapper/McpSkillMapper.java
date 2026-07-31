@@ -15,6 +15,8 @@ public interface McpSkillMapper {
 
     List<McpSkillEntity> findShareStudioSkills(@Param("creatorId") Long creatorId);
 
+    List<McpSkillEntity> findPublished();
+
     List<McpSkillEntity> findAll();
 
     String findMaxSkillCode();

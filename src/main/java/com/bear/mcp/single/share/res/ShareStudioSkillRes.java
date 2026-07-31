@@ -20,4 +20,8 @@ public class ShareStudioSkillRes {
     private Integer publishStatus;
     private Date createTime;
     private Date updateTime;
+    private String likeTargetType;
+    private String likeTargetKey;
+    private Long likeCount;
+    private Boolean liked;
 }

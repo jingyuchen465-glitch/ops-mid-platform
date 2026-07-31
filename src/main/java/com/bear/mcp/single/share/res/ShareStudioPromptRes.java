@@ -15,4 +15,8 @@ public class ShareStudioPromptRes {
     private Long creatorId;
     private Integer enabled;
     private Integer publishStatus;
+    private String likeTargetType;
+    private String likeTargetKey;
+    private Long likeCount;
+    private Boolean liked;
 }

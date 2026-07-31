@@ -1,5 +1,6 @@
 package com.bear.mcp.single.gateway;
 
+import com.bear.mcp.single.core.audit.AuditLogService;
 import com.bear.mcp.single.core.context.McpUserContext;
 import com.bear.mcp.single.core.context.McpUserContextHolder;
 import com.bear.mcp.single.core.entity.McpResourceEntity;
@@ -24,6 +25,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 /** 数据库 + TOS 动态 Resource 的 MCP 协议过滤器。 */
 @Component
@@ -34,10 +36,14 @@ public class McpResourcesFilter extends OncePerRequestFilter {
     private static final String RESOURCES_READ = "resources/read";
 
     private final ResourceAccessService resourceAccessService;
+    private final AuditLogService auditLogService;
     private final ObjectMapper objectMapper;
 
-    public McpResourcesFilter(ResourceAccessService resourceAccessService, ObjectMapper objectMapper) {
+    public McpResourcesFilter(ResourceAccessService resourceAccessService,
+                              AuditLogService auditLogService,
+                              ObjectMapper objectMapper) {
         this.resourceAccessService = resourceAccessService;
+        this.auditLogService = auditLogService;
         this.objectMapper = objectMapper;
     }
 
@@ -66,6 +72,7 @@ public class McpResourcesFilter extends OncePerRequestFilter {
     }
 
     private String buildListResponse(JsonNode requestId) throws IOException {
+        long startedAt = System.currentTimeMillis();
         ObjectNode response = baseResponse(requestId);
         ObjectNode result = objectMapper.createObjectNode();
         ArrayNode resources = objectMapper.createArrayNode();
@@ -80,14 +87,22 @@ public class McpResourcesFilter extends OncePerRequestFilter {
         }
         result.set("resources", resources);
         response.set("result", result);
-        return objectMapper.writeValueAsString(response);
+        String responseBody = objectMapper.writeValueAsString(response);
+        recordResourceAudit(context, "list", "SUCCESS", startedAt,
+                Map.of("method", RESOURCES_LIST, "count", resources.size()), responseBody, null);
+        return responseBody;
     }
 
     private String buildReadResponse(JsonNode requestId, String body) throws IOException {
+        long startedAt = System.currentTimeMillis();
+        McpUserContext context = McpUserContextHolder.get();
         String uri = resourceUriOf(body);
-        McpResourceEntity entity = resourceAccessService.findAccessibleByUri(McpUserContextHolder.get(), uri);
+        McpResourceEntity entity = resourceAccessService.findAccessibleByUri(context, uri);
         if (entity == null) {
-            return buildErrorResponse(requestId, -32000, "Resource 不存在、未发布或无权限读取: " + uri);
+            String message = "Resource 不存在、未发布或无权限读取: " + uri;
+            String errorResponse = buildErrorResponse(requestId, -32000, message);
+            recordResourceAudit(context, uri, "ERROR", startedAt, null, message);
+            return errorResponse;
         }
 
         ObjectNode response = baseResponse(requestId);
@@ -100,7 +115,37 @@ public class McpResourcesFilter extends OncePerRequestFilter {
         contents.add(content);
         result.set("contents", contents);
         response.set("result", result);
-        return objectMapper.writeValueAsString(response);
+        String responseBody = objectMapper.writeValueAsString(response);
+        recordResourceAudit(context, uri, "SUCCESS", startedAt, responseBody, null);
+        return responseBody;
+    }
+
+    private void recordResourceAudit(McpUserContext context, String uri, String status, long startedAt,
+                                     String responseSummary, String errorMessage) {
+        recordResourceAudit(context, uri, status, startedAt,
+                Map.of("method", RESOURCES_READ, "uri", uri == null ? "" : uri), responseSummary, errorMessage);
+    }
+
+    private void recordResourceAudit(McpUserContext context, String uri, String status, long startedAt,
+                                     Map<String, Object> requestSummary, String responseSummary, String errorMessage) {
+        auditLogService.recordToolCall(
+                context != null ? context.userId() : null,
+                context != null ? context.userName() : null,
+                "RESOURCE:" + (uri == null || uri.isBlank() ? "<unknown>" : uri),
+                status,
+                System.currentTimeMillis() - startedAt,
+                toJson(requestSummary),
+                responseSummary,
+                errorMessage
+        );
+    }
+
+    private String toJson(Object value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (Exception e) {
+            return String.valueOf(value);
+        }
     }
 
     private ObjectNode baseResponse(JsonNode requestId) {

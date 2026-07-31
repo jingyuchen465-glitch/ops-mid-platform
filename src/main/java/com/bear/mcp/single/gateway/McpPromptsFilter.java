@@ -1,5 +1,6 @@
 package com.bear.mcp.single.gateway;
 
+import com.bear.mcp.single.core.audit.AuditLogService;
 import com.bear.mcp.single.core.context.McpUserContext;
 import com.bear.mcp.single.core.context.McpUserContextHolder;
 import com.bear.mcp.single.core.entity.McpPromptTemplateEntity;
@@ -43,13 +44,16 @@ public class McpPromptsFilter extends OncePerRequestFilter {
 
     private final PromptTemplateService promptTemplateService;
     private final PromptAccessService promptAccessService;
+    private final AuditLogService auditLogService;
     private final ObjectMapper objectMapper;
 
     public McpPromptsFilter(PromptTemplateService promptTemplateService,
                             PromptAccessService promptAccessService,
+                            AuditLogService auditLogService,
                             ObjectMapper objectMapper) {
         this.promptTemplateService = promptTemplateService;
         this.promptAccessService = promptAccessService;
+        this.auditLogService = auditLogService;
         this.objectMapper = objectMapper;
     }
 
@@ -79,10 +83,11 @@ public class McpPromptsFilter extends OncePerRequestFilter {
     }
 
     private String buildListResponse(JsonNode requestId) throws IOException {
+        long startedAt = System.currentTimeMillis();
+        McpUserContext context = McpUserContextHolder.get();
         ObjectNode response = baseResponse(requestId);
         ObjectNode result = objectMapper.createObjectNode();
         ArrayNode prompts = objectMapper.createArrayNode();
-        McpUserContext context = McpUserContextHolder.get();
         for (McpPromptTemplateEntity entity : promptAccessService.listAccessiblePrompts(context)) {
             ObjectNode prompt = objectMapper.createObjectNode();
             prompt.put("name", entity.getPromptName());
@@ -109,28 +114,32 @@ public class McpPromptsFilter extends OncePerRequestFilter {
         }
         result.set("prompts", prompts);
         response.set("result", result);
-        return objectMapper.writeValueAsString(response);
+        String responseBody = objectMapper.writeValueAsString(response);
+        recordPromptAudit(context, "list", PROMPTS_LIST, "SUCCESS", startedAt,
+                Map.of("count", prompts.size()), responseBody, null);
+        return responseBody;
     }
 
     @SuppressWarnings("unchecked")
     private String buildGetResponse(JsonNode requestId, String body) throws IOException {
+        long startedAt = System.currentTimeMillis();
+        McpUserContext context = McpUserContextHolder.get();
         String name = promptNameOf(body);
         McpPromptTemplateEntity entity = promptTemplateService.findEnabledByName(name);
         if (entity == null) {
-            return buildErrorResponse(requestId, -32602, "Prompt 不存在或未发布: " + name);
+            String message = "Prompt 不存在或未发布: " + name;
+            String errorResponse = buildErrorResponse(requestId, -32602, message);
+            recordPromptAudit(context, name, PROMPTS_GET, "ERROR", startedAt, argumentsOf(body), null, message);
+            return errorResponse;
         }
-        if (!promptAccessService.canAccess(McpUserContextHolder.get(), name)) {
-            return buildErrorResponse(requestId, -32000, "无权限使用 Prompt: " + name);
-        }
-
-        Map<String, Object> arguments;
-        try {
-            JsonNode node = objectMapper.readTree(body).path("params").path("arguments");
-            arguments = node.isMissingNode() || node.isNull() ? Map.of() : objectMapper.convertValue(node, Map.class);
-        } catch (Exception e) {
-            arguments = Map.of();
+        if (!promptAccessService.canAccess(context, name)) {
+            String message = "无权限使用 Prompt: " + name;
+            String errorResponse = buildErrorResponse(requestId, -32000, message);
+            recordPromptAudit(context, name, PROMPTS_GET, "ERROR", startedAt, argumentsOf(body), null, message);
+            return errorResponse;
         }
 
+        Map<String, Object> arguments = argumentsOf(body);
         String rendered = promptTemplateService.render(entity.getTemplateContent(), arguments);
         ObjectNode response = baseResponse(requestId);
         ObjectNode result = objectMapper.createObjectNode();
@@ -145,7 +154,45 @@ public class McpPromptsFilter extends OncePerRequestFilter {
         messages.add(message);
         result.set("messages", messages);
         response.set("result", result);
-        return objectMapper.writeValueAsString(response);
+        String responseBody = objectMapper.writeValueAsString(response);
+        recordPromptAudit(context, name, PROMPTS_GET, "SUCCESS", startedAt, arguments, responseBody, null);
+        return responseBody;
+    }
+
+    private void recordPromptAudit(McpUserContext context, String promptName, String method, String status, long startedAt,
+                                   Map<String, Object> arguments, String responseSummary, String errorMessage) {
+        auditLogService.recordToolCall(
+                context != null ? context.userId() : null,
+                context != null ? context.userName() : null,
+                "PROMPT:" + (promptName == null || promptName.isBlank() ? "<unknown>" : promptName),
+                status,
+                System.currentTimeMillis() - startedAt,
+                toJson(Map.of(
+                        "method", method,
+                        "name", promptName == null ? "" : promptName,
+                        "arguments", arguments == null ? Map.of() : arguments
+                )),
+                responseSummary,
+                errorMessage
+        );
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> argumentsOf(String body) {
+        try {
+            JsonNode node = objectMapper.readTree(body).path("params").path("arguments");
+            return node.isMissingNode() || node.isNull() ? Map.of() : objectMapper.convertValue(node, Map.class);
+        } catch (Exception e) {
+            return Map.of();
+        }
+    }
+
+    private String toJson(Object value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (Exception e) {
+            return String.valueOf(value);
+        }
     }
 
     private ObjectNode baseResponse(JsonNode requestId) {

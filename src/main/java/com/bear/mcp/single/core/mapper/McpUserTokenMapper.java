@@ -26,6 +26,16 @@ public interface McpUserTokenMapper {
     List<McpUserTokenEntity> findAll();
 
     /**
+     * 根据主键查询 Token。
+     */
+    McpUserTokenEntity findById(@Param("id") Long id);
+
+    /**
+     * 查询某个用户的 Token。
+     */
+    List<McpUserTokenEntity> findByUserId(@Param("userId") Long userId);
+
+    /**
      * 新增 Token。
      */
     int insert(McpUserTokenEntity entity);

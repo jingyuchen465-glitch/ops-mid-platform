@@ -40,4 +40,7 @@ public class AdminTokenRes {
     /** 创建时间。 */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date createTime;
+
+    /** 是否可以生成 Cursor 一键配置链接。 */
+    private Boolean cursorInstallable;
 }

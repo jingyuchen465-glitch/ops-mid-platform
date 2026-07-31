@@ -16,9 +16,21 @@
         SELECT id, user_id, token_name, token_hash, token_encrypted, token_prefix, permissions, expire_time, last_used_time, last_used_ip, is_active, create_time
         FROM mcp_user_token ORDER BY id DESC
     </select>
+    <select id="findById" resultType="com.bear.mcp.single.core.entity.McpUserTokenEntity">
+        SELECT id, user_id, token_name, token_hash, token_encrypted, token_prefix, permissions, expire_time, last_used_time, last_used_ip, is_active, create_time
+        FROM mcp_user_token
+        WHERE id = #{id}
+        LIMIT 1
+    </select>
+    <select id="findByUserId" resultType="com.bear.mcp.single.core.entity.McpUserTokenEntity">
+        SELECT id, user_id, token_name, token_hash, token_encrypted, token_prefix, permissions, expire_time, last_used_time, last_used_ip, is_active, create_time
+        FROM mcp_user_token
+        WHERE user_id = #{userId}
+        ORDER BY id DESC
+    </select>
     <insert id="insert" parameterType="com.bear.mcp.single.core.entity.McpUserTokenEntity" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO mcp_user_token (user_id, token_name, token_hash, token_prefix, permissions, expire_time, is_active)
-        VALUES (#{userId}, #{tokenName}, #{tokenHash}, #{tokenPrefix}, #{permissions}, #{expireTime}, #{isActive})
+        INSERT INTO mcp_user_token (user_id, token_name, token_hash, token_encrypted, token_prefix, permissions, expire_time, is_active)
+        VALUES (#{userId}, #{tokenName}, #{tokenHash}, #{tokenEncrypted}, #{tokenPrefix}, #{permissions}, #{expireTime}, #{isActive})
     </insert>
     <update id="update" parameterType="com.bear.mcp.single.core.entity.McpUserTokenEntity">
         UPDATE mcp_user_token

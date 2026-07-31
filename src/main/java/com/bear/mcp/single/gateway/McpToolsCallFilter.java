@@ -1,9 +1,10 @@
 package com.bear.mcp.single.gateway;
 
+import com.bear.mcp.single.core.audit.AuditLogService;
 import com.bear.mcp.single.core.dynamic.DynamicToolService;
-import com.bear.mcp.single.core.groovy.ScriptResult;
 import com.bear.mcp.single.core.context.McpUserContext;
 import com.bear.mcp.single.core.context.McpUserContextHolder;
+import com.bear.mcp.single.core.groovy.ScriptResult;
 import com.bear.mcp.single.core.selection.ToolSelectionService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,6 +20,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.ContentCachingResponseWrapper;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -44,13 +46,16 @@ public class McpToolsCallFilter extends OncePerRequestFilter {
 
     private final DynamicToolService dynamicToolService;
     private final ToolSelectionService toolSelectionService;
+    private final AuditLogService auditLogService;
     private final ObjectMapper objectMapper;
 
     public McpToolsCallFilter(DynamicToolService dynamicToolService,
                               ToolSelectionService toolSelectionService,
+                              AuditLogService auditLogService,
                               ObjectMapper objectMapper) {
         this.dynamicToolService = dynamicToolService;
         this.toolSelectionService = toolSelectionService;
+        this.auditLogService = auditLogService;
         this.objectMapper = objectMapper;
     }
 
@@ -79,15 +84,18 @@ public class McpToolsCallFilter extends OncePerRequestFilter {
         String toolName = toolNameOf(body);
         McpUserContext context = McpUserContextHolder.get();
         if (toolName != null && !toolName.isBlank() && !canCall(context, toolName)) {
+            long startedAt = System.currentTimeMillis();
+            String errorMessage = "当前 Token 未获授权调用工具: " + toolName;
             response.setContentType("application/json;charset=UTF-8");
             response.getWriter().write(buildJsonRpcResponse(requestIdOf(body),
-                    ScriptResult.failure("当前 Token 未获授权调用工具: " + toolName, 0)));
+                    ScriptResult.failure(errorMessage, 0)));
+            recordToolCall(context, toolName, "ERROR", startedAt, argumentsOf(body), null, errorMessage);
             return;
         }
 
         // 只有动态工具才由我们执行。内置工具 hello/current_time/calculate 等继续交给 Spring AI。
         if (toolName == null || dynamicToolService.findEnabledByName(toolName).isEmpty()) {
-            filterChain.doFilter(cachedRequest, response);
+            doBuiltinToolCall(cachedRequest, response, filterChain, body, toolName, context);
             return;
         }
 
@@ -96,6 +104,85 @@ public class McpToolsCallFilter extends OncePerRequestFilter {
         ScriptResult result = dynamicToolService.execute(toolName, argumentsOf(body));
         response.setContentType("application/json;charset=UTF-8");
         response.getWriter().write(buildJsonRpcResponse(requestIdOf(body), result));
+    }
+
+    /**
+     * 内置工具由 Spring AI 真正执行，本过滤器只负责围绕执行过程补一条审计日志。
+     *
+     * <p>动态工具已经在 {@link DynamicToolService#execute(String, Map)} 里记录审计，因此这里
+     * 只处理放行给 Spring AI 的内置工具链路，避免同一次调用重复落库。</p>
+     */
+    private void doBuiltinToolCall(CachedRequest request, HttpServletResponse response, FilterChain filterChain,
+                                   String body, String toolName, McpUserContext context)
+            throws IOException, ServletException {
+        if (toolName == null || toolName.isBlank()) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        long startedAt = System.currentTimeMillis();
+        ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(response);
+        String status = "SUCCESS";
+        String errorMessage = null;
+        try {
+            filterChain.doFilter(request, responseWrapper);
+            String responseBody = responseBodyOf(responseWrapper);
+            errorMessage = errorMessageOf(responseBody);
+            if (responseWrapper.getStatus() >= 400 || errorMessage != null) {
+                status = "ERROR";
+            }
+            recordToolCall(context, toolName, status, startedAt, argumentsOf(body), responseBody, errorMessage);
+        } catch (Exception e) {
+            status = "ERROR";
+            errorMessage = e.getMessage();
+            recordToolCall(context, toolName, status, startedAt, argumentsOf(body), null, errorMessage);
+            throw e;
+        } finally {
+            responseWrapper.copyBodyToResponse();
+        }
+    }
+
+    private void recordToolCall(McpUserContext context, String toolName, String status, long startedAt,
+                                Map<String, Object> arguments, String responseSummary, String errorMessage) {
+        auditLogService.recordToolCall(
+                context != null ? context.userId() : null,
+                context != null ? context.userName() : null,
+                toolName,
+                status,
+                System.currentTimeMillis() - startedAt,
+                toJson(arguments),
+                responseSummary,
+                errorMessage
+        );
+    }
+
+    private String responseBodyOf(ContentCachingResponseWrapper responseWrapper) {
+        byte[] content = responseWrapper.getContentAsByteArray();
+        return content.length == 0 ? null : new String(content, StandardCharsets.UTF_8);
+    }
+
+    private String errorMessageOf(String responseBody) {
+        if (responseBody == null || responseBody.isBlank()) {
+            return null;
+        }
+        try {
+            JsonNode error = objectMapper.readTree(responseBody).path("error");
+            if (error.isMissingNode() || error.isNull()) {
+                return null;
+            }
+            String message = error.path("message").asText(null);
+            return message != null && !message.isBlank() ? message : error.toString();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String toJson(Object value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (Exception e) {
+            return String.valueOf(value);
+        }
     }
 
     private boolean canCall(McpUserContext context, String toolName) {

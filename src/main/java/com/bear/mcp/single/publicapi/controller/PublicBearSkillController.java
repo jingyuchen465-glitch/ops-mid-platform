@@ -47,6 +47,7 @@ public class PublicBearSkillController {
                 + "```bash\n"
                 + "curl -fsSL " + baseUrl + PUBLIC_PREFIX + "/install.sh | bash -s -- --cli-only\n"
                 + "bear-skill install SKILL0000000001 --base-url " + baseUrl + "\n"
+                + "bear-skill install SKILL0000000001 --base-url " + baseUrl + " --codex\n"
                 + "```\n";
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"bear-skill.md\"")

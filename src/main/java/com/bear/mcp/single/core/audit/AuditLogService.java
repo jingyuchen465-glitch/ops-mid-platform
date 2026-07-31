@@ -13,6 +13,7 @@ import java.util.List;
 public class AuditLogService {
 
     private static final Logger log = LoggerFactory.getLogger(AuditLogService.class);
+    private static final int MAX_TOOL_NAME_LENGTH = 128;
 
     /**
      * mcp_audit_log：工具调用审计日志表。
@@ -32,7 +33,7 @@ public class AuditLogService {
         entity.setCreateTime(auditLog.at());
         entity.setUserId(auditLog.userId());
         entity.setUserName(auditLog.userName());
-        entity.setToolName(auditLog.toolName());
+        entity.setToolName(truncateToolName(auditLog.toolName()));
         entity.setRequestParams(auditLog.requestSummary());
         entity.setResponseSummary(auditLog.responseSummary());
         entity.setStatus(auditLog.status());
@@ -82,5 +83,12 @@ public class AuditLogService {
             return null;
         }
         return value.length() > 500 ? value.substring(0, 500) : value;
+    }
+
+    private String truncateToolName(String value) {
+        if (value == null) {
+            return null;
+        }
+        return value.length() > MAX_TOOL_NAME_LENGTH ? value.substring(0, MAX_TOOL_NAME_LENGTH) : value;
     }
 }

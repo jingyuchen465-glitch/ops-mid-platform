@@ -13,13 +13,14 @@ usage() {
 bear-skill v${VERSION}
 
 用法:
-  bear-skill install <skillCode> [--base-url URL] [--global] [-C DIR]
+  bear-skill install <skillCode> [--base-url URL] [--global] [--codex] [-C DIR]
   bear-skill --help
   bear-skill --version
 
 示例:
   bear-skill install SKILL0000000001 --base-url http://localhost:8090
   bear-skill install SKILL0000000001 --global
+  bear-skill install SKILL0000000001 --codex
 EOF
 }
 
@@ -33,6 +34,7 @@ SKILL_CODE=""
 BASE_URL="$DEFAULT_BASE_URL"
 TARGET_DIR=""
 GLOBAL=0
+CODEX=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -52,6 +54,10 @@ while [[ $# -gt 0 ]]; do
       GLOBAL=1
       shift
       ;;
+    --codex)
+      CODEX=1
+      shift
+      ;;
     --help|-h)
       usage
       exit 0
@@ -69,7 +75,9 @@ done
 [[ "$CMD" == "install" || -n "$SKILL_CODE" ]] || { usage; die "请指定 install <skillCode>"; }
 [[ "$SKILL_CODE" =~ ^SKILL[0-9]{10}$ ]] || die "skillCode 格式错误，应为 SKILL+10位数字"
 
-if [[ $GLOBAL -eq 1 ]]; then
+if [[ $CODEX -eq 1 ]]; then
+  INSTALL_DIR="${HOME}/.codex/skills"
+elif [[ $GLOBAL -eq 1 ]]; then
   INSTALL_DIR="${HOME}/${SKILLS_DIR}"
 elif [[ -n "$TARGET_DIR" ]]; then
   INSTALL_DIR="$TARGET_DIR"
@@ -117,4 +125,8 @@ rm -f "$TMP_ZIP"
 EXTRACTED_DIR="$(find . -maxdepth 1 -mindepth 1 -type d 2>/dev/null | head -1)"
 EXTRACTED_DIR="${EXTRACTED_DIR#./}"
 echo "安装完成: $INSTALL_DIR/$EXTRACTED_DIR/"
-echo "Skill 已安装到 Cursor，可在 Cursor 中直接使用。"
+if [[ $CODEX -eq 1 ]]; then
+  echo "Skill 已安装到 Codex，可重启或刷新 Codex 后使用。"
+else
+  echo "Skill 已安装到 Cursor，可在 Cursor 中直接使用。"
+fi

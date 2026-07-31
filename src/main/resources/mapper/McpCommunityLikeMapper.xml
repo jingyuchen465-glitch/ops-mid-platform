@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.bear.mcp.single.core.mapper.McpCommunityLikeMapper">
+    <insert id="insertIgnore">
+        INSERT IGNORE INTO mcp_community_like (target_type, target_key, user_id)
+        VALUES (#{targetType}, #{targetKey}, #{userId})
+    </insert>
+
+    <delete id="delete">
+        DELETE FROM mcp_community_like
+        WHERE target_type = #{targetType}
+          AND target_key = #{targetKey}
+          AND user_id = #{userId}
+    </delete>
+
+    <select id="exists" resultType="int">
+        SELECT COUNT(*)
+        FROM mcp_community_like
+        WHERE target_type = #{targetType}
+          AND target_key = #{targetKey}
+          AND user_id = #{userId}
+    </select>
+
+    <select id="countOne" resultType="long">
+        SELECT COUNT(*)
+        FROM mcp_community_like
+        WHERE target_type = #{targetType}
+          AND target_key = #{targetKey}
+    </select>
+
+    <select id="countByTypes" resultType="com.bear.mcp.single.core.entity.McpCommunityLikeStatEntity">
+        SELECT target_type AS targetType, target_key AS targetKey, COUNT(*) AS likeCount
+        FROM mcp_community_like
+        WHERE target_type IN
+        <foreach collection="targetTypes" item="targetType" open="(" separator="," close=")">
+            #{targetType}
+        </foreach>
+        GROUP BY target_type, target_key
+    </select>
+
+    <select id="findLikedKeys" resultType="string">
+        SELECT target_key
+        FROM mcp_community_like
+        WHERE target_type = #{targetType}
+          AND user_id = #{userId}
+          AND target_key IN
+        <foreach collection="targetKeys" item="targetKey" open="(" separator="," close=")">
+            #{targetKey}
+        </foreach>
+    </select>
+</mapper>

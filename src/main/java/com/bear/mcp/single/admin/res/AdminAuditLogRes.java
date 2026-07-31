@@ -24,6 +24,15 @@ public class AdminAuditLogRes {
     /** MCP 工具名称。 */
     private String toolName;
 
+    /** MCP 能力类型：TOOL、PROMPT、RESOURCE。 */
+    private String capabilityType;
+
+    /** MCP 能力名称或 URI。 */
+    private String capabilityName;
+
+    /** MCP 能力动作：CALL、LIST、GET、READ。 */
+    private String capabilityAction;
+
     /** 请求参数摘要。 */
     private String requestParams;
 

@@ -50,6 +50,9 @@ const dynamicToolDetailOpen = ref(false)
 const activeDynamicTool = ref(null)
 const communityDetailOpen = ref(false)
 const activeCommunityItem = ref(null)
+const communityResourceContent = ref('')
+const communityResourceContentLoading = ref(false)
+const communityResourceContentError = ref('')
 const auditDetailOpen = ref(false)
 const activeAuditLog = ref(null)
 const apiDebugOpen = ref(false)
@@ -95,8 +98,12 @@ const lastAutoToolSchema = ref('')
 const communityTools = ref([])
 const communityBuiltinTools = ref([])
 const communityApis = ref([])
+const communitySkills = ref([])
+const communityPrompts = ref([])
+const communityResources = ref([])
 const communityKeyword = ref('')
 const communityToolTypeFilter = ref('all')
+const activeConfigTokenId = ref(null)
 const builtinTools = [
   { name: 'hello', description: '问候工具' },
   { name: 'current_time', description: '当前时间' },
@@ -109,6 +116,7 @@ const builtinTools = [
   { name: 'update_dynamic_tool_script', description: '更新动态 Tool 脚本' },
   { name: 'create_resource', description: '直接创建或更新 Markdown Resource' },
   { name: 'create_prompt', description: '直接创建或更新 MCP Prompt 模板' },
+  { name: 'render_prompt', description: '渲染已授权 MCP Prompt' },
   { name: 'create_skill', description: '直接创建或更新 Bear Skill' },
   { name: 'list_data_sources', description: '查询已发布数据源' },
   { name: 'query_data_source', description: '只读查询数据源' },
@@ -148,14 +156,14 @@ const menu = [
   ['dashboard', '概览', AppstoreOutlined], ['users', '用户', TeamOutlined], ['roles', '角色与能力权限', TeamOutlined], ['tokens', 'Token 与能力选择', KeyOutlined],
   ['requests', '请求配置', SettingOutlined], ['dataSources', '数据源', DatabaseOutlined], ['resources', '资源', DatabaseOutlined], ['tools', '动态工具', ThunderboltOutlined], ['audits', '审计日志', AuditOutlined]
 ]
-const communityPages = ['shareHome', 'shareTools', 'shareApis']
+const communityPages = ['shareHome', 'shareSkills', 'shareTools', 'sharePrompts', 'shareResources', 'shareApis', 'shareConfig', 'shareTokens']
 const studioPages = ['studioHome', 'studioSkills', 'studioSkillEdit', 'studioTools', 'studioToolEdit', 'studioPrompts', 'studioPromptEdit', 'studioResources', 'studioResourceEdit', 'studioApis', 'studioApiEdit']
 const sharePages = [...communityPages, ...studioPages]
 const isSharePage = computed(() => sharePages.includes(page.value))
 const isCommunityPage = computed(() => communityPages.includes(page.value))
-const navSections = { dashboard: '概览', users: '系统治理', roles: '系统治理', tokens: '访问控制', requests: '能力展示', dataSources: '能力展示', resources: '能力展示', tools: '能力展示', audits: '运行观测', shareHome: '首页', shareTools: 'MCP Tools', shareApis: 'API 能力', studioHome: '首页', studioSkills: 'Skills 创作', studioTools: 'Tools 创作', studioPrompts: 'Prompts 创作', studioResources: 'Resources 创作', studioApis: 'API 创作' }
-const title = computed(() => ({ dashboard:'运行概览', users:'用户', roles:'角色与能力权限', tokens:'Token 与能力选择', requests:'请求配置', dataSources:'数据源', resources:'资源', tools:'动态工具', audits:'调用审计', shareHome:'发现优质 AI 能力', shareTools:'MCP Tools', shareApis:'API 能力', studioHome:'Bear 创作空间', studioSkills:'Skills 创作', studioSkillEdit:'新建 Skill', studioTools:'Tools 创作', studioToolEdit:'新建 Tool', studioPrompts:'Prompts 创作', studioPromptEdit:'新建 Prompt', studioResources:'Resources 创作', studioResourceEdit:'新建 Resource', studioApis:'API 创作', studioApiEdit:'新建 API' })[page.value])
-const desc = computed(() => ({ dashboard:'当前数据库中的 MCP 治理状态', users:'角色是工具和 Prompt 权限上限，用户通过角色获得资格', roles:'角色决定资格上限，Tool、Prompt、Resource 都在这里授权', tokens:'每把 Token 单独选择要暴露和实际允许使用的 Tool / Prompt / Resource', requests:'展示动态工具可引用的企业请求配置；完整创作在创作空间完成', dataSources:'维护外部数据库连接配置，为后续 query_data_source 和动态 Tool runSql 提供受控数据入口', resources:'展示已创建的 MCP Resource，发布并授权后可通过 resources/list 和 resources/read 读取', tools:'这里只展示已发布的动态工具；创建与编辑在创作空间完成', audits:'保留每一次 MCP 工具调用的结果摘要与耗时', shareHome:'公开的 Tool 和 API 会先进入社区，被团队发现、复用，再进入 Token 配置链路。', shareTools:'浏览已公开的 MCP Tool。能否调用仍由角色权限和 Token 工具选择决定。', shareApis:'浏览已公开的 API 配置，它们是动态 Tool 编排时可复用的基础能力。', studioHome:'创作 Skills、Tools、Prompts、Resources、API，分享到社区', studioSkills:'上传 Markdown Skill，让 Agent 通过 get_skill 安装到 Cursor 本地', studioSkillEdit:'上传 SKILL.md 并维护 Skill ID、名称、描述和发布状态', studioTools:'把已接入的 API 配置包装成 AI Agent 可见和可调用的 MCP Tool', studioToolEdit:'编写工具描述、入参 Schema 和 Groovy 脚本，调试通过后发布上线', studioPrompts:'沉淀企业工作流模板，指导 Agent 按标准流程使用工具', studioPromptEdit:'编写 Prompt 模板、参数和建议工具，预览渲染后发布', studioResources:'上传 Markdown 资源，让 Agent 通过 resources/list 和 resources/read 读取企业知识片段', studioResourceEdit:'上传 Markdown 文件并维护 Resource URI、名称、描述和发布状态', studioApis:'创建外部 HTTP API 配置，调试通过后发布给后续动态工具使用', studioApiEdit:'配置外部 HTTP API，保存并调试真实响应' })[page.value])
+const navSections = { dashboard: '概览', users: '系统治理', roles: '系统治理', tokens: '访问控制', requests: '能力展示', dataSources: '能力展示', resources: '资源', tools: '能力展示', audits: '运行观测', shareHome: '首页', shareSkills: 'Skills 社区', shareTools: 'MCP Tools', sharePrompts: 'MCP Prompts', shareResources: 'MCP Resources', shareApis: 'API 能力', shareConfig: '我的MCP配置', shareTokens: 'Token 管理', studioHome: '首页', studioSkills: 'Skills 创作', studioTools: 'Tools 创作', studioPrompts: 'Prompts 创作', studioResources: 'Resources 创作', studioApis: 'API 创作' }
+const title = computed(() => ({ dashboard:'运行概览', users:'用户', roles:'角色与能力权限', tokens:'Token 与能力选择', requests:'请求配置', dataSources:'数据源', resources:'资源', tools:'动态工具', audits:'调用审计', shareHome:'发现优质 AI 能力', shareSkills:'Skills 社区', shareTools:'MCP Tools', sharePrompts:'MCP Prompts', shareResources:'MCP Resources', shareApis:'API 能力', shareConfig:'我的MCP配置', shareTokens:'Token 管理', studioHome:'Bear 创作空间', studioSkills:'Skills 创作', studioSkillEdit:'新建 Skill', studioTools:'Tools 创作', studioToolEdit:'新建 Tool', studioPrompts:'Prompts 创作', studioPromptEdit:'新建 Prompt', studioResources:'Resources 创作', studioResourceEdit:'新建 Resource', studioApis:'API 创作', studioApiEdit:'新建 API' })[page.value])
+const desc = computed(() => ({ dashboard:'当前数据库中的 MCP 治理状态', users:'角色是工具和 Prompt 权限上限，用户通过角色获得资格', roles:'角色决定资格上限，Tool、Prompt、Resource 都在这里授权', tokens:'每把 Token 单独选择要暴露和实际允许使用的 Tool / Prompt / Resource', requests:'展示动态工具可引用的企业请求配置；完整创作在创作空间完成', dataSources:'维护外部数据库连接配置，为后续 query_data_source 和动态 Tool runSql 提供受控数据入口', resources:'展示已创建的 MCP Resource，发布并授权后可通过 resources/list 和 resources/read 读取', tools:'这里只展示已发布的动态工具；创建与编辑在创作空间完成', audits:'保留每一次 MCP Tool / Prompt / Resource 调用的结果摘要与耗时', shareHome:'公开资源会先进入社区，被团队发现、复用，再进入 Token 配置链路。', shareSkills:'浏览已公开的 Bear Skill，Agent 可通过 get_skill 安装使用。', shareTools:'浏览已公开的 MCP Tool。能否调用仍由角色权限和 Token 工具选择决定。', sharePrompts:'浏览已公开的 MCP Prompt 模板。能否获取仍由角色权限和 Token Prompt 选择决定。', shareResources:'浏览已公开的 MCP Resource。能否读取仍由角色权限和 Token Resource 选择决定。', shareApis:'浏览已公开的 API 配置，它们是动态 Tool 编排时可复用的基础能力。', shareConfig:'选择一把 Token，配置它实际暴露的 Tool、Prompt 和 Resource，并一键安装到 Cursor。', shareTokens:'每个人可以创建多把自己的 MCP Token，用于不同客户端、项目或环境。', studioHome:'创作 Skills、Tools、Prompts、Resources、API，分享到社区', studioSkills:'上传 Markdown Skill，让 Agent 通过 get_skill 安装到 Cursor 本地', studioSkillEdit:'上传 SKILL.md 并维护 Skill ID、名称、描述和发布状态', studioTools:'把已接入的 API 配置包装成 AI Agent 可见和可调用的 MCP Tool', studioToolEdit:'编写工具描述、入参 Schema 和 Groovy 脚本，调试通过后发布上线', studioPrompts:'沉淀企业工作流模板，指导 Agent 按标准流程使用工具', studioPromptEdit:'编写 Prompt 模板、参数和建议工具，预览渲染后发布', studioResources:'上传 Markdown 资源，让 Agent 通过 resources/list 和 resources/read 读取企业知识片段', studioResourceEdit:'上传 Markdown 文件并维护 Resource URI、名称、描述和发布状态', studioApis:'创建外部 HTTP API 配置，调试通过后发布给后续动态工具使用', studioApiEdit:'配置外部 HTTP API，保存并调试真实响应' })[page.value])
 const studioApiStats = computed(() => {
   const all = rows.value.length
   const online = rows.value.filter(item => Number(item.publishStatus) !== 0).length
@@ -355,12 +363,80 @@ const filteredCommunityApis = computed(() => {
     return !keyword || searchText.includes(keyword)
   })
 })
+const filteredCommunitySkills = computed(() => {
+  const source = page.value === 'shareSkills' ? rows.value : communitySkills.value
+  const keyword = communityKeyword.value.trim().toLowerCase()
+
+  return source.filter(item => {
+    const searchText = [
+      item.skillCode,
+      item.name,
+      item.description,
+      item.category,
+      item.fileName
+    ].filter(Boolean).join(' ').toLowerCase()
+
+    return !keyword || searchText.includes(keyword)
+  })
+})
+const filteredCommunityPrompts = computed(() => {
+  const source = page.value === 'sharePrompts' ? rows.value : communityPrompts.value
+  const keyword = communityKeyword.value.trim().toLowerCase()
+
+  return source.filter(item => {
+    const searchText = [
+      item.promptName,
+      item.title,
+      item.description,
+      item.argumentsSchema,
+      item.templateContent,
+      item.linkedToolNames
+    ].filter(Boolean).join(' ').toLowerCase()
+
+    return !keyword || searchText.includes(keyword)
+  })
+})
+const filteredCommunityResources = computed(() => {
+  const source = page.value === 'shareResources' ? rows.value : communityResources.value
+  const keyword = communityKeyword.value.trim().toLowerCase()
+
+  return source.filter(item => {
+    const searchText = [
+      item.resourceUri,
+      item.name,
+      item.description,
+      item.mimeType,
+      item.fileName
+    ].filter(Boolean).join(' ').toLowerCase()
+
+    return !keyword || searchText.includes(keyword)
+  })
+})
+const rankedCommunitySkills = computed(() => rankCommunityItems(filteredCommunitySkills.value))
+const rankedCommunityTools = computed(() => rankCommunityItems(filteredCommunityTools.value))
+const rankedCommunityPrompts = computed(() => rankCommunityItems(filteredCommunityPrompts.value))
+const rankedCommunityResources = computed(() => rankCommunityItems(filteredCommunityResources.value))
+const communityRankSections = computed(() => [
+  { key: 'skills', title: 'Skill 点赞榜', page: 'shareSkills', items: rankedCommunitySkills.value.slice(0, 5), name: item => item.name || item.skillCode || '未命名 Skill', code: item => item.skillCode || communityCode('SKILL', item.id), open: openCommunitySkillDetail },
+  { key: 'tools', title: 'Tool 点赞榜', page: 'shareTools', items: rankedCommunityTools.value.slice(0, 5), name: item => item.displayName || item.toolName || '未命名 Tool', code: item => communityToolCode(item), open: openCommunityToolDetail },
+  { key: 'prompts', title: 'Prompt 点赞榜', page: 'sharePrompts', items: rankedCommunityPrompts.value.slice(0, 5), name: item => item.title || item.promptName || '未命名 Prompt', code: item => item.promptName || communityCode('PROMPT', item.id), open: openCommunityPromptDetail },
+  { key: 'resources', title: 'Resource 点赞榜', page: 'shareResources', items: rankedCommunityResources.value.slice(0, 5), name: item => item.name || item.resourceUri || '未命名 Resource', code: item => item.resourceUri || communityCode('RES', item.id), open: openCommunityResourceDetail }
+])
 const communityDetailTitle = computed(() => {
   if (!activeCommunityItem.value) {
     return '能力详情'
   }
+  if (activeCommunityItem.value.communityKind === 'skill') {
+    return `Skill 详情 · ${activeCommunityItem.value.name || activeCommunityItem.value.skillCode || ''}`
+  }
   if (activeCommunityItem.value.communityKind === 'api') {
     return `API 能力详情 · ${activeCommunityItem.value.configKey || activeCommunityItem.value.name || ''}`
+  }
+  if (activeCommunityItem.value.communityKind === 'prompt') {
+    return `MCP Prompt 详情 · ${activeCommunityItem.value.title || activeCommunityItem.value.promptName || ''}`
+  }
+  if (activeCommunityItem.value.communityKind === 'resource') {
+    return `MCP Resource 详情 · ${activeCommunityItem.value.name || activeCommunityItem.value.resourceUri || ''}`
   }
   return `MCP Tool 详情 · ${activeCommunityItem.value.displayName || activeCommunityItem.value.toolName || ''}`
 })
@@ -445,7 +521,7 @@ const columns = computed(() => ({
  dataSources:[['name','名称'],['datasourceKey','数据源 Key'],['dbType','类型'],['jdbcUrl','JDBC URL'],['username','用户名'],['passwordSet','密码'],['publishStatus','发布']],
  resources:[['resourceUri','Resource URI'],['name','名称'],['description','描述'],['mimeType','MIME 类型'],['publishStatus','发布'],['enabled','状态']],
  tools:[['toolName','工具名'],['toolDescription','工具描述'],['linkedRequestKeys','API 白名单'],['linkedDataSourceIds','数据源白名单'],['publishStatus','发布'],['inputSchema','入参 Schema'],['groovyScript','脚本摘要'],['enabled','状态']],
- audits:[['createTime','调用时间'],['userName','用户'],['toolName','工具'],['status','状态'],['durationMs','耗时(ms)']],
+ audits:[['createTime','调用时间'],['userName','用户'],['capabilityType','类型'],['capabilityName','名称/标识'],['capabilityAction','动作'],['status','状态'],['durationMs','耗时(ms)']],
  roles:[['roleCode','角色编码'],['roleName','角色名称'],['isEnabled','状态']]
 })[page.value] || [])
 const dataColumns = computed(() => columns.value.map(([dataIndex,title]) => ({
@@ -490,8 +566,23 @@ function pageFromPath() {
   if (path === '/share/tools') {
     return 'shareTools'
   }
+  if (path === '/share/skills') {
+    return 'shareSkills'
+  }
+  if (path === '/share/prompts') {
+    return 'sharePrompts'
+  }
+  if (path === '/share/resources') {
+    return 'shareResources'
+  }
   if (path === '/share/apis') {
     return 'shareApis'
+  }
+  if (path === '/share/config') {
+    return 'shareConfig'
+  }
+  if (path === '/share/tokens') {
+    return 'shareTokens'
   }
   if (path === '/share/studio') {
     return 'studioHome'
@@ -505,8 +596,13 @@ function pageFromPath() {
 function pathForPage(key) {
   return {
     shareHome: '/share',
+    shareSkills: '/share/skills',
     shareTools: '/share/tools',
+    sharePrompts: '/share/prompts',
+    shareResources: '/share/resources',
     shareApis: '/share/apis',
+    shareConfig: '/share/config',
+    shareTokens: '/share/tokens',
     studioHome: '/share/studio',
     studioSkills: '/share/studio/skills',
     studioSkillEdit: '/share/studio/skills/edit',
@@ -550,6 +646,15 @@ function formatTableCell(dataIndex, text, record) {
   if (dataIndex === 'passwordSet' && page.value === 'dataSources') {
     return text ? '已设置' : '未设置'
   }
+  if (dataIndex === 'capabilityType' && page.value === 'audits') {
+    return capabilityTypeLabel(text)
+  }
+  if (dataIndex === 'capabilityAction' && page.value === 'audits') {
+    return capabilityActionLabel(text)
+  }
+  if (dataIndex === 'capabilityName' && page.value === 'audits') {
+    return compactText(text, 48)
+  }
   if (dataIndex === 'publishStatus' && page.value === 'resources') {
     return publishLabel(text)
   }
@@ -566,6 +671,14 @@ function formatTableCell(dataIndex, text, record) {
     return ['草稿','上架不公开','公开'][Number(text)] || '-'
   }
   return text ?? '-'
+}
+
+function capabilityTypeLabel(type) {
+  return ({ TOOL: 'Tool', PROMPT: 'Prompt', RESOURCE: 'Resource' })[type] || type || '-'
+}
+
+function capabilityActionLabel(action) {
+  return ({ CALL: '调用', LIST: '列表', GET: '获取', READ: '读取' })[action] || action || '-'
 }
 
 function userLabel(userId) {
@@ -647,6 +760,147 @@ function communityToolCountLabel(item) {
   return `${parseJsonArray(item.linkedRequestKeys).length} 个 API · ${parseJsonArray(item.linkedDataSourceIds).length} 个数据源`
 }
 
+function rankCommunityItems(items) {
+  return [...items].sort((left, right) => {
+    const likeDiff = Number(right.likeCount || 0) - Number(left.likeCount || 0)
+    if (likeDiff !== 0) return likeDiff
+    return Number(right.id || 0) - Number(left.id || 0)
+  })
+}
+
+function likeLabel(item) {
+  return `${item?.liked ? '♥' : '♡'} ${Number(item?.likeCount || 0)}`
+}
+
+async function toggleCommunityLike(item) {
+  if (!item?.likeTargetType || !item?.likeTargetKey) {
+    message.warning('这个能力暂时不能点赞')
+    return
+  }
+  try {
+    const result = await api('/api/share/community/likes/toggle', {
+      method: 'POST',
+      body: {
+        targetType: item.likeTargetType,
+        targetKey: item.likeTargetKey
+      }
+    })
+    applyCommunityLikeResult(result)
+  } catch (error) {
+    message.error(error.message || '点赞失败')
+  }
+}
+
+function applyCommunityLikeResult(result) {
+  const patchItem = item => {
+    if (item?.likeTargetType === result.targetType && item?.likeTargetKey === result.targetKey) {
+      item.likeCount = result.likeCount
+      item.liked = result.liked
+    }
+  }
+  ;[rows.value, communitySkills.value, communityTools.value, communityBuiltinTools.value, communityPrompts.value, communityResources.value].forEach(list => {
+    list.forEach(patchItem)
+  })
+  patchItem(activeCommunityItem.value)
+}
+
+async function loadCommunityHomeData() {
+  const requests = [
+    ['skills', api('/api/share/community/skills')],
+    ['tools', api('/api/share/community/tools')],
+    ['builtinTools', api('/api/share/community/builtin-tools')],
+    ['prompts', api('/api/share/community/prompts')],
+    ['resources', api('/api/share/community/resources')],
+    ['apis', api('/api/share/community/apis')]
+  ]
+  const result = await Promise.allSettled(requests.map(([, request]) => request))
+  const empty = []
+  communitySkills.value = result[0].status === 'fulfilled' ? result[0].value : empty
+  communityTools.value = result[1].status === 'fulfilled' ? result[1].value : empty
+  communityBuiltinTools.value = result[2].status === 'fulfilled' ? result[2].value : empty
+  communityPrompts.value = result[3].status === 'fulfilled' ? result[3].value : empty
+  communityResources.value = result[4].status === 'fulfilled' ? result[4].value : empty
+  communityApis.value = result[5].status === 'fulfilled' ? result[5].value : empty
+
+  const failed = result
+    .map((item, index) => item.status === 'rejected' ? requests[index][0] : null)
+    .filter(Boolean)
+  if (failed.length) {
+    message.warning(`部分社区数据加载失败：${failed.join('、')}`)
+  }
+}
+
+async function loadShareConfigData() {
+  const [tokens, selections, promptSelections, resourceSelections, dynamicTools, builtinToolList, prompts, resources] = await Promise.all([
+    api('/api/share/tokens'),
+    api('/api/share/tokens/selections'),
+    api('/api/share/tokens/prompt-selections'),
+    api('/api/share/tokens/resource-selections'),
+    api('/api/share/community/tools'),
+    api('/api/share/community/builtin-tools'),
+    api('/api/share/community/prompts'),
+    api('/api/share/community/resources')
+  ])
+  rows.value = tokens
+  tokenSelections.value = selections
+  tokenPromptSelections.value = promptSelections
+  tokenResourceSelections.value = resourceSelections
+  dynamicToolOptions.value = dynamicTools.map(item => ({ ...item, enabled: 1 }))
+  communityBuiltinTools.value = builtinToolList
+  promptOptions.value = prompts
+  resourceOptions.value = resources
+  if (!activeConfigTokenId.value && rows.value.length) {
+    activeConfigTokenId.value = rows.value[0].id
+  }
+  applyConfigTokenSelections()
+}
+
+function applyConfigTokenSelections() {
+  const tokenId = activeConfigTokenId.value
+  selectedTokenTools.value = tokenSelections.value
+    .filter(item => item.tokenId === tokenId && item.enabled === 1)
+    .map(item => item.toolName)
+  selectedTokenPrompts.value = tokenPromptSelections.value
+    .filter(item => item.tokenId === tokenId && item.enabled === 1)
+    .map(item => item.promptName)
+  selectedTokenResources.value = tokenResourceSelections.value
+    .filter(item => item.tokenId === tokenId && item.enabled === 1)
+    .map(item => item.resourceUri)
+}
+
+async function saveShareMcpConfig() {
+  if (!activeConfigTokenId.value) {
+    message.warning('请先选择 Token')
+    return
+  }
+  const builtinToolNames = builtinTools.map(tool => tool.name)
+  const tools = selectedTokenTools.value.map(toolName => ({
+    toolName,
+    toolType: builtinToolNames.includes(toolName) ? 'BUILTIN' : 'DYNAMIC',
+    enabled: 1
+  }))
+  const prompts = selectedTokenPrompts.value.map(promptName => ({ promptName, enabled: 1 }))
+  const resources = selectedTokenResources.value.map(resourceUri => ({ resourceUri, enabled: 1 }))
+  await Promise.all([
+    api(`/api/share/tokens/${activeConfigTokenId.value}/selections`, { method: 'PUT', body: { tools } }),
+    api(`/api/share/tokens/${activeConfigTokenId.value}/prompt-selections`, { method: 'PUT', body: { prompts } }),
+    api(`/api/share/tokens/${activeConfigTokenId.value}/resource-selections`, { method: 'PUT', body: { resources } })
+  ])
+  message.success('MCP 配置已保存')
+  await loadShareConfigData()
+}
+
+async function installShareConfigToCursor() {
+  if (!activeConfigTokenId.value) {
+    message.warning('请先选择 Token')
+    return
+  }
+  await saveShareMcpConfig()
+  const baseUrl = window.location.origin
+  const result = await api(`/api/share/tokens/${activeConfigTokenId.value}/cursor-deeplink?baseUrl=${encodeURIComponent(baseUrl)}`)
+  window.location.href = result.deeplink
+}
+
 function openCommunityToolDetail(item) {
   activeCommunityItem.value = {
     ...item,
@@ -661,6 +915,43 @@ function openCommunityApiDetail(item) {
     communityKind: 'api'
   }
   communityDetailOpen.value = true
+}
+
+function openCommunitySkillDetail(item) {
+  activeCommunityItem.value = {
+    ...item,
+    communityKind: 'skill'
+  }
+  communityDetailOpen.value = true
+}
+
+function openCommunityPromptDetail(item) {
+  activeCommunityItem.value = {
+    ...item,
+    communityKind: 'prompt'
+  }
+  communityDetailOpen.value = true
+}
+
+async function openCommunityResourceDetail(item) {
+  activeCommunityItem.value = {
+    ...item,
+    communityKind: 'resource'
+  }
+  communityDetailOpen.value = true
+  communityResourceContent.value = ''
+  communityResourceContentError.value = ''
+  communityResourceContentLoading.value = true
+  try {
+    communityResourceContent.value = await api(`/api/share/community/resources/${item.id}/content`) || ''
+    if (!communityResourceContent.value) {
+      communityResourceContentError.value = '未读取到 Resource 内容，可能文件为空或对象存储暂不可用。'
+    }
+  } catch (error) {
+    communityResourceContentError.value = error.message || 'Resource 内容读取失败'
+  } finally {
+    communityResourceContentLoading.value = false
+  }
 }
 
 function prettyJsonText(value) {
@@ -732,11 +1023,10 @@ async function load() {
   try {
     if (page.value === 'shareHome') {
       rows.value = []
-      [communityTools.value, communityBuiltinTools.value, communityApis.value] = await Promise.all([
-        api('/api/share/community/tools'),
-        api('/api/share/community/builtin-tools'),
-        api('/api/share/community/apis')
-      ])
+      await loadCommunityHomeData()
+    }
+    else if (page.value === 'shareSkills') {
+      rows.value = await api('/api/share/community/skills')
     }
     else if (page.value === 'shareTools') {
       [rows.value, communityBuiltinTools.value] = await Promise.all([
@@ -744,8 +1034,20 @@ async function load() {
         api('/api/share/community/builtin-tools')
       ])
     }
+    else if (page.value === 'sharePrompts') {
+      rows.value = await api('/api/share/community/prompts')
+    }
+    else if (page.value === 'shareResources') {
+      rows.value = await api('/api/share/community/resources')
+    }
     else if (page.value === 'shareApis') {
       rows.value = await api('/api/share/community/apis')
+    }
+    else if (page.value === 'shareConfig') {
+      await loadShareConfigData()
+    }
+    else if (page.value === 'shareTokens') {
+      rows.value = await api('/api/share/tokens')
     }
     else if (page.value === 'studioHome') rows.value = await api('/api/share/studio/apis')
     else if (page.value === 'studioSkills') {
@@ -867,6 +1169,7 @@ function emptyModel() {
   if (page.value === 'users') return { username:'', displayName:'', password:'', isEnabled:1 }
   if (page.value === 'roles') return { roleCode:'', roleName:'', description:'', isEnabled:1 }
   if (page.value === 'tokens') return { userId: users.value[0]?.id, tokenName:'新建 Token', permissions:'["mcp:tools:read","mcp:tools:call"]', isActive:1 }
+  if (page.value === 'shareTokens') return { tokenName:'新建 Token', permissions:'["mcp:tools:read","mcp:tools:call"]', isActive:1 }
   if (page.value === 'requests' || page.value === 'studioApis' || page.value === 'studioApiEdit') return emptyApiModel()
   if (page.value === 'dataSources') return emptyDataSourceModel()
   if (page.value === 'tools') return { toolName:'', toolDescription:'', inputSchema:'{"type":"object","properties":{}}', groovyScript:'return [message: params.message]', linkedRequestKeys:'[]', linkedDataSourceIds:'[]', enabled:1 }
@@ -1015,7 +1318,7 @@ function openResourceEditor(row) {
 }
 function edit(row) {
   model.value = { ...row }
-  if (page.value === 'tokens') {
+  if (page.value === 'tokens' || page.value === 'shareTokens') {
     model.value.permissions = normalizePermissions(model.value.permissions)
   }
   if (page.value === 'studioApis') {
@@ -1041,11 +1344,11 @@ function edit(row) {
   drawer.value=true
 }
 async function save() {
-  const base = { users:'/users', roles:'/roles', tokens:'/tokens', requests:'/request-configs', dataSources:'/data-sources', tools:'/dynamic-tools', studioApis:'/api/share/studio/apis' }[page.value]
+  const base = { users:'/users', roles:'/roles', tokens:'/tokens', shareTokens:'/api/share/tokens', requests:'/request-configs', dataSources:'/data-sources', tools:'/dynamic-tools', studioApis:'/api/share/studio/apis' }[page.value]
   const method = model.value.id ? 'PUT' : 'POST'
   const body = buildSaveBody()
   const result = await api(model.value.id ? `${base}/${model.value.id}` : base, { method, body })
-  if (page.value === 'tokens' && result?.rawToken) {
+  if ((page.value === 'tokens' || page.value === 'shareTokens') && result?.rawToken) {
     rawToken.value = result.rawToken
     oneTimeTokenName.value = result.token?.tokenName || body.tokenName || '新建 Token'
     oneTimeTokenOpen.value = true
@@ -1109,11 +1412,14 @@ async function testDataSourceConnection() {
 }
 function buildSaveBody() {
   const body = { ...model.value }
-  if (page.value === 'tokens' && !body.expireTime) {
+  if ((page.value === 'tokens' || page.value === 'shareTokens') && !body.expireTime) {
     delete body.expireTime
   }
-  if (page.value === 'tokens') {
+  if (page.value === 'tokens' || page.value === 'shareTokens') {
     body.permissions = normalizePermissions(body.permissions)
+  }
+  if (page.value === 'shareTokens') {
+    delete body.userId
   }
   if (page.value === 'users' && body.id) {
     delete body.password
@@ -2249,6 +2555,10 @@ function skillCliInstallCommand(skillCode) {
   return `bear-skill install ${skillCode} --base-url ${skillInstallBaseUrl()}`
 }
 
+function skillCodexInstallCommand(skillCode) {
+  return `bear-skill install ${skillCode} --base-url ${skillInstallBaseUrl()} --codex`
+}
+
 function skillInstallScriptUrl() {
   return `${skillInstallBaseUrl()}/api/public/bear-skill/install.sh`
 }
@@ -2264,6 +2574,11 @@ function buildCursorSkillInstallPrompt(skill) {
     + '安装完成后，请确认当前项目下存在 .cursor/skills/ 目录，并提示我重启或刷新 Cursor。'
 }
 
+function buildCodexSkillInstallCommand(skill) {
+  const skillCode = skill?.skillCode || model.value.skillCode
+  return `curl -fsSL ${skillInstallScriptUrl()} | bash -s -- --cli-only\n${skillCodexInstallCommand(skillCode)}`
+}
+
 function openCursorSkillInstall(skill) {
   const skillCode = skill?.skillCode || model.value.skillCode
   if (!skillCode || Number(skill?.publishStatus ?? model.value.publishStatus) === 0) {
@@ -2276,6 +2591,21 @@ function openCursorSkillInstall(skill) {
     window.location.href = deeplink
   } catch (error) {
     window.open(`https://cursor.com/link/prompt?text=${prompt}`, '_blank')
+  }
+}
+
+async function copyCodexSkillInstall(skill) {
+  const skillCode = skill?.skillCode || model.value.skillCode
+  if (!skillCode || Number(skill?.publishStatus ?? model.value.publishStatus) === 0) {
+    message.warning('请先上线 Skill，再安装到 Codex')
+    return
+  }
+  const command = buildCodexSkillInstallCommand(skill)
+  try {
+    await navigator.clipboard.writeText(command)
+    message.success('Codex 安装命令已复制到剪贴板，请在终端执行')
+  } catch (error) {
+    message.info(command)
   }
 }
 
@@ -2681,12 +3011,13 @@ function loginSuccess() {
           <div v-if="isCommunityPage" class="hub-nav-tabs">
             <a class="hub-logo" @click.prevent="changePage('shareHome')"><AppstoreOutlined />Bear 社区</a>
             <a :class="['hub-nav-tab', page === 'shareHome' ? 'active' : '']" @click.prevent="changePage('shareHome')">首页</a>
-            <a class="hub-nav-tab">Skills 社区</a>
+            <a :class="['hub-nav-tab', page === 'shareSkills' ? 'active' : '']" @click.prevent="changePage('shareSkills')">Skills 社区</a>
             <a :class="['hub-nav-tab', page === 'shareTools' ? 'active' : '']" @click.prevent="changePage('shareTools')">MCP Tools</a>
-            <a class="hub-nav-tab">MCP Prompts</a>
+            <a :class="['hub-nav-tab', page === 'sharePrompts' ? 'active' : '']" @click.prevent="changePage('sharePrompts')">MCP Prompts</a>
+            <a :class="['hub-nav-tab', page === 'shareResources' ? 'active' : '']" @click.prevent="changePage('shareResources')">MCP Resources</a>
             <a :class="['hub-nav-tab', page === 'shareApis' ? 'active' : '']" @click.prevent="changePage('shareApis')">API 能力</a>
-            <a class="hub-nav-tab">我的MCP配置</a>
-            <a class="hub-nav-tab">Token 管理</a>
+            <a :class="['hub-nav-tab', page === 'shareConfig' ? 'active' : '']" @click.prevent="changePage('shareConfig')">我的MCP配置</a>
+            <a :class="['hub-nav-tab', page === 'shareTokens' ? 'active' : '']" @click.prevent="changePage('shareTokens')">Token 管理</a>
           </div>
           <div v-else class="hub-nav-tabs">
             <a class="hub-logo" @click.prevent="changePage('studioHome')"><RocketOutlined />Bear 创作空间</a>
@@ -2724,10 +3055,25 @@ function loginSuccess() {
             </div>
 
             <div class="community-overview">
+              <button type="button" class="community-stat-card" @click="changePage('shareSkills')">
+                <span><DatabaseOutlined /></span>
+                <b>{{ communitySkills.length }}</b>
+                <small>公开 Skills</small>
+              </button>
               <button type="button" class="community-stat-card" @click="changePage('shareTools')">
                 <span><ThunderboltOutlined /></span>
                 <b>{{ communityTools.length + communityBuiltinTools.length }}</b>
                 <small>公开 MCP Tools</small>
+              </button>
+              <button type="button" class="community-stat-card" @click="changePage('sharePrompts')">
+                <span><AuditOutlined /></span>
+                <b>{{ communityPrompts.length }}</b>
+                <small>公开 MCP Prompts</small>
+              </button>
+              <button type="button" class="community-stat-card" @click="changePage('shareResources')">
+                <span><DatabaseOutlined /></span>
+                <b>{{ communityResources.length }}</b>
+                <small>公开 MCP Resources</small>
               </button>
               <button type="button" class="community-stat-card" @click="changePage('shareApis')">
                 <span><KeyOutlined /></span>
@@ -2740,70 +3086,69 @@ function loginSuccess() {
               </div>
             </div>
 
-            <div class="community-section-head">
-              <div>
-                <h2>公开 MCP Tools</h2>
-                <p>AI Agent 最终看到和调用的是这些 Tool。</p>
+            <div class="community-ranking-grid">
+              <section v-for="section in communityRankSections" :key="section.key" class="community-ranking-card">
+                <div class="community-ranking-head">
+                  <h2>{{ section.title }}</h2>
+                  <button type="button" @click="changePage(section.page)">全部</button>
+                </div>
+                <div v-if="section.items.length" class="community-ranking-list">
+                  <button v-for="(item, index) in section.items" :key="`${section.key}-${item.likeTargetKey}`" type="button" class="community-ranking-row" @click="section.open(item)">
+                    <span :class="['community-ranking-index', index < 3 ? 'top' : '']">{{ index + 1 }}</span>
+                    <span class="community-ranking-main">
+                      <b>{{ section.name(item) }}</b>
+                      <small>{{ section.code(item) }}</small>
+                    </span>
+                    <span class="community-ranking-like">{{ likeLabel(item) }}</span>
+                  </button>
+                </div>
+                <div v-else class="community-ranking-empty">暂无点赞</div>
+              </section>
+            </div>
+          </section>
+        </template>
+
+        <template v-else-if="page === 'shareSkills'">
+          <section class="community-market-shell">
+            <div class="community-search-row">
+              <div class="community-search">
+                <SearchOutlined />
+                <input v-model="communityKeyword" type="text" placeholder="搜索 Skill ID、名称、分类、文件名或描述..." />
               </div>
-              <button type="button" @click="changePage('shareTools')">查看全部</button>
+              <span class="community-count">共 {{ filteredCommunitySkills.length }} 个 Skill</span>
             </div>
 
-            <div v-if="filteredCommunityTools.length" class="community-card-grid">
-              <article v-for="item in filteredCommunityTools.slice(0, 6)" :key="`${item.communityType}-${item.id}`" class="community-card tool" @click="openCommunityToolDetail(item)">
+            <div v-if="filteredCommunitySkills.length" class="community-card-grid">
+              <article v-for="item in rankedCommunitySkills" :key="item.id" class="community-card tool" @click="openCommunitySkillDetail(item)">
                 <div class="community-card-top">
                   <div class="community-kind">
-                    <span class="community-card-icon"><ThunderboltOutlined /></span>
-                    <b>{{ item.communityType === 'builtin' ? '内置工具' : '动态工具' }}</b>
+                    <span class="community-card-icon"><DatabaseOutlined /></span>
+                    <b>Bear Skill</b>
                   </div>
-                  <em>{{ communityToolCode(item) }}</em>
+                  <em>{{ item.skillCode || communityCode('SKILL', item.id) }}</em>
                 </div>
-                <h3>{{ item.displayName || '未命名 Tool' }}</h3>
-                <p>{{ item.displayDescription || '暂无描述' }}</p>
+                <h3>{{ item.name || '未命名 Skill' }}</h3>
+                <p>{{ item.description || '暂无描述' }}</p>
                 <div class="community-tags">
-                  <span>{{ communityToolCountLabel(item) }}</span>
-                  <span v-for="key in parseJsonArray(item.linkedRequestKeys).slice(0, 2)" :key="key">{{ key }}</span>
-                  <span v-if="parseJsonArray(item.linkedRequestKeys).length > 2">+{{ parseJsonArray(item.linkedRequestKeys).length - 2 }}</span>
-                </div>
-                <div class="community-card-foot">
-                  <span>管理员</span>
-                  <span>♡ 0</span>
-                  <button type="button" @click.stop="openCommunityToolDetail(item)">查看</button>
-                </div>
-              </article>
-            </div>
-            <div v-else class="community-empty">还没有公开的 MCP Tool。</div>
-
-            <div class="community-section-head">
-              <div>
-                <h2>公开 API 能力</h2>
-                <p>API 是 Tool 编排时可复用的底层接入能力。</p>
-              </div>
-              <button type="button" @click="changePage('shareApis')">查看全部</button>
-            </div>
-
-            <div v-if="filteredCommunityApis.length" class="community-card-grid api">
-              <article v-for="item in filteredCommunityApis.slice(0, 6)" :key="item.id" class="community-card api" @click="openCommunityApiDetail(item)">
-                <div class="community-card-top">
-                  <div class="community-kind">
-                    <span class="community-card-icon"><KeyOutlined /></span>
-                    <b>API 能力</b>
-                  </div>
-                  <em>{{ communityCode('API', item.id) }}</em>
-                </div>
-                <h3>{{ item.configKey || item.name || '未命名 API' }}</h3>
-                <p>{{ item.description || item.name || '暂无描述' }}</p>
-                <div class="community-tags">
-                  <span>{{ item.method || 'GET' }}</span>
                   <span>{{ item.category || '未分类' }}</span>
+                  <span>{{ item.fileName || 'SKILL.md' }}</span>
+                  <span>{{ item.fileSize ? `${Math.ceil(item.fileSize / 1024)} KB` : 'Markdown' }}</span>
                 </div>
-                <div class="community-card-foot">
-                  <span>管理员</span>
-                  <span>♡ 0</span>
-                  <button type="button" @click.stop="openCommunityApiDetail(item)">查看</button>
+                <div class="community-card-foot community-skill-foot">
+                  <div class="community-card-meta">
+                    <span>管理员</span>
+                    <button type="button" :class="['community-like-btn', item.liked ? 'liked' : '']" @click.stop="toggleCommunityLike(item)">{{ likeLabel(item) }}</button>
+                  </div>
+                  <div class="community-skill-actions">
+                    <button type="button" class="primary" @click.stop="openCursorSkillInstall(item)">Cursor 安装</button>
+                    <button type="button" class="primary" @click.stop="copyCodexSkillInstall(item)">Codex 安装</button>
+                    <button type="button" @click.stop="downloadSkillZip(item)">下载 ZIP</button>
+                    <button type="button" @click.stop="openCommunitySkillDetail(item)">查看</button>
+                  </div>
                 </div>
               </article>
             </div>
-            <div v-else class="community-empty">还没有公开的 API。</div>
+            <div v-else class="community-empty">没有匹配的公开 Skill。</div>
           </section>
         </template>
 
@@ -2823,7 +3168,7 @@ function loginSuccess() {
             </div>
 
             <div v-if="filteredCommunityTools.length" class="community-card-grid">
-              <article v-for="item in filteredCommunityTools" :key="`${item.communityType}-${item.id}`" class="community-card tool" @click="openCommunityToolDetail(item)">
+              <article v-for="item in rankedCommunityTools" :key="`${item.communityType}-${item.id}`" class="community-card tool" @click="openCommunityToolDetail(item)">
                 <div class="community-card-top">
                   <div class="community-kind">
                     <span class="community-card-icon"><ThunderboltOutlined /></span>
@@ -2839,12 +3184,86 @@ function loginSuccess() {
                 </div>
                 <div class="community-card-foot">
                   <span>管理员</span>
-                  <span>♡ 0</span>
+                  <button type="button" :class="['community-like-btn', item.liked ? 'liked' : '']" @click.stop="toggleCommunityLike(item)">{{ likeLabel(item) }}</button>
                   <button type="button" @click.stop="openCommunityToolDetail(item)">查看</button>
                 </div>
               </article>
             </div>
             <div v-else class="community-empty">没有匹配的公开 MCP Tool。</div>
+          </section>
+        </template>
+
+        <template v-else-if="page === 'sharePrompts'">
+          <section class="community-market-shell">
+            <div class="community-search-row">
+              <div class="community-search">
+                <SearchOutlined />
+                <input v-model="communityKeyword" type="text" placeholder="搜索 Prompt 名称、标题、描述、模板或工具..." />
+              </div>
+              <span class="community-count">共 {{ filteredCommunityPrompts.length }} 个 Prompt</span>
+            </div>
+
+            <div v-if="filteredCommunityPrompts.length" class="community-card-grid">
+              <article v-for="item in rankedCommunityPrompts" :key="item.id" class="community-card tool" @click="openCommunityPromptDetail(item)">
+                <div class="community-card-top">
+                  <div class="community-kind">
+                    <span class="community-card-icon"><AuditOutlined /></span>
+                    <b>MCP Prompt</b>
+                  </div>
+                  <em>{{ item.promptName || communityCode('PROMPT', item.id) }}</em>
+                </div>
+                <h3>{{ item.title || item.promptName || '未命名 Prompt' }}</h3>
+                <p>{{ item.description || compactText(item.templateContent, 96) || '暂无描述' }}</p>
+                <div class="community-tags">
+                  <span>{{ parseJsonArray(item.argumentsSchema).length }} 个参数</span>
+                  <span v-for="name in parseJsonArray(item.linkedToolNames).slice(0, 3)" :key="name">{{ name }}</span>
+                  <span v-if="!parseJsonArray(item.linkedToolNames).length">未绑定工具</span>
+                </div>
+                <div class="community-card-foot">
+                  <span>管理员</span>
+                  <button type="button" :class="['community-like-btn', item.liked ? 'liked' : '']" @click.stop="toggleCommunityLike(item)">{{ likeLabel(item) }}</button>
+                  <button type="button" @click.stop="openCommunityPromptDetail(item)">查看</button>
+                </div>
+              </article>
+            </div>
+            <div v-else class="community-empty">没有匹配的公开 MCP Prompt。</div>
+          </section>
+        </template>
+
+        <template v-else-if="page === 'shareResources'">
+          <section class="community-market-shell">
+            <div class="community-search-row">
+              <div class="community-search">
+                <SearchOutlined />
+                <input v-model="communityKeyword" type="text" placeholder="搜索 Resource URI、名称、文件名、MIME 或描述..." />
+              </div>
+              <span class="community-count">共 {{ filteredCommunityResources.length }} 个 Resource</span>
+            </div>
+
+            <div v-if="filteredCommunityResources.length" class="community-card-grid">
+              <article v-for="item in rankedCommunityResources" :key="item.id" class="community-card tool" @click="openCommunityResourceDetail(item)">
+                <div class="community-card-top">
+                  <div class="community-kind">
+                    <span class="community-card-icon"><DatabaseOutlined /></span>
+                    <b>MCP Resource</b>
+                  </div>
+                  <em>{{ item.resourceUri || communityCode('RES', item.id) }}</em>
+                </div>
+                <h3>{{ item.name || item.resourceUri || '未命名 Resource' }}</h3>
+                <p>{{ item.description || '暂无描述' }}</p>
+                <div class="community-tags">
+                  <span>{{ item.mimeType || 'text/markdown' }}</span>
+                  <span>{{ item.fileName || 'Markdown' }}</span>
+                  <span>{{ item.fileSize ? `${Math.ceil(item.fileSize / 1024)} KB` : '未记录大小' }}</span>
+                </div>
+                <div class="community-card-foot">
+                  <span>管理员</span>
+                  <button type="button" :class="['community-like-btn', item.liked ? 'liked' : '']" @click.stop="toggleCommunityLike(item)">{{ likeLabel(item) }}</button>
+                  <button type="button" @click.stop="openCommunityResourceDetail(item)">查看</button>
+                </div>
+              </article>
+            </div>
+            <div v-else class="community-empty">没有匹配的公开 MCP Resource。</div>
           </section>
         </template>
 
@@ -2876,12 +3295,128 @@ function loginSuccess() {
                 </div>
                 <div class="community-card-foot">
                   <span>管理员</span>
-                  <span>♡ 0</span>
+                  <span>基础能力</span>
                   <button type="button" @click.stop="openCommunityApiDetail(item)">查看</button>
                 </div>
               </article>
             </div>
             <div v-else class="community-empty">没有匹配的公开 API。</div>
+          </section>
+        </template>
+
+        <template v-else-if="page === 'shareConfig'">
+          <section class="community-market-shell share-config-shell">
+            <div class="community-search-row">
+              <div>
+                <h2 class="community-page-title">选择 Token 并配置能力</h2>
+                <p class="community-page-desc">这些选择会决定该 Token 的 tools/list、prompts/list 和 resources/list 实际返回内容。</p>
+              </div>
+              <div class="share-config-actions">
+                <button type="button" @click="saveShareMcpConfig">保存配置</button>
+                <button type="button" class="primary" @click="installShareConfigToCursor">一键配置到 Cursor</button>
+              </div>
+            </div>
+
+            <div v-if="rows.length" class="share-config-layout">
+              <aside class="share-config-token-panel">
+                <b>选择 Token</b>
+                <button
+                  v-for="token in rows"
+                  :key="token.id"
+                  type="button"
+                  :class="{active: activeConfigTokenId === token.id}"
+                  @click="activeConfigTokenId = token.id; applyConfigTokenSelections()"
+                >
+                  <span>{{ token.tokenName }}</span>
+                  <small>{{ token.tokenPrefix }}</small>
+                  <em>{{ Number(token.isActive) === 1 ? '启用' : '禁用' }}</em>
+                </button>
+                <button type="button" class="create-token-inline" @click="changePage('shareTokens')">管理 / 新建 Token</button>
+              </aside>
+
+              <div class="share-config-options">
+                <section class="tool-option-section">
+                  <div class="tool-option-title">
+                    <span class="tool-type-dot builtin"></span>
+                    MCP Tools
+                    <small>{{ selectedTokenTools.length }} 个已选择</small>
+                  </div>
+                  <div class="permission-bulk-actions"><a-button size="small" @click="selectAllTokenTools">全选</a-button><a-button size="small" @click="clearTokenTools">清空</a-button></div>
+                  <a-checkbox-group v-model:value="selectedTokenTools" class="tool-option-groups">
+                    <section class="tool-option-section compact-option-section"><div class="tool-option-title"><span class="tool-type-dot builtin"></span>内置工具 <small>系统注册</small></div><div class="tool-option-grid"><a-checkbox v-for="tool in builtinTools" :key="tool.name" :value="tool.name"><b>{{ tool.name }}</b><span>{{ tool.description }}</span></a-checkbox></div></section>
+                    <section class="tool-option-section compact-option-section"><div class="tool-option-title"><span class="tool-type-dot dynamic"></span>动态工具 <small>社区公开</small></div><div class="tool-option-grid"><a-checkbox v-for="tool in dynamicToolOptions" :key="tool.toolName" :value="tool.toolName"><b>{{ tool.toolName }}</b><span>{{ tool.toolDescription || '暂无描述' }}</span></a-checkbox></div></section>
+                  </a-checkbox-group>
+                </section>
+
+                <section class="tool-option-section">
+                  <div class="tool-option-title">
+                    <span class="tool-type-dot dynamic"></span>
+                    MCP Prompts
+                    <small>{{ selectedTokenPrompts.length }} 个已选择</small>
+                  </div>
+                  <div class="permission-bulk-actions"><a-button size="small" @click="selectAllTokenPrompts">全选</a-button><a-button size="small" @click="clearTokenPrompts">清空</a-button></div>
+                  <a-checkbox-group v-model:value="selectedTokenPrompts" class="tool-option-grid">
+                    <a-checkbox v-for="prompt in promptOptions" :key="prompt.promptName" :value="prompt.promptName">
+                      <b>{{ prompt.title || prompt.promptName }}</b>
+                      <span>{{ prompt.promptName }}</span>
+                    </a-checkbox>
+                  </a-checkbox-group>
+                  <a-empty v-if="!promptOptions.length" description="暂无公开 Prompt" :image-style="{height:'48px'}" />
+                </section>
+
+                <section class="tool-option-section">
+                  <div class="tool-option-title">
+                    <span class="tool-type-dot dynamic"></span>
+                    MCP Resources
+                    <small>{{ selectedTokenResources.length }} 个已选择</small>
+                  </div>
+                  <div class="permission-bulk-actions"><a-button size="small" @click="selectAllTokenResources">全选</a-button><a-button size="small" @click="clearTokenResources">清空</a-button></div>
+                  <a-checkbox-group v-model:value="selectedTokenResources" class="tool-option-grid">
+                    <a-checkbox v-for="resource in resourceOptions" :key="resource.resourceUri" :value="resource.resourceUri">
+                      <b>{{ resource.name || resource.resourceUri }}</b>
+                      <span>{{ resource.resourceUri }}</span>
+                    </a-checkbox>
+                  </a-checkbox-group>
+                  <a-empty v-if="!resourceOptions.length" description="暂无公开 Resource" :image-style="{height:'48px'}" />
+                </section>
+              </div>
+            </div>
+            <div v-else class="community-empty">还没有 Token，请先去 Token 管理创建一把。</div>
+          </section>
+        </template>
+
+        <template v-else-if="page === 'shareTokens'">
+          <section class="community-market-shell">
+            <div class="community-search-row">
+              <div>
+                <h2 class="community-page-title">我的 MCP Token</h2>
+                <p class="community-page-desc">可以为 Cursor、Codex、测试环境分别创建不同 Token，彼此独立启用、禁用和过期。</p>
+              </div>
+              <button type="button" class="community-create-btn" @click="openCreate"><PlusOutlined />新建 Token</button>
+            </div>
+
+            <div v-if="rows.length" class="community-token-grid">
+              <article v-for="item in rows" :key="item.id" class="community-token-card">
+                <div class="community-token-top">
+                  <div>
+                    <b>{{ item.tokenName || '未命名 Token' }}</b>
+                    <small>{{ item.tokenPrefix || '只在创建时展示完整 Token' }}</small>
+                  </div>
+                  <span :class="['community-token-status', Number(item.isActive) === 1 ? 'active' : 'disabled']">
+                    {{ Number(item.isActive) === 1 ? '启用' : '禁用' }}
+                  </span>
+                </div>
+                <div class="community-token-meta">
+                  <span>{{ permissionLabel(item.permissions) }}</span>
+                  <span>过期：{{ item.expireTime || '永不过期' }}</span>
+                  <span>最后使用：{{ item.lastUsedTime || '尚未使用' }}</span>
+                </div>
+                <div class="community-token-actions">
+                  <button type="button" @click="edit(item)">编辑</button>
+                </div>
+              </article>
+            </div>
+            <div v-else class="community-empty">还没有 Token，先创建一把给 MCP Client 使用。</div>
           </section>
         </template>
 
@@ -3004,8 +3539,6 @@ function loginSuccess() {
                   <span class="tool-script-preview">{{ compactText(item.description || item.fileName, 34) }}</span>
                   <div class="tool-card-actions">
                     <button type="button" @click="openSkillEditor(item)">编辑</button>
-                    <button type="button" :disabled="Number(item.publishStatus) === 0" @click="openCursorSkillInstall(item)">Cursor 安装</button>
-                    <button type="button" :disabled="Number(item.publishStatus) === 0" @click="downloadSkillZip(item)">下载 ZIP</button>
                     <button type="button" :class="Number(item.publishStatus) === 0 ? 'publish' : 'danger'" @click="toggleOnlineSkill(item)">{{ onlineActionLabel(item.publishStatus) }}</button>
                     <button type="button" class="private" :disabled="Number(item.publishStatus) === 0" @click="toggleVisibilitySkill(item)">{{ visibilityActionLabel(item.publishStatus) }}</button>
                   </div>
@@ -3513,12 +4046,6 @@ function loginSuccess() {
                   <button v-if="model.id" type="button" class="tool-run-btn" :disabled="skillPreviewLoading" @click="loadSkillPreview()">
                     {{ skillPreviewLoading ? '读取中' : '刷新预览' }}
                   </button>
-                  <button v-if="model.id" type="button" class="tool-run-btn" :disabled="Number(model.publishStatus) === 0" @click="openCursorSkillInstall(model)">
-                    Cursor 安装
-                  </button>
-                  <button v-if="model.id" type="button" class="tool-run-btn" :disabled="Number(model.publishStatus) === 0" @click="downloadSkillZip(model)">
-                    下载 ZIP
-                  </button>
                   <button v-if="model.id" type="button" class="tool-online-btn" @click="toggleOnlineSkill(model)">
                     {{ onlineActionLabel(model.publishStatus) }}
                   </button>
@@ -3884,7 +4411,7 @@ function loginSuccess() {
       <div class="page-head"><div><div class="breadcrumb">MCP 管理后台 <span>/</span> {{ navSections[page] }}</div><h1 class="page-title">{{ title }}</h1><div class="page-desc">{{ desc }}</div></div><a-button v-if="['users','roles','tokens','requests','dataSources'].includes(page)" type="primary" class="create-btn" :icon="h(PlusOutlined)" @click="openCreate">新建{{ title.replace('与工具权限','').replace('与工具选择','').replace('与能力权限','').replace('与能力选择','') }}</a-button></div>
       <template v-if="page === 'dashboard'">
         <a-row :gutter="16" class="metric-grid"><a-col v-for="[label,key,icon,color,note] in [['用户', 'users', TeamOutlined, 'violet', '当前数据库统计'],['角色','roles',SafetyCertificateOutlined, 'cyan', '当前数据库统计'],['有效 Token','activeTokens',KeyOutlined, 'orange', '当前数据库统计'],['启用请求','enabledRequests',DatabaseOutlined, 'green', '当前数据库统计'],['动态工具','enabledDynamicTools',ThunderboltOutlined, 'pink', '当前数据库统计'],['今日调用','todayCalls',AuditOutlined, 'cyan', '今日审计统计']]" :key="key" :span="4"><a-card class="metric"><div class="metric-top"><span>{{ label }}</span><span :class="['metric-icon', color]"><component :is="icon" /></span></div><a-statistic :value="dashboard[key] || 0" /><div class="metric-note"><span class="trend">●</span> {{ note }}</div></a-card></a-col></a-row>
-        <div class="surface dashboard-table"><div class="table-toolbar"><div><b>最近调用</b><small>最新 100 条 MCP 工具调用记录</small></div><a-button @click="load">刷新数据</a-button></div><a-table :data-source="rows" :columns="[{title:'时间',dataIndex:'createTime'},{title:'工具',dataIndex:'toolName'},{title:'用户',dataIndex:'userName'},{title:'状态',dataIndex:'status'},{title:'耗时(ms)',dataIndex:'durationMs'}]" row-key="id" :pagination="false" /></div>
+        <div class="surface dashboard-table"><div class="table-toolbar"><div><b>最近调用</b><small>最新 100 条 MCP 能力调用记录</small></div><a-button @click="load">刷新数据</a-button></div><a-table :data-source="rows" :columns="[{title:'时间',dataIndex:'createTime'},{title:'类型',dataIndex:'capabilityType',customRender:({text})=>capabilityTypeLabel(text)},{title:'名称/标识',dataIndex:'capabilityName',customRender:({text})=>compactText(text,42)},{title:'动作',dataIndex:'capabilityAction',customRender:({text})=>capabilityActionLabel(text)},{title:'用户',dataIndex:'userName'},{title:'状态',dataIndex:'status'},{title:'耗时(ms)',dataIndex:'durationMs'}]" row-key="id" :pagination="false" /></div>
       </template>
       <template v-else-if="page === 'studioApis'">
         <div class="studio-hero">
@@ -3931,19 +4458,19 @@ function loginSuccess() {
         </div>
         <a-empty v-if="!loading && !rows.length" description="还没有 API，先新建一个外部 HTTP API" :image-style="{height:'56px'}" />
       </template>
-      <template v-else><div class="surface"><div class="table-toolbar"><div><b>{{ title }}列表</b><small>共 {{ rows.length }} 条记录<span v-if="page==='tools' || page==='resources'"> · 由创作空间发布</span></small></div><div class="table-tools"><a-input placeholder="搜索名称或编码" class="table-search"><template #prefix><SearchOutlined /></template></a-input><a-button @click="load">刷新</a-button></div></div><a-table :loading="loading" :data-source="rows" :columns="[...dataColumns,{title:'操作',key:'action'}]" row-key="id"><template #bodyCell="{column,record}"><template v-if="column.key==='action'"><a-button v-if="page==='users'" type="link" @click="updateUserRoles(record)">分配角色</a-button><a-button v-if="page==='roles'" type="link" @click="updateRoleTools(record)">配置工具</a-button><a-button v-if="page==='roles'" type="link" @click="updateRolePrompts(record)">配置 Prompt</a-button><a-button v-if="page==='roles'" type="link" @click="updateRoleResources(record)">配置 Resource</a-button><a-button v-if="page==='tokens'" type="link" @click="updateSelections(record)">工具选择</a-button><a-button v-if="page==='tokens'" type="link" @click="updateTokenPromptSelections(record)">Prompt 选择</a-button><a-button v-if="page==='tokens'" type="link" @click="updateTokenResourceSelections(record)">Resource 选择</a-button><a-button v-if="page==='tools'" type="link" @click="showDynamicToolDetail(record)">查看详情</a-button><a-button v-if="page==='resources'" type="link" @click="openResourceEditor(record)">查看资源</a-button><a-button v-if="page==='resources'" type="link" :danger="Number(record.enabled) === 1" @click="toggleResourceEnabled(record)">{{ Number(record.enabled) === 1 ? '禁用' : '启用' }}</a-button><a-button v-if="page==='audits'" type="link" @click="showAuditDetail(record)">查看详情</a-button><a-button v-if="!['tools','resources','audits'].includes(page)" type="link" @click="edit(record)">编辑</a-button><a-button v-if="page==='dataSources'" type="link" danger @click="removeRow(record)">删除</a-button></template></template></a-table></div></template>
+      <template v-else><div class="surface"><div class="table-toolbar"><div><b>{{ title }}列表</b><small>共 {{ rows.length }} 条记录<span v-if="page==='tools' || page==='resources'"> · 由创作空间发布</span></small></div><div class="table-tools"><a-input :placeholder="page==='audits' ? '搜索能力名称、类型或用户' : '搜索名称或编码'" class="table-search"><template #prefix><SearchOutlined /></template></a-input><a-button @click="load">刷新</a-button></div></div><a-table :loading="loading" :data-source="rows" :columns="[...dataColumns,{title:'操作',key:'action'}]" row-key="id"><template #bodyCell="{column,record}"><template v-if="column.key==='action'"><a-button v-if="page==='users'" type="link" @click="updateUserRoles(record)">分配角色</a-button><a-button v-if="page==='roles'" type="link" @click="updateRoleTools(record)">配置工具</a-button><a-button v-if="page==='roles'" type="link" @click="updateRolePrompts(record)">配置 Prompt</a-button><a-button v-if="page==='roles'" type="link" @click="updateRoleResources(record)">配置 Resource</a-button><a-button v-if="page==='tokens'" type="link" @click="updateSelections(record)">工具选择</a-button><a-button v-if="page==='tokens'" type="link" @click="updateTokenPromptSelections(record)">Prompt 选择</a-button><a-button v-if="page==='tokens'" type="link" @click="updateTokenResourceSelections(record)">Resource 选择</a-button><a-button v-if="page==='tools'" type="link" @click="showDynamicToolDetail(record)">查看详情</a-button><a-button v-if="page==='resources'" type="link" @click="openResourceEditor(record)">查看资源</a-button><a-button v-if="page==='resources'" type="link" :danger="Number(record.enabled) === 1" @click="toggleResourceEnabled(record)">{{ Number(record.enabled) === 1 ? '禁用' : '启用' }}</a-button><a-button v-if="page==='audits'" type="link" @click="showAuditDetail(record)">查看详情</a-button><a-button v-if="!['tools','resources','audits'].includes(page)" type="link" @click="edit(record)">编辑</a-button><a-button v-if="page==='dataSources'" type="link" danger @click="removeRow(record)">删除</a-button></template></template></a-table></div></template>
     </a-layout-content>
   </a-layout>
   </template>
   <a-drawer v-model:open="drawer" :title="drawerTitle" :width="['requests','studioApis','dataSources'].includes(page) ? 760 : 600" class="console-drawer">
-    <a-form v-if="page === 'tokens'" layout="vertical" class="token-form">
+    <a-form v-if="page === 'tokens' || page === 'shareTokens'" layout="vertical" class="token-form">
       <section class="form-section">
         <div class="form-section-head">
           <b>归属与名称</b>
-          <span>这把 Token 属于哪个管理用户</span>
+          <span>{{ page === 'shareTokens' ? '这把 Token 会归属当前登录用户' : '这把 Token 属于哪个管理用户' }}</span>
         </div>
 
-        <a-form-item label="所属用户">
+        <a-form-item v-if="page === 'tokens'" label="所属用户">
           <a-select
             v-model:value="model.userId"
             :options="userOptions"
@@ -4308,7 +4835,46 @@ function loginSuccess() {
     </template>
   </a-modal>
   <a-modal v-model:open="communityDetailOpen" :title="communityDetailTitle" width="760px" class="tool-permission-modal dynamic-tool-detail-modal community-detail-modal">
-    <template v-if="activeCommunityItem?.communityKind === 'tool'">
+    <template v-if="activeCommunityItem?.communityKind === 'skill'">
+      <section class="tool-option-section">
+        <div class="tool-option-title">
+          <span class="tool-type-dot builtin"></span>
+          基础信息
+          <small>Bear Skill</small>
+        </div>
+        <div class="detail-grid">
+          <div>
+            <span>Skill ID</span>
+            <b>{{ activeCommunityItem?.skillCode || '-' }}</b>
+          </div>
+          <div>
+            <span>名称</span>
+            <b>{{ activeCommunityItem?.name || '-' }}</b>
+          </div>
+          <div>
+            <span>分类</span>
+            <b>{{ activeCommunityItem?.category || '未分类' }}</b>
+          </div>
+          <div>
+            <span>文件</span>
+            <b>{{ activeCommunityItem?.fileName || 'SKILL.md' }}</b>
+          </div>
+        </div>
+        <p class="permission-hint detail-desc">{{ activeCommunityItem?.description || '暂无 Skill 描述' }}</p>
+      </section>
+
+      <section class="tool-option-section">
+        <div class="tool-option-title">
+          <span class="tool-type-dot dynamic"></span>
+          安装方式
+          <small>通过 get_skill 或 bear-skill 安装</small>
+        </div>
+        <pre class="detail-code">get_skill({ "skillCode": "{{ activeCommunityItem?.skillCode || '' }}" })
+{{ buildCodexSkillInstallCommand(activeCommunityItem || {}) }}</pre>
+      </section>
+    </template>
+
+    <template v-else-if="activeCommunityItem?.communityKind === 'tool'">
       <section class="tool-option-section">
         <div class="tool-option-title">
           <span class="tool-type-dot dynamic"></span>
@@ -4376,6 +4942,114 @@ function loginSuccess() {
       </section>
     </template>
 
+    <template v-else-if="activeCommunityItem?.communityKind === 'prompt'">
+      <section class="tool-option-section">
+        <div class="tool-option-title">
+          <span class="tool-type-dot builtin"></span>
+          基础信息
+          <small>MCP Prompt</small>
+        </div>
+        <div class="detail-grid">
+          <div>
+            <span>Prompt 名称</span>
+            <b>{{ activeCommunityItem?.promptName || '-' }}</b>
+          </div>
+          <div>
+            <span>标题</span>
+            <b>{{ activeCommunityItem?.title || '-' }}</b>
+          </div>
+          <div>
+            <span>参数数量</span>
+            <b>{{ parseJsonArray(activeCommunityItem?.argumentsSchema).length }}</b>
+          </div>
+          <div>
+            <span>建议工具</span>
+            <b>{{ parseJsonArray(activeCommunityItem?.linkedToolNames).length }}</b>
+          </div>
+        </div>
+        <p class="permission-hint detail-desc">{{ activeCommunityItem?.description || '暂无 Prompt 描述' }}</p>
+      </section>
+
+      <section class="tool-option-section">
+        <div class="tool-option-title">
+          <span class="tool-type-dot dynamic"></span>
+          参数 Schema
+          <small>prompts/get 渲染时需要的参数</small>
+        </div>
+        <pre class="detail-code">{{ prettyJsonText(activeCommunityItem?.argumentsSchema || '[]') }}</pre>
+      </section>
+
+      <section class="tool-option-section">
+        <div class="tool-option-title">
+          <span class="tool-type-dot dynamic"></span>
+          建议工具
+          <small>Prompt 会引导 Agent 优先使用</small>
+        </div>
+        <div class="community-detail-tags">
+          <span v-for="name in parseJsonArray(activeCommunityItem?.linkedToolNames)" :key="name">{{ name }}</span>
+          <span v-if="!parseJsonArray(activeCommunityItem?.linkedToolNames).length">未绑定工具</span>
+        </div>
+      </section>
+
+      <section class="tool-option-section">
+        <div class="tool-option-title">
+          <span class="tool-type-dot builtin"></span>
+          模板内容
+          <small>Prompt 原文</small>
+        </div>
+        <pre class="detail-code script-code">{{ activeCommunityItem?.templateContent || '暂无模板内容' }}</pre>
+      </section>
+    </template>
+
+    <template v-else-if="activeCommunityItem?.communityKind === 'resource'">
+      <section class="tool-option-section">
+        <div class="tool-option-title">
+          <span class="tool-type-dot builtin"></span>
+          基础信息
+          <small>MCP Resource</small>
+        </div>
+        <div class="detail-grid">
+          <div>
+            <span>Resource URI</span>
+            <b>{{ activeCommunityItem?.resourceUri || '-' }}</b>
+          </div>
+          <div>
+            <span>名称</span>
+            <b>{{ activeCommunityItem?.name || '-' }}</b>
+          </div>
+          <div>
+            <span>MIME 类型</span>
+            <b>{{ activeCommunityItem?.mimeType || 'text/markdown' }}</b>
+          </div>
+          <div>
+            <span>文件</span>
+            <b>{{ activeCommunityItem?.fileName || '-' }}</b>
+          </div>
+        </div>
+        <p class="permission-hint detail-desc">{{ activeCommunityItem?.description || '暂无 Resource 描述' }}</p>
+      </section>
+
+      <section class="tool-option-section">
+        <div class="tool-option-title">
+          <span class="tool-type-dot dynamic"></span>
+          读取方式
+          <small>进入 Token 和角色权限后可通过 MCP 读取</small>
+        </div>
+        <pre class="detail-code">resources/read({ "uri": "{{ activeCommunityItem?.resourceUri || '' }}" })</pre>
+      </section>
+
+      <section class="tool-option-section">
+        <div class="tool-option-title">
+          <span class="tool-type-dot builtin"></span>
+          Resource 内容
+          <small>{{ communityResourceContentLoading ? '读取中' : 'Markdown 正文' }}</small>
+        </div>
+        <pre v-if="communityResourceContentLoading" class="detail-code script-code">正在读取 Resource 内容...</pre>
+        <pre v-else-if="communityResourceContent" class="detail-code script-code">{{ communityResourceContent }}</pre>
+        <pre v-else class="detail-code script-code">{{ communityResourceContentError || '暂无内容' }}</pre>
+      </section>
+    </template>
+
     <template v-else-if="activeCommunityItem?.communityKind === 'api'">
       <section class="tool-option-section">
         <div class="tool-option-title">
@@ -4406,6 +5080,11 @@ function loginSuccess() {
     </template>
 
     <template #footer>
+      <a-button
+        v-if="activeCommunityItem?.communityKind !== 'api'"
+        :class="['community-like-modal-btn', activeCommunityItem?.liked ? 'liked' : '']"
+        @click="toggleCommunityLike(activeCommunityItem)"
+      >{{ likeLabel(activeCommunityItem) }}</a-button>
       <a-button type="primary" @click="communityDetailOpen=false">关闭</a-button>
     </template>
   </a-modal>
@@ -4455,7 +5134,7 @@ function loginSuccess() {
       <a-button type="primary" @click="dynamicToolDetailOpen=false">关闭</a-button>
     </template>
   </a-modal>
-  <a-modal v-model:open="auditDetailOpen" :title="`调用详情 · ${activeAuditLog?.toolName || ''}`" width="860px" class="tool-permission-modal dynamic-tool-detail-modal">
+  <a-modal v-model:open="auditDetailOpen" :title="`调用详情 · ${activeAuditLog?.capabilityName || activeAuditLog?.toolName || ''}`" width="860px" class="tool-permission-modal dynamic-tool-detail-modal">
     <section class="tool-option-section">
       <div class="tool-option-title">
         <span class="tool-type-dot builtin"></span>
@@ -4472,8 +5151,16 @@ function loginSuccess() {
           <b>{{ activeAuditLog?.userName || '-' }}</b>
         </div>
         <div>
-          <span>工具名称</span>
-          <b>{{ activeAuditLog?.toolName || '-' }}</b>
+          <span>能力类型</span>
+          <b>{{ capabilityTypeLabel(activeAuditLog?.capabilityType) }}</b>
+        </div>
+        <div>
+          <span>能力名称</span>
+          <b>{{ activeAuditLog?.capabilityName || activeAuditLog?.toolName || '-' }}</b>
+        </div>
+        <div>
+          <span>调用动作</span>
+          <b>{{ capabilityActionLabel(activeAuditLog?.capabilityAction) }}</b>
         </div>
         <div>
           <span>耗时</span>
@@ -4486,7 +5173,7 @@ function loginSuccess() {
       <div class="tool-option-title">
         <span class="tool-type-dot dynamic"></span>
         请求参数
-        <small>调用 tools/call 时传入的 arguments 摘要</small>
+        <small>MCP 请求参数摘要</small>
       </div>
       <pre class="detail-code">{{ activeAuditLog?.requestParams || '-' }}</pre>
     </section>
@@ -4495,7 +5182,7 @@ function loginSuccess() {
       <div class="tool-option-title">
         <span class="tool-type-dot builtin"></span>
         响应摘要
-        <small>工具返回结果摘要</small>
+        <small>MCP 响应结果摘要</small>
       </div>
       <pre class="detail-code script-code">{{ activeAuditLog?.responseSummary || '-' }}</pre>
     </section>

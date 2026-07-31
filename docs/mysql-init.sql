@@ -1,4 +1,5 @@
 DROP TABLE IF EXISTS mcp_audit_log;
+DROP TABLE IF EXISTS mcp_community_like;
 DROP TABLE IF EXISTS mcp_user_resource_selection;
 DROP TABLE IF EXISTS mcp_user_prompt_selection;
 DROP TABLE IF EXISTS mcp_user_tool_selection;
@@ -181,6 +182,16 @@ CREATE TABLE mcp_skill (
     KEY idx_mcp_skill_creator (creator_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='MCP Skill 表';
 
+CREATE TABLE mcp_community_like (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
+    target_type VARCHAR(32) NOT NULL COMMENT '点赞对象类型：SKILL、PROMPT、RESOURCE、DYNAMIC_TOOL、BUILTIN_TOOL',
+    target_key VARCHAR(128) NOT NULL COMMENT '点赞对象键：数据库 ID 或内置 Tool 名称',
+    user_id BIGINT NOT NULL COMMENT '点赞用户 ID',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    UNIQUE KEY uk_mcp_community_like_user_target (user_id, target_type, target_key),
+    KEY idx_mcp_community_like_target (target_type, target_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='社区点赞表';
+
 CREATE TABLE mcp_request_config (
     id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
     request_id VARCHAR(32) NOT NULL COMMENT '接口唯一 ID，例如 API0000000001',
@@ -266,6 +277,7 @@ INSERT INTO mcp_role_tool (role_code, tool_name) VALUES
 ('ADMIN', 'update_dynamic_tool_script'),
 ('ADMIN', 'create_resource'),
 ('ADMIN', 'create_prompt'),
+('ADMIN', 'render_prompt'),
 ('ADMIN', 'create_skill'),
 ('ADMIN', 'list_data_sources'),
 ('ADMIN', 'query_data_source'),
@@ -298,6 +310,7 @@ INSERT INTO mcp_user_tool_selection (token_id, tool_name, tool_type, is_enabled)
 (1, 'update_dynamic_tool_script', 'BUILTIN', 1),
 (1, 'create_resource', 'BUILTIN', 1),
 (1, 'create_prompt', 'BUILTIN', 1),
+(1, 'render_prompt', 'BUILTIN', 1),
 (1, 'create_skill', 'BUILTIN', 1),
 (1, 'list_data_sources', 'BUILTIN', 1),
 (1, 'query_data_source', 'BUILTIN', 1),
