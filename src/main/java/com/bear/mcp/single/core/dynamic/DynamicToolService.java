@@ -8,6 +8,7 @@ import com.bear.mcp.single.core.groovy.GroovyScriptEngine;
 import com.bear.mcp.single.core.groovy.ScriptContext;
 import com.bear.mcp.single.core.groovy.ScriptResult;
 import com.bear.mcp.single.core.mapper.McpDynamicToolMapper;
+import com.bear.mcp.single.core.redis.RedisPermissionPolicy;
 import com.bear.mcp.single.core.selection.ToolSelectionService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -58,16 +59,20 @@ public class DynamicToolService {
      */
     private final ObjectMapper objectMapper;
 
+    private final RedisPermissionPolicy redisPermissionPolicy;
+
     public DynamicToolService(McpDynamicToolMapper dynamicToolMapper,
                               ToolSelectionService toolSelectionService,
                               GroovyScriptEngine groovyScriptEngine,
                               AuditLogService auditLogService,
-                              ObjectMapper objectMapper) {
+                              ObjectMapper objectMapper,
+                              RedisPermissionPolicy redisPermissionPolicy) {
         this.dynamicToolMapper = dynamicToolMapper;
         this.toolSelectionService = toolSelectionService;
         this.groovyScriptEngine = groovyScriptEngine;
         this.auditLogService = auditLogService;
         this.objectMapper = objectMapper;
+        this.redisPermissionPolicy = redisPermissionPolicy;
     }
 
     public Optional<DynamicTool> findEnabledByName(String name) {
@@ -147,6 +152,7 @@ public class DynamicToolService {
                     toolName,
                     tool.linkedRequestKeys(),
                     tool.linkedDataSourceIds(),
+                    tool.linkedRedisPermissions(),
                     30000
             ));
             if (!result.success()) {
@@ -216,6 +222,7 @@ public class DynamicToolService {
                 entity.getGroovyScript(),
                 parseStringList(entity.getLinkedRequestKeys()),
                 parseLongList(entity.getLinkedDataSourceIds()),
+                redisPermissionPolicy.parse(entity.getLinkedRedisPermissions()),
                 Integer.valueOf(1).equals(entity.getEnabled())
         );
     }

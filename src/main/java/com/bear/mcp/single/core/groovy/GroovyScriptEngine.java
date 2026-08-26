@@ -1,7 +1,10 @@
 package com.bear.mcp.single.core.groovy;
 
 import com.bear.mcp.single.core.datasource.ExternalDataSourceSqlExecutor;
+import com.bear.mcp.single.core.redis.RedisPermission;
+import com.bear.mcp.single.core.redis.RedisScriptExecutor;
 import com.bear.mcp.single.core.request.RequestConfigService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import groovy.lang.Binding;
 import groovy.lang.GroovyShell;
 import groovy.lang.Script;
@@ -35,6 +38,11 @@ public class GroovyScriptEngine {
      */
     private final ExternalDataSourceSqlExecutor sqlExecutor;
 
+    /** Dynamic scripts access Redis only through a capability-checked executor. */
+    private final RedisScriptExecutor redisScriptExecutor;
+
+    private final ObjectMapper objectMapper;
+
     /**
      * Groovy 脚本可能由外部配置产生，不能直接占用 Web 请求线程执行。
      * 这里用独立线程池执行脚本，方便做超时控制，也避免脚本卡住主请求线程。
@@ -48,9 +56,13 @@ public class GroovyScriptEngine {
     private final CompilerConfiguration compilerConfiguration;
 
     public GroovyScriptEngine(RequestConfigService requestConfigService,
-                              ExternalDataSourceSqlExecutor sqlExecutor) {
+                              ExternalDataSourceSqlExecutor sqlExecutor,
+                              RedisScriptExecutor redisScriptExecutor,
+                              ObjectMapper objectMapper) {
         this.requestConfigService = requestConfigService;
         this.sqlExecutor = sqlExecutor;
+        this.redisScriptExecutor = redisScriptExecutor;
+        this.objectMapper = objectMapper;
 
         /*
          * 构造引擎时只创建一次编译配置。
@@ -68,6 +80,8 @@ public class GroovyScriptEngine {
      */
     public ScriptResult execute(String script, ScriptContext context) {
         long startedAt = System.currentTimeMillis();
+        SensitiveValueRedactor redactor = new SensitiveValueRedactor(objectMapper);
+        Future<Object> future = null;
         try {
             /*
              * 第一层安全校验：在真正交给 Groovy 编译前，先做一次字符串级别的快速检查。
@@ -79,9 +93,9 @@ public class GroovyScriptEngine {
              * Binding 是脚本运行时的变量表。
              * 放进去的 params、userId、runRequest 等变量，脚本里可以直接使用。
              */
-            Binding binding = createBinding(context);
+            Binding binding = createBinding(context, redactor);
 
-            Future<Object> future = executor.submit(() -> {
+            future = executor.submit(() -> {
                 /*
                  * GroovyShell 负责把脚本文本编译成 Script 对象。
                  * compilerConfiguration 会在编译阶段继续做 import 处理和 AST 安全限制。
@@ -102,12 +116,17 @@ public class GroovyScriptEngine {
              */
             long timeout = context.timeoutMs() > 0 ? context.timeoutMs() : 30000;
             Object result = future.get(timeout, TimeUnit.MILLISECONDS);
-            return ScriptResult.success(result, System.currentTimeMillis() - startedAt);
+            redactor.registerStructured(result);
+            return ScriptResult.success(redactor.redact(result), System.currentTimeMillis() - startedAt);
         } catch (TimeoutException e) {
+            if (future != null) {
+                future.cancel(true);
+            }
             return ScriptResult.failure("脚本执行超时", System.currentTimeMillis() - startedAt);
         } catch (Exception e) {
-            log.warn("Groovy script failed, toolName={}, error={}", context.toolName(), e.getMessage());
-            return ScriptResult.failure(e.getMessage(), System.currentTimeMillis() - startedAt);
+            String errorMessage = redactor.redactText(rootMessage(e));
+            log.warn("Groovy script failed, toolName={}, error={}", context.toolName(), errorMessage);
+            return ScriptResult.failure(errorMessage, System.currentTimeMillis() - startedAt);
         }
     }
 
@@ -156,7 +175,7 @@ public class GroovyScriptEngine {
      * return [userId: userId, data: result]
      * </pre>
      */
-    private Binding createBinding(ScriptContext context) {
+    private Binding createBinding(ScriptContext context, SensitiveValueRedactor redactor) {
         Binding binding = new Binding();
         binding.setVariable("params", context.params() != null ? context.params() : Map.of());
         binding.setVariable("userId", context.userId());
@@ -167,9 +186,20 @@ public class GroovyScriptEngine {
          * runRequest 是暴露给脚本的受控调用入口。
          * 脚本不能绕过它直接访问任意企业接口，只能调用当前动态工具提前关联过的 request config。
          */
-        binding.setVariable("runRequest", new ScriptRunRequest(requestConfigService, context.linkedRequestKeys()));
+        binding.setVariable("runRequest", new ScriptRunRequest(
+                requestConfigService, context.linkedRequestKeys(), redactor));
         binding.setVariable("runSql", new ScriptRunSql(sqlExecutor, context.linkedDataSourceIds()));
+        binding.setVariable("runRedis", new ScriptRunRedis(
+                redisScriptExecutor, context.userId(), context.linkedRedisPermissions(), redactor));
         return binding;
+    }
+
+    private String rootMessage(Exception exception) {
+        Throwable current = exception;
+        while (current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current.getMessage() != null ? current.getMessage() : current.getClass().getSimpleName();
     }
 
     /**
@@ -186,9 +216,14 @@ public class GroovyScriptEngine {
          */
         private final List<String> allowedKeys;
 
-        public ScriptRunRequest(RequestConfigService requestConfigService, List<String> allowedKeys) {
+        private final SensitiveValueRedactor redactor;
+
+        public ScriptRunRequest(RequestConfigService requestConfigService,
+                                List<String> allowedKeys,
+                                SensitiveValueRedactor redactor) {
             this.requestConfigService = requestConfigService;
             this.allowedKeys = allowedKeys != null ? allowedKeys : List.of();
+            this.redactor = redactor;
         }
 
         /**
@@ -203,7 +238,9 @@ public class GroovyScriptEngine {
                 throw new IllegalArgumentException("未关联的请求配置: " + key);
             }
 
-            return requestConfigService.execute(key, params != null ? params : Map.of());
+            Object result = requestConfigService.execute(key, params != null ? params : Map.of());
+            redactor.registerStructured(result);
+            return result;
         }
     }
 
@@ -246,6 +283,45 @@ public class GroovyScriptEngine {
                 throw new IllegalArgumentException("未关联的数据源: " + id);
             }
             return sqlExecutor.query(id, sql);
+        }
+    }
+
+    /** Redis facade exposed to Groovy after all permissions have been resolved against the current user. */
+    public static class ScriptRunRedis {
+        private final RedisScriptExecutor redisScriptExecutor;
+        private final Long userId;
+        private final List<RedisPermission> permissions;
+        private final SensitiveValueRedactor redactor;
+
+        public ScriptRunRedis(RedisScriptExecutor redisScriptExecutor,
+                              Long userId,
+                              List<RedisPermission> permissions,
+                              SensitiveValueRedactor redactor) {
+            this.redisScriptExecutor = redisScriptExecutor;
+            this.userId = userId;
+            this.permissions = permissions != null ? permissions : List.of();
+            this.redactor = redactor;
+        }
+
+        public Map<String, String> hmget(String key, List<?> fields) {
+            List<String> normalizedFields = fields != null
+                    ? fields.stream().map(String::valueOf).toList() : List.of();
+            Map<String, String> result = redisScriptExecutor.hmget(userId, permissions, key, normalizedFields);
+            result.forEach(redactor::register);
+            return result;
+        }
+
+        public String get(String key) {
+            String result = redisScriptExecutor.get(userId, permissions, key);
+            redactor.registerStructured(result);
+            return result;
+        }
+
+        public boolean setEx(String key, String value, Number ttlSeconds) {
+            if (ttlSeconds == null) {
+                throw new IllegalArgumentException("ttlSeconds不能为空");
+            }
+            return redisScriptExecutor.setEx(userId, permissions, key, value, ttlSeconds.longValue());
         }
     }
 }

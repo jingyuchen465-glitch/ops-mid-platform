@@ -1,0 +1,3 @@
+{"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"feishu_groovy_create_document_blocks","arguments":{"document_id":"LWDfdr461oBGSHxhs1hcvegmnbf","block_id":"LWDfdr461oBGSHxhs1hcvegmnbf","children":[
+{"block_type":3,"text":{"elements":[{"text_run":{"content":"一、什么是工具调用"}}]}}
+]}}}

@@ -1,0 +1,10 @@
+{"jsonrpc":"2.0","id":21,"method":"tools/call","params":{"name":"feishu_groovy_create_document_blocks","arguments":{"document_id":"LWDfdr461oBGSHxhs1hcvegmnbf","block_id":"LWDfdr461oBGSHxhs1hcvegmnbf","children":[
+{"block_type":2,"text":{"elements":[{"text_run":{"content":"一、什么是工具调用"}}]}},
+{"block_type":2,"text":{"elements":[{"text_run":{"content":"AI 智能体（Agent）无法直接操作外部系统，它通过一套标准协议——模型上下文协议（Model Context Protocol，MCP）——把能力暴露成一个个可被调用的“工具”（Tool），由模型根据任务需要自主选择并调用。本项目的飞书 MCP 工具就是一个典型例子。"}}]}},
+{"block_type":2,"text":{"elements":[{"text_run":{"content":"二、完整调用链路"}}]}},
+{"block_type":2,"text":{"elements":[{"text_run":{"content":"1. 意图识别：模型理解用户请求，判断当前任务需要哪个工具、需要什么参数。"}}]}},
+{"block_type":2,"text":{"elements":[{"text_run":{"content":"2. 工具发现（tools/list）：AI 向 MCP Server 请求能力清单，Server 返回所有已注册、已启用且对当前调用方可见的工具描述。"}}]}},
+{"block_type":2,"text":{"elements":[{"text_run":{"content":"3. 权限校验：执行前完成多层校验——调用方角色是否具备该工具权限、调用方 Token 是否显式勾选该工具、工具本身是否处于启用状态（本项目由 McpToolsCallFilter 完成）。"}}]}},
+{"block_type":2,"text":{"elements":[{"text_run":{"content":"4. 组装参数：AI 按工具声明的 inputSchema 填充入参，构造一次 tools/call 请求。"}}]}},
+{"block_type":2,"text":{"elements":[{"text_run":{"content":"5. 脚本编排：动态工具由 Groovy 脚本编排，只能通过受控入口访问外部资源——runRequest 调用白名单内的 HTTP API，runSql 查询白名单内的数据源。"}}]}}
+]}}}

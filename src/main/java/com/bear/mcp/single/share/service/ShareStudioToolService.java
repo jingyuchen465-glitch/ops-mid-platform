@@ -10,6 +10,10 @@ import com.bear.mcp.single.core.groovy.ScriptResult;
 import com.bear.mcp.single.core.mapper.McpDataSourceMapper;
 import com.bear.mcp.single.core.mapper.McpDynamicToolMapper;
 import com.bear.mcp.single.core.mapper.McpRequestConfigMapper;
+import com.bear.mcp.single.core.mapper.McpRoleMapper;
+import com.bear.mcp.single.core.mapper.McpUserRoleMapper;
+import com.bear.mcp.single.core.redis.RedisPermission;
+import com.bear.mcp.single.core.redis.RedisPermissionPolicy;
 import com.bear.mcp.single.share.req.ShareStudioToolDebugReq;
 import com.bear.mcp.single.share.req.ShareStudioToolSaveReq;
 import com.bear.mcp.single.share.res.ShareStudioToolDebugRes;
@@ -71,16 +75,28 @@ public class ShareStudioToolService {
      */
     private final ObjectMapper objectMapper;
 
+    private final McpUserRoleMapper userRoleMapper;
+
+    private final McpRoleMapper roleMapper;
+
+    private final RedisPermissionPolicy redisPermissionPolicy;
+
     public ShareStudioToolService(McpDynamicToolMapper dynamicToolMapper,
                                   McpRequestConfigMapper requestConfigMapper,
                                   McpDataSourceMapper dataSourceMapper,
                                   GroovyScriptEngine groovyScriptEngine,
-                                  ObjectMapper objectMapper) {
+                                  ObjectMapper objectMapper,
+                                  McpUserRoleMapper userRoleMapper,
+                                  McpRoleMapper roleMapper,
+                                  RedisPermissionPolicy redisPermissionPolicy) {
         this.dynamicToolMapper = dynamicToolMapper;
         this.requestConfigMapper = requestConfigMapper;
         this.dataSourceMapper = dataSourceMapper;
         this.groovyScriptEngine = groovyScriptEngine;
         this.objectMapper = objectMapper;
+        this.userRoleMapper = userRoleMapper;
+        this.roleMapper = roleMapper;
+        this.redisPermissionPolicy = redisPermissionPolicy;
     }
 
     /**
@@ -97,13 +113,14 @@ public class ShareStudioToolService {
      * 新建动态 Tool。
      */
     @Transactional
-    public ShareStudioToolRes create(ShareStudioToolSaveReq req) {
+    public ShareStudioToolRes create(Long currentUserId, ShareStudioToolSaveReq req) {
         if (dynamicToolMapper.findByName(req.getToolName()) != null) {
             throw new BusinessException(400, "工具名已存在，请换一个");
         }
 
         McpDynamicToolEntity entity = toEntity(req);
-        normalize(entity);
+        List<RedisPermission> redisPermissions = normalize(entity);
+        requireAdminIfRedisTool(currentUserId, redisPermissions);
         dynamicToolMapper.insert(entity);
         return toRes(entity);
     }
@@ -112,7 +129,7 @@ public class ShareStudioToolService {
      * 更新动态 Tool。
      */
     @Transactional
-    public ShareStudioToolRes update(Long id, ShareStudioToolSaveReq req) {
+    public ShareStudioToolRes update(Long currentUserId, Long id, ShareStudioToolSaveReq req) {
         McpDynamicToolEntity oldEntity = findById(id);
         McpDynamicToolEntity existsByName = dynamicToolMapper.findByName(req.getToolName());
         if (existsByName != null && !existsByName.getId().equals(id)) {
@@ -121,7 +138,9 @@ public class ShareStudioToolService {
 
         McpDynamicToolEntity entity = toEntity(req);
         entity.setId(oldEntity.getId());
-        normalize(entity);
+        List<RedisPermission> redisPermissions = normalize(entity);
+        requireAdminIfRedisTool(currentUserId, redisPermissions);
+        requireAdminIfRedisTool(currentUserId, redisPermissionPolicy.parse(oldEntity.getLinkedRedisPermissions()));
         dynamicToolMapper.update(entity);
         return toRes(dynamicToolMapper.findById(id));
     }
@@ -137,7 +156,8 @@ public class ShareStudioToolService {
         }
 
         McpDynamicToolEntity entity = toEntity(req.getTool());
-        normalize(entity);
+        List<RedisPermission> redisPermissions = normalize(entity);
+        requireAdminIfRedisTool(currentUserId, redisPermissions);
         return executeDebug(currentUserId, currentUsername, entity, req.getParams());
     }
 
@@ -149,7 +169,8 @@ public class ShareStudioToolService {
                                          Long id,
                                          ShareStudioToolDebugReq req) {
         McpDynamicToolEntity entity = findById(id);
-        normalize(entity);
+        List<RedisPermission> redisPermissions = normalize(entity);
+        requireAdminIfRedisTool(currentUserId, redisPermissions);
         return executeDebug(currentUserId, currentUsername, entity, req.getParams());
     }
 
@@ -159,8 +180,9 @@ public class ShareStudioToolService {
      * <p>状态 2 表示已进入 MCP 调用链路，并允许后续社区页面公开展示。</p>
      */
     @Transactional
-    public ShareStudioToolRes publish(Long id) {
-        findById(id);
+    public ShareStudioToolRes publish(Long currentUserId, Long id) {
+        McpDynamicToolEntity entity = findById(id);
+        requireAdminIfRedisTool(currentUserId, redisPermissionPolicy.parse(entity.getLinkedRedisPermissions()));
         dynamicToolMapper.updatePublishStatus(id, 1, STATUS_PUBLIC);
         return toRes(dynamicToolMapper.findById(id));
     }
@@ -171,8 +193,9 @@ public class ShareStudioToolService {
      * <p>状态 1 表示已进入 MCP 调用链路，但只在自己的创作空间可见。</p>
      */
     @Transactional
-    public ShareStudioToolRes publishPrivate(Long id) {
-        findById(id);
+    public ShareStudioToolRes publishPrivate(Long currentUserId, Long id) {
+        McpDynamicToolEntity entity = findById(id);
+        requireAdminIfRedisTool(currentUserId, redisPermissionPolicy.parse(entity.getLinkedRedisPermissions()));
         dynamicToolMapper.updatePublishStatus(id, 1, STATUS_PRIVATE);
         return toRes(dynamicToolMapper.findById(id));
     }
@@ -181,8 +204,9 @@ public class ShareStudioToolService {
      * 下线动态 Tool。
      */
     @Transactional
-    public ShareStudioToolRes unpublish(Long id) {
-        findById(id);
+    public ShareStudioToolRes unpublish(Long currentUserId, Long id) {
+        McpDynamicToolEntity entity = findById(id);
+        requireAdminIfRedisTool(currentUserId, redisPermissionPolicy.parse(entity.getLinkedRedisPermissions()));
         dynamicToolMapper.updatePublishStatus(id, 0, STATUS_DRAFT);
         return toRes(dynamicToolMapper.findById(id));
     }
@@ -198,6 +222,7 @@ public class ShareStudioToolService {
                 entity.getToolName(),
                 parseStringList(entity.getLinkedRequestKeys()),
                 parseLongList(entity.getLinkedDataSourceIds()),
+                redisPermissionPolicy.parse(entity.getLinkedRedisPermissions()),
                 30000
         ));
 
@@ -217,12 +242,15 @@ public class ShareStudioToolService {
         return entity;
     }
 
-    private void normalize(McpDynamicToolEntity entity) {
+    private List<RedisPermission> normalize(McpDynamicToolEntity entity) {
         if (entity.getLinkedRequestKeys() == null || entity.getLinkedRequestKeys().isBlank()) {
             entity.setLinkedRequestKeys("[]");
         }
         if (entity.getLinkedDataSourceIds() == null || entity.getLinkedDataSourceIds().isBlank()) {
             entity.setLinkedDataSourceIds("[]");
+        }
+        if (entity.getLinkedRedisPermissions() == null || entity.getLinkedRedisPermissions().isBlank()) {
+            entity.setLinkedRedisPermissions("[]");
         }
         if (entity.getEnabled() == null) {
             entity.setEnabled(0);
@@ -243,6 +271,9 @@ public class ShareStudioToolService {
         List<Long> dataSourceIds = parseLongList(entity.getLinkedDataSourceIds());
         validateLinkedDataSourceIds(dataSourceIds);
         entity.setLinkedDataSourceIds(toJson(dataSourceIds));
+        List<RedisPermission> redisPermissions = redisPermissionPolicy.parse(entity.getLinkedRedisPermissions());
+        entity.setLinkedRedisPermissions(redisPermissionPolicy.toJson(redisPermissions));
+        return redisPermissions;
     }
 
     private void validateJsonObject(String json, String fieldName) {
@@ -315,6 +346,7 @@ public class ShareStudioToolService {
         entity.setGroovyScript(req.getGroovyScript());
         entity.setLinkedRequestKeys(req.getLinkedRequestKeys());
         entity.setLinkedDataSourceIds(req.getLinkedDataSourceIds());
+        entity.setLinkedRedisPermissions(req.getLinkedRedisPermissions());
         entity.setEnabled(req.getEnabled());
         entity.setPublishStatus(req.getPublishStatus());
         return entity;
@@ -329,8 +361,21 @@ public class ShareStudioToolService {
         res.setGroovyScript(entity.getGroovyScript());
         res.setLinkedRequestKeys(entity.getLinkedRequestKeys());
         res.setLinkedDataSourceIds(entity.getLinkedDataSourceIds());
+        res.setLinkedRedisPermissions(entity.getLinkedRedisPermissions());
         res.setEnabled(entity.getEnabled());
         res.setPublishStatus(entity.getPublishStatus());
         return res;
+    }
+
+    private void requireAdminIfRedisTool(Long currentUserId, List<RedisPermission> permissions) {
+        if (permissions == null || permissions.isEmpty()) {
+            return;
+        }
+        boolean linkedToAdmin = currentUserId != null && userRoleMapper.findByUserId(currentUserId).stream()
+                .anyMatch(role -> "ADMIN".equals(role.getRoleCode()));
+        boolean admin = linkedToAdmin && !roleMapper.findEnabledByRoleCodes(List.of("ADMIN")).isEmpty();
+        if (!admin) {
+            throw new BusinessException(403, "只有管理员可以创建、调试或发布Redis型动态工具");
+        }
     }
 }

@@ -56,7 +56,9 @@ class OptionalUsageLearningTest {
                 10001L,
                 "demo-admin",
                 Set.of("ADMIN"),
-                Set.of("calculator", "echo_dynamic")
+                Set.of("calculator", "echo_dynamic"),
+                Set.of(),
+                Set.of()
         );
 
         Optional<TokenAuthInfo> optional = Optional.of(info);
@@ -134,6 +136,8 @@ class OptionalUsageLearningTest {
                 "{}",
                 "return params",
                 List.of("demo_echo"),
+                List.of(),
+                List.of(),
                 true
         );
 
@@ -156,6 +160,8 @@ class OptionalUsageLearningTest {
                 "{}",
                 "return params",
                 List.of("demo_echo"),
+                List.of(),
+                List.of(),
                 true
         );
 

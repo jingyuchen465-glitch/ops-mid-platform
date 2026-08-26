@@ -180,10 +180,11 @@ public class RequestConfigService {
             Request.Builder requestBuilder = new Request.Builder().url(url);
 
             /*
-             * 先设置数据库配置中的请求头。
+             * 先设置数据库配置中的请求头，请求头的值同样支持 {{参数名}} 占位符。
+             * 例如 Authorization: Bearer {{token}}，token 由脚本运行时动态传入。
              */
             for (Map.Entry<String, String> header : config.headers().entrySet()) {
-                requestBuilder.header(header.getKey(), header.getValue());
+                requestBuilder.header(header.getKey(), replace(header.getValue(), params));
             }
 
             RequestBody requestBody = null;

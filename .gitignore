@@ -52,3 +52,10 @@ admin-web/.vite/
 admin-web/.cache/
 admin-web/.env.local
 admin-web/.env.*.local
+
+# local maven mirror used when sandbox blocks the default repo
+.m2repo/
+.tmprepo/
+logs/
+app-run.log
+_setup_db.py

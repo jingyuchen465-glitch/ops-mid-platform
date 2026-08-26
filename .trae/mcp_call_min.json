@@ -1,0 +1,1 @@
+{"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"feishu_groovy_create_document_blocks","arguments":{"document_id":"LWDfdr461oBGSHxhs1hcvegmnbf","block_id":"LWDfdr461oBGSHxhs1hcvegmnbf","children":[{"block_type":2,"text":{"elements":[{"text_run":{"content":"AI 智能体如何调用 MCP 工具"}}]}}]}}}

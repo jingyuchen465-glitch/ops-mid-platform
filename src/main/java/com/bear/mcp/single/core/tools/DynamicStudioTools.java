@@ -7,6 +7,8 @@ import com.bear.mcp.single.core.entity.McpRequestConfigEntity;
 import com.bear.mcp.single.core.mapper.McpDataSourceMapper;
 import com.bear.mcp.single.core.mapper.McpDynamicToolMapper;
 import com.bear.mcp.single.core.mapper.McpRequestConfigMapper;
+import com.bear.mcp.single.core.redis.RedisPermission;
+import com.bear.mcp.single.core.redis.RedisPermissionPolicy;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.ai.tool.annotation.Tool;
@@ -32,15 +34,18 @@ public class DynamicStudioTools {
     private final McpRequestConfigMapper requestConfigMapper;
     private final McpDataSourceMapper dataSourceMapper;
     private final ObjectMapper objectMapper;
+    private final RedisPermissionPolicy redisPermissionPolicy;
 
     public DynamicStudioTools(McpDynamicToolMapper dynamicToolMapper,
                               McpRequestConfigMapper requestConfigMapper,
                               McpDataSourceMapper dataSourceMapper,
-                              ObjectMapper objectMapper) {
+                              ObjectMapper objectMapper,
+                              RedisPermissionPolicy redisPermissionPolicy) {
         this.dynamicToolMapper = dynamicToolMapper;
         this.requestConfigMapper = requestConfigMapper;
         this.dataSourceMapper = dataSourceMapper;
         this.objectMapper = objectMapper;
+        this.redisPermissionPolicy = redisPermissionPolicy;
     }
 
     @Tool(name = "create_dynamic_tool",
@@ -52,12 +57,14 @@ public class DynamicStudioTools {
             String tool_description,
             @ToolParam(description = "MCP inputSchema JSON 对象，定义 tools/call 可传入的参数结构", required = false)
             String input_schema,
-            @ToolParam(description = "Groovy 脚本，可用 params、userId、userName、toolName、runRequest、runSql 编排业务逻辑", required = false)
+            @ToolParam(description = "Groovy 脚本，可用 params、userId、userName、toolName、runRequest、runSql、runRedis 编排业务逻辑", required = false)
             String groovy_script,
             @ToolParam(description = "API 白名单 JSON 数组，如 [\"query_course_list\"]。脚本只能通过 runRequest 调用这些 config_key", required = false)
             String linked_request_keys,
             @ToolParam(description = "数据源白名单 JSON 数组，如 [1,2]。脚本只能通过 runSql 查询这些 datasource_id", required = false)
-            String linked_data_source_ids
+            String linked_data_source_ids,
+            @ToolParam(description = "Redis权限 JSON 数组，声明允许访问的key、commands、fields和maxTtlSeconds", required = false)
+            String linked_redis_permissions
     ) {
         if (McpUserContextHolder.getUserId() == null) {
             return failure("请先使用 MCP Token 调用");
@@ -74,6 +81,8 @@ public class DynamicStudioTools {
             validateRequestKeys(requestKeys);
             List<Long> dataSourceIds = parseDataSourceIds(linked_data_source_ids);
             validateDataSourceIds(dataSourceIds);
+            List<RedisPermission> redisPermissions = redisPermissionPolicy.parse(linked_redis_permissions);
+            requireAdminIfRedisTool(redisPermissions);
 
             McpDynamicToolEntity entity = new McpDynamicToolEntity();
             entity.setToolName(toolName);
@@ -82,6 +91,7 @@ public class DynamicStudioTools {
             entity.setGroovyScript(firstNotBlank(groovy_script, defaultScript(requestKeys, dataSourceIds)));
             entity.setLinkedRequestKeys(toJson(requestKeys));
             entity.setLinkedDataSourceIds(toJson(dataSourceIds));
+            entity.setLinkedRedisPermissions(redisPermissionPolicy.toJson(redisPermissions));
             entity.setEnabled(0);
             entity.setPublishStatus(STATUS_DRAFT);
 
@@ -94,6 +104,7 @@ public class DynamicStudioTools {
             result.put("publish_status", entity.getPublishStatus());
             result.put("linked_request_keys", requestKeys);
             result.put("linked_data_source_ids", dataSourceIds);
+            result.put("linked_redis_permissions", redisPermissions);
             return result;
         } catch (Exception e) {
             return failure(e.getMessage());
@@ -124,7 +135,7 @@ public class DynamicStudioTools {
     }
 
     @Tool(name = "update_dynamic_tool_script",
-            description = "更新动态 MCP Tool 的 Groovy 脚本。适用于 Tool 已创建但需要调整编排逻辑时使用，可选同时更新 input_schema、linked_request_keys 和 linked_data_source_ids。")
+            description = "更新动态 MCP Tool 的 Groovy 脚本，可选同时更新 input_schema、API、数据源和Redis权限白名单。")
     public Map<String, Object> updateDynamicToolScript(
             @ToolParam(description = "动态 Tool 主键 id，与 tool_name 二选一", required = false)
             Long id,
@@ -137,7 +148,9 @@ public class DynamicStudioTools {
             @ToolParam(description = "新的 API 白名单 JSON 数组，不传则保留原值", required = false)
             String linked_request_keys,
             @ToolParam(description = "新的数据源白名单 JSON 数组，不传则保留原值", required = false)
-            String linked_data_source_ids
+            String linked_data_source_ids,
+            @ToolParam(description = "新的Redis权限 JSON 数组，不传则保留原值", required = false)
+            String linked_redis_permissions
     ) {
         if (McpUserContextHolder.getUserId() == null) {
             return failure("请先使用 MCP Token 调用");
@@ -150,6 +163,7 @@ public class DynamicStudioTools {
             if (entity == null) {
                 return failure("动态 Tool 不存在");
             }
+            List<RedisPermission> oldRedisPermissions = redisPermissionPolicy.parse(entity.getLinkedRedisPermissions());
 
             entity.setGroovyScript(groovy_script);
             if (input_schema != null && !input_schema.isBlank()) {
@@ -166,8 +180,19 @@ public class DynamicStudioTools {
                 validateDataSourceIds(dataSourceIds);
                 entity.setLinkedDataSourceIds(toJson(dataSourceIds));
             }
+            if (linked_redis_permissions != null && !linked_redis_permissions.isBlank()) {
+                List<RedisPermission> redisPermissions = redisPermissionPolicy.parse(linked_redis_permissions);
+                entity.setLinkedRedisPermissions(redisPermissionPolicy.toJson(redisPermissions));
+            }
             if (entity.getLinkedDataSourceIds() == null || entity.getLinkedDataSourceIds().isBlank()) {
                 entity.setLinkedDataSourceIds("[]");
+            }
+            if (entity.getLinkedRedisPermissions() == null || entity.getLinkedRedisPermissions().isBlank()) {
+                entity.setLinkedRedisPermissions("[]");
+            }
+            List<RedisPermission> newRedisPermissions = redisPermissionPolicy.parse(entity.getLinkedRedisPermissions());
+            if (!oldRedisPermissions.isEmpty() || !newRedisPermissions.isEmpty()) {
+                requireAdminIfRedisTool(newRedisPermissions.isEmpty() ? oldRedisPermissions : newRedisPermissions);
             }
 
             dynamicToolMapper.update(entity);
@@ -199,7 +224,8 @@ public class DynamicStudioTools {
         return contains(entity.getToolName(), keyword)
                 || contains(entity.getToolDescription(), keyword)
                 || contains(entity.getLinkedRequestKeys(), keyword)
-                || contains(entity.getLinkedDataSourceIds(), keyword);
+                || contains(entity.getLinkedDataSourceIds(), keyword)
+                || contains(entity.getLinkedRedisPermissions(), keyword);
     }
 
     private boolean contains(String value, String keyword) {
@@ -319,9 +345,20 @@ public class DynamicStudioTools {
         item.put("tool_description", entity.getToolDescription());
         item.put("linked_request_keys", entity.getLinkedRequestKeys());
         item.put("linked_data_source_ids", entity.getLinkedDataSourceIds());
+        item.put("linked_redis_permissions", entity.getLinkedRedisPermissions());
         item.put("publish_status", entity.getPublishStatus());
         item.put("is_enabled", entity.getEnabled());
         return item;
+    }
+
+    private void requireAdminIfRedisTool(List<RedisPermission> permissions) {
+        if (permissions == null || permissions.isEmpty()) {
+            return;
+        }
+        if (McpUserContextHolder.get() == null
+                || !McpUserContextHolder.get().roles().contains("ADMIN")) {
+            throw new SecurityException("只有管理员可以创建或修改Redis型动态工具");
+        }
     }
 
     private Map<String, Object> success(String message) {

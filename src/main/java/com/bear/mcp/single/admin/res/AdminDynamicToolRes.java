@@ -26,6 +26,9 @@ public class AdminDynamicToolRes {
     /** 允许访问的数据源 id 列表 JSON。 */
     private String linkedDataSourceIds;
 
+    /** Redis key、命令和字段权限 JSON。 */
+    private String linkedRedisPermissions;
+
     /** 是否启用：1-启用，0-禁用。 */
     private Integer enabled;
 

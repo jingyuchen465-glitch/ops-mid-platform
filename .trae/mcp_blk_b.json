@@ -1,0 +1,7 @@
+{"jsonrpc":"2.0","id":22,"method":"tools/call","params":{"name":"feishu_groovy_create_document_blocks","arguments":{"document_id":"LWDfdr461oBGSHxhs1hcvegmnbf","block_id":"LWDfdr461oBGSHxhs1hcvegmnbf","children":[
+{"block_type":2,"text":{"elements":[{"text_run":{"content":"6. 占位符替换与执行：请求配置支持 {{变量}} 占位符，运行时参数与配置默认值合并（运行时优先），替换到 URL、请求头和请求体后由 HTTP 客户端发出真实请求。"}}]}},
+{"block_type":2,"text":{"elements":[{"text_run":{"content":"7. 结果解析：模型读取工具返回值，判断任务是否完成，决定继续调用还是给出最终答复。"}}]}},
+{"block_type":2,"text":{"elements":[{"text_run":{"content":"8. 审计沉淀：每次调用都会被记录到审计日志（调用人、工具、参数、耗时、结果），最后把结构化结果整理成人类易懂的回答。"}}]}},
+{"block_type":2,"text":{"elements":[{"text_run":{"content":"三、本文档是如何生成的"}}]}},
+{"block_type":2,"text":{"elements":[{"text_run":{"content":"这篇文档本身就是一次真实的工具调用演示：由 AI 先调用创建文档工具生成空文档，再调用动态内容写入工具分批写入这些段落，最后回读核验。整条链路走的正是上文描述的工具调用流程。"}}]}}
+]}}}

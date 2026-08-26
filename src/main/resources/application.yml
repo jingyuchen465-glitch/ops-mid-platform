@@ -5,10 +5,18 @@ spring:
   application:
     name: bear-mcp-single
   datasource:
-    url: jdbc:mysql://mysql-02a756b9c0e4-public.rds.volces.com:3306/bear-mcp-single?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
-    username: root
-    password: QWer1234!!!
+    url: ${BEAR_DB_URL:jdbc:mysql://127.0.0.1:3306/bear-mcp-single?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${BEAR_DB_USERNAME:root}
+    password: ${BEAR_DB_PASSWORD:1234}
     driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: ${BEAR_REDIS_HOST:127.0.0.1}
+      port: ${BEAR_REDIS_PORT:6379}
+      username: ${BEAR_REDIS_USERNAME:}
+      password: ${BEAR_REDIS_PASSWORD:}
+      database: ${BEAR_REDIS_DATABASE:0}
+      timeout: ${BEAR_REDIS_TIMEOUT:3s}
   sql:
     init:
       mode: never
@@ -34,7 +42,7 @@ logging:
 
 bear:
   admin:
-    jwt-secret: bear-mcp-single-classroom-admin-secret-change-in-production
+    jwt-secret: ${BEAR_ADMIN_JWT_SECRET:bear-mcp-single-classroom-admin-secret-change-in-production}
     jwt-expire-seconds: 7200
   mcp:
     demo-token: mcp_dev_token

@@ -19,6 +19,8 @@ public class McpDynamicToolEntity {
     private String linkedRequestKeys;
     /** 允许访问的数据源 id 列表 JSON。 */
     private String linkedDataSourceIds;
+    /** 允许访问的Redis key、命令和字段白名单 JSON。 */
+    private String linkedRedisPermissions;
     /** 是否启用：1-启用，0-禁用。 */
     private Integer enabled;
     /** 发布状态：0-草稿，1-已上线不公开，2-已上线公开。 */

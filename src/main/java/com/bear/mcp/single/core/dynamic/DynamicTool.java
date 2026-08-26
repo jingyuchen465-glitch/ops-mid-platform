@@ -2,6 +2,8 @@ package com.bear.mcp.single.core.dynamic;
 
 import java.util.List;
 
+import com.bear.mcp.single.core.redis.RedisPermission;
+
 /**
  * 动态工具的运行时对象。
  *
@@ -20,6 +22,8 @@ public record DynamicTool(
         List<String> linkedRequestKeys,
         /** 脚本允许访问的数据源 id 白名单。 */
         List<Long> linkedDataSourceIds,
+        /** 脚本允许访问的Redis权限。 */
+        List<RedisPermission> linkedRedisPermissions,
         /** 工具是否启用。 */
         boolean enabled
 ) {

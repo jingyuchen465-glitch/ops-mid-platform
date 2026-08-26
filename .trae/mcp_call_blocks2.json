@@ -1,0 +1,14 @@
+{"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"feishu_groovy_create_document_blocks","arguments":{"document_id":"LWDfdr461oBGSHxhs1hcvegmnbf","block_id":"LWDfdr461oBGSHxhs1hcvegmnbf","children":[
+{"block_type":3,"text":{"elements":[{"text_run":{"content":"一、什么是工具调用"}}]}},
+{"block_type":2,"text":{"elements":[{"text_run":{"content":"AI 智能体（Agent）本身无法直接操作外部系统。它通过 MCP（Model Context Protocol）这个标准协议，把能力暴露成一个个\"工具\"（Tool），由模型按任务需要选择并调用。本项目的飞书 MCP 工具即是典型例子。"}}]}},
+{"block_type":3,"text":{"elements":[{"text_run":{"content":"二、完整调用链路"}}]}},
+{"block_type":10,"text":{"elements":[{"text_run":{"content":"意图识别：模型理解用户请求，判断需要哪个工具。"}}]}},
+{"block_type":10,"text":{"elements":[{"text_run":{"content":"工具选择：从 tools/list 返回的工具清单中，按输入输出模式匹配最合适的工具。"}}]}},
+{"block_type":10,"text":{"elements":[{"text_run":{"content":"权限校验：检查调用者角色、Token 选择与工具启用状态（本项目由 McpToolsCallFilter 完成）。"}}]}},
+{"block_type":10,"text":{"elements":[{"text_run":{"content":"组装参数：按 inputSchema 填充工具入参。"}}]}},
+{"block_type":10,"text":{"elements":[{"text_run":{"content":"执行工具：tools/call 转发到后端，动态工具经 Groovy 沙盒与 runRequest/runSql 白名单访问资源。"}}]}},
+{"block_type":10,"text":{"elements":[{"text_run":{"content":"结果解析：模型读取返回值，判断是否完成任务或继续下一步。"}}]}},
+{"block_type":10,"text":{"elements":[{"text_run":{"content":"沉淀回复：把结构化结果转成人类易懂的最终回答。"}}]}},
+{"block_type":3,"text":{"elements":[{"text_run":{"content":"三、本文档是如何生成的"}}]}},
+{"block_type":2,"text":{"elements":[{"text_run":{"content":"这篇文档本身就是一次真实的工具调用演示：我先用 feishu_create_document 创建空文档，再用 feishu_groovy_create_document_blocks 逐步写入这些段落，最后用 feishu_read_document 回读核验。整条链路走的正是上面描述的流程。"}}]}}
+]}}}

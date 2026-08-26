@@ -21,7 +21,7 @@ public record RequestConfig(
         String method,
         /** HTTP URL，支持 {{参数名}} 占位符。 */
         String url,
-        /** HTTP 请求头。 */
+        /** HTTP 请求头，值支持 {{参数名}} 占位符。 */
         Map<String, String> headers,
         /** HTTP body 模板，支持 {{参数名}} 占位符。 */
         String bodyTemplate,

@@ -8,10 +8,11 @@
 - `tools/list` 按 token 选择过滤，并注入动态工具
 - `tools/call` 拦截动态工具，执行 Groovy 脚本
 - 动态脚本通过 `runRequest` 调用白名单请求配置
+- 动态脚本通过 `runRedis` 访问绑定过的 Redis key、命令和字段
 - MyBatis 读取 Token、工具选择、动态工具和请求配置
 - 审计日志写入 `mcp_audit_log`
 
-项目只使用 MySQL。首次启动前需要创建数据库并导入初始化脚本；之后 Token、动态工具、请求配置和审计日志都会持久化保存。
+项目使用 MySQL 保存配置和审计，使用 Redis 保存飞书应用凭据及 tenant token 缓存。
 
 ## 启动
 
@@ -22,7 +23,17 @@ mysql -u root -p -e "create database if not exists bear_mcp_single default chars
 mysql -u root -p bear_mcp_single < docs/mysql-init.sql
 ```
 
-按自己的本地 MySQL 账号修改 `src/main/resources/application.yml`，再启动：
+通过环境变量提供 MySQL、Redis、管理端 JWT 和对象存储配置。至少需要设置：
+
+```powershell
+$env:BEAR_DB_PASSWORD = '<mysql-password>'
+$env:BEAR_REDIS_HOST = '127.0.0.1'
+$env:BEAR_REDIS_PORT = '6379'
+$env:BEAR_REDIS_PASSWORD = '<redis-password>'
+$env:BEAR_ADMIN_JWT_SECRET = '<random-secret>'
+```
+
+再启动：
 
 ```bash
 mvn spring-boot:run
@@ -41,6 +52,28 @@ mcp_dev_token
 ```
 
 `docs/mysql-init.sql` 会创建用户、角色、角色工具权限、Token、工具选择、动态工具、请求配置和审计等核心表，并写入 `mcp_dev_token`、`echo_dynamic` 等示例数据。项目启动不会自动重建表，因此后续调用的审计日志会保留。
+
+## 飞书动态工具
+
+已有数据库先按顺序执行：
+
+```bash
+mysql -u root -p bear_mcp_single < docs/mysql-migrate-dynamic-tool-redis.sql
+mysql -u root -p bear_mcp_single < docs/mysql-migrate-feishu-tools.sql
+```
+
+全新数据库执行 `docs/mysql-init.sql` 后，也需要再执行 `docs/mysql-migrate-feishu-tools.sql` 写入 7 个飞书请求配置和 6 个动态工具。
+
+为 MCP 用户写入飞书应用凭据。示例用户 `demo-admin` 的 `userId` 是 `10001`：
+
+```bash
+redis-cli HSET bear:feishu:app:user:10001 \
+  appId '<feishu-app-id>' \
+  appSecret '<feishu-app-secret>' \
+  enabled '1'
+```
+
+脚本只可访问动态工具 `linked_redis_permissions` 中声明的精确 key、命令和 Hash 字段。飞书凭据 Hash 只开放 `HMGET`；tenant token 缓存只开放 `GET` 和受 TTL、大小限制的 `SETEX`。带 Redis 权限的动态工具只能由 `ADMIN` 角色创建、调试、修改或发布。
 
 ## MCP 调用示例
 
@@ -84,7 +117,8 @@ curl -X POST http://localhost:8090/mcp \
 - `ToolSelectionService`：从 `mcp_user_tool_selection` 读取 token 选择
 - `DynamicToolService`：从 `mcp_dynamic_tool` 读取动态工具，做权限检查和审计入口
 - `RequestConfigService`：从 `mcp_request_config` 读取完整企业请求配置，执行 MOCK/HTTP，并应用默认参数、超时和限流
-- `GroovyScriptEngine`：Groovy 脚本执行和 `runRequest` 白名单
+- `GroovyScriptEngine`：Groovy 脚本执行以及 `runRequest`、`runSql`、`runRedis` 白名单
+- `RedisScriptExecutor`：执行动态工具被授权的 `HMGET`、`GET`、`SETEX`
 
 ## 当前表
 

@@ -3,42 +3,51 @@
 <mapper namespace="com.bear.mcp.single.core.mapper.McpDynamicToolMapper">
     <select id="findEnabledByName" resultType="com.bear.mcp.single.core.entity.McpDynamicToolEntity">
         SELECT id, tool_name, tool_description, input_schema, groovy_script,
-               linked_request_keys, linked_data_source_ids, is_enabled AS enabled, publish_status
+               linked_request_keys, linked_data_source_ids, linked_redis_permissions,
+               is_enabled AS enabled, publish_status
         FROM mcp_dynamic_tool
         WHERE tool_name = #{toolName} AND is_enabled = 1 AND publish_status != 0
         LIMIT 1
     </select>
     <select id="findById" resultType="com.bear.mcp.single.core.entity.McpDynamicToolEntity">
         SELECT id, tool_name, tool_description, input_schema, groovy_script,
-               linked_request_keys, linked_data_source_ids, is_enabled AS enabled, publish_status
+               linked_request_keys, linked_data_source_ids, linked_redis_permissions,
+               is_enabled AS enabled, publish_status
         FROM mcp_dynamic_tool
         WHERE id = #{id}
         LIMIT 1
     </select>
     <select id="findByName" resultType="com.bear.mcp.single.core.entity.McpDynamicToolEntity">
         SELECT id, tool_name, tool_description, input_schema, groovy_script,
-               linked_request_keys, linked_data_source_ids, is_enabled AS enabled, publish_status
+               linked_request_keys, linked_data_source_ids, linked_redis_permissions,
+               is_enabled AS enabled, publish_status
         FROM mcp_dynamic_tool
         WHERE tool_name = #{toolName}
         LIMIT 1
     </select>
     <select id="findAll" resultType="com.bear.mcp.single.core.entity.McpDynamicToolEntity">
         SELECT id, tool_name, tool_description, input_schema, groovy_script,
-               linked_request_keys, linked_data_source_ids, is_enabled AS enabled, publish_status
+               linked_request_keys, linked_data_source_ids, linked_redis_permissions,
+               is_enabled AS enabled, publish_status
         FROM mcp_dynamic_tool
         ORDER BY id DESC
     </select>
     <select id="findPublicTools" resultType="com.bear.mcp.single.core.entity.McpDynamicToolEntity">
         SELECT id, tool_name, tool_description, input_schema, groovy_script,
-               linked_request_keys, linked_data_source_ids, is_enabled AS enabled, publish_status
+               linked_request_keys, linked_data_source_ids, linked_redis_permissions,
+               is_enabled AS enabled, publish_status
         FROM mcp_dynamic_tool
         WHERE is_enabled = 1
           AND publish_status = 2
         ORDER BY id DESC
     </select>
     <insert id="insert" parameterType="com.bear.mcp.single.core.entity.McpDynamicToolEntity" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO mcp_dynamic_tool (tool_name, tool_description, input_schema, groovy_script, linked_request_keys, linked_data_source_ids, is_enabled, publish_status)
-        VALUES (#{toolName}, #{toolDescription}, #{inputSchema}, #{groovyScript}, #{linkedRequestKeys}, #{linkedDataSourceIds}, #{enabled}, #{publishStatus})
+        INSERT INTO mcp_dynamic_tool (tool_name, tool_description, input_schema, groovy_script,
+                                      linked_request_keys, linked_data_source_ids, linked_redis_permissions,
+                                      is_enabled, publish_status)
+        VALUES (#{toolName}, #{toolDescription}, #{inputSchema}, #{groovyScript},
+                #{linkedRequestKeys}, #{linkedDataSourceIds}, #{linkedRedisPermissions},
+                #{enabled}, #{publishStatus})
     </insert>
     <update id="update" parameterType="com.bear.mcp.single.core.entity.McpDynamicToolEntity">
         UPDATE mcp_dynamic_tool
@@ -48,6 +57,7 @@
             groovy_script=#{groovyScript},
             linked_request_keys=#{linkedRequestKeys},
             linked_data_source_ids=#{linkedDataSourceIds},
+            linked_redis_permissions=#{linkedRedisPermissions},
             is_enabled=#{enabled},
             publish_status=#{publishStatus}
         WHERE id=#{id}

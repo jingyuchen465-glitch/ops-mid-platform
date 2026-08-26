@@ -49,17 +49,19 @@ public class ShareStudioToolController {
      * 新建动态 Tool。
      */
     @PostMapping
-    public ApiResponse<ShareStudioToolRes> create(@Valid @RequestBody ShareStudioToolSaveReq req) {
-        return ApiResponse.success(studioToolService.create(req));
+    public ApiResponse<ShareStudioToolRes> create(HttpServletRequest request,
+                                                   @Valid @RequestBody ShareStudioToolSaveReq req) {
+        return ApiResponse.success(studioToolService.create(currentUserId(request), req));
     }
 
     /**
      * 更新动态 Tool。
      */
     @PutMapping("/{id}")
-    public ApiResponse<ShareStudioToolRes> update(@PathVariable Long id,
+    public ApiResponse<ShareStudioToolRes> update(HttpServletRequest request,
+                                                  @PathVariable Long id,
                                                   @Valid @RequestBody ShareStudioToolSaveReq req) {
-        return ApiResponse.success(studioToolService.update(id, req));
+        return ApiResponse.success(studioToolService.update(currentUserId(request), id, req));
     }
 
     /**
@@ -94,24 +96,24 @@ public class ShareStudioToolController {
      * 发布动态 Tool。
      */
     @PostMapping("/{id}/publish")
-    public ApiResponse<ShareStudioToolRes> publish(@PathVariable Long id) {
-        return ApiResponse.success(studioToolService.publish(id));
+    public ApiResponse<ShareStudioToolRes> publish(HttpServletRequest request, @PathVariable Long id) {
+        return ApiResponse.success(studioToolService.publish(currentUserId(request), id));
     }
 
     /**
      * 不公开发布动态 Tool。
      */
     @PostMapping("/{id}/publish-private")
-    public ApiResponse<ShareStudioToolRes> publishPrivate(@PathVariable Long id) {
-        return ApiResponse.success(studioToolService.publishPrivate(id));
+    public ApiResponse<ShareStudioToolRes> publishPrivate(HttpServletRequest request, @PathVariable Long id) {
+        return ApiResponse.success(studioToolService.publishPrivate(currentUserId(request), id));
     }
 
     /**
      * 下线动态 Tool。
      */
     @PostMapping("/{id}/unpublish")
-    public ApiResponse<ShareStudioToolRes> unpublish(@PathVariable Long id) {
-        return ApiResponse.success(studioToolService.unpublish(id));
+    public ApiResponse<ShareStudioToolRes> unpublish(HttpServletRequest request, @PathVariable Long id) {
+        return ApiResponse.success(studioToolService.unpublish(currentUserId(request), id));
     }
 
     private Long currentUserId(HttpServletRequest request) {

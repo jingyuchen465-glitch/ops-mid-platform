@@ -44,7 +44,7 @@ public class RequestConfigTools {
             String method,
             @ToolParam(description = "请求 URL，支持 {{param}} 占位符", required = true)
             String url,
-            @ToolParam(description = "请求头 JSON 对象，如 {\"Authorization\":\"Bearer xxx\"}", required = false)
+            @ToolParam(description = "请求头 JSON 对象，值支持 {{key}} 占位符，如 {\"Authorization\":\"Bearer {{token}}\"}", required = false)
             String headers,
             @ToolParam(description = "请求体模板，支持 {{key}} 占位符，POST/PUT 常用", required = false)
             String body_template,

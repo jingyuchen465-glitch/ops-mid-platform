@@ -3,6 +3,8 @@ package com.bear.mcp.single.core.groovy;
 import java.util.List;
 import java.util.Map;
 
+import com.bear.mcp.single.core.redis.RedisPermission;
+
 /**
  * Groovy 脚本执行上下文。
  *
@@ -21,6 +23,8 @@ public record ScriptContext(
         List<String> linkedRequestKeys,
         /** 当前脚本允许访问的数据源 id 白名单。 */
         List<Long> linkedDataSourceIds,
+        /** 当前脚本允许访问的Redis key、命令和字段白名单。 */
+        List<RedisPermission> linkedRedisPermissions,
         /** 脚本最大执行时间，单位毫秒。 */
         long timeoutMs
 ) {

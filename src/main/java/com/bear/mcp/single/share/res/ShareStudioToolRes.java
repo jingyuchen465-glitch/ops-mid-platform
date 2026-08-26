@@ -44,6 +44,11 @@ public class ShareStudioToolRes {
     private String linkedDataSourceIds;
 
     /**
+     * 允许脚本访问的Redis key、命令和字段权限 JSON。
+     */
+    private String linkedRedisPermissions;
+
+    /**
      * 是否启用：1-启用，0-禁用。
      */
     private Integer enabled;

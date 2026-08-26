@@ -233,6 +233,8 @@ const filteredStudioTools = computed(() => {
       item.toolName,
       item.toolDescription,
       item.linkedRequestKeys,
+      item.linkedDataSourceIds,
+      item.linkedRedisPermissions,
       item.groovyScript
     ].filter(Boolean).join(' ').toLowerCase()
 
@@ -520,7 +522,7 @@ const columns = computed(() => ({
  requests:[['requestId','接口 ID'],['configKey','配置 Key'],['name','名称'],['type','协议'],['publishStatus','发布'],['isEnabled','状态']],
  dataSources:[['name','名称'],['datasourceKey','数据源 Key'],['dbType','类型'],['jdbcUrl','JDBC URL'],['username','用户名'],['passwordSet','密码'],['publishStatus','发布']],
  resources:[['resourceUri','Resource URI'],['name','名称'],['description','描述'],['mimeType','MIME 类型'],['publishStatus','发布'],['enabled','状态']],
- tools:[['toolName','工具名'],['toolDescription','工具描述'],['linkedRequestKeys','API 白名单'],['linkedDataSourceIds','数据源白名单'],['publishStatus','发布'],['inputSchema','入参 Schema'],['groovyScript','脚本摘要'],['enabled','状态']],
+ tools:[['toolName','工具名'],['toolDescription','工具描述'],['linkedRequestKeys','API 白名单'],['linkedDataSourceIds','数据源白名单'],['linkedRedisPermissions','Redis 权限'],['publishStatus','发布'],['inputSchema','入参 Schema'],['groovyScript','脚本摘要'],['enabled','状态']],
  audits:[['createTime','调用时间'],['userName','用户'],['capabilityType','类型'],['capabilityName','名称/标识'],['capabilityAction','动作'],['status','状态'],['durationMs','耗时(ms)']],
  roles:[['roleCode','角色编码'],['roleName','角色名称'],['isEnabled','状态']]
 })[page.value] || [])
@@ -634,6 +636,9 @@ function formatTableCell(dataIndex, text, record) {
   if (dataIndex === 'linkedDataSourceIds' && page.value === 'tools') {
     return linkedDataSourceLabel(text)
   }
+  if (dataIndex === 'linkedRedisPermissions' && page.value === 'tools') {
+    return linkedRedisPermissionLabel(text)
+  }
   if (dataIndex === 'inputSchema' && page.value === 'tools') {
     return compactText(text, 42)
   }
@@ -719,6 +724,14 @@ function linkedDataSourceLabel(value) {
   }).join('，')
 }
 
+function linkedRedisPermissionLabel(value) {
+  const permissions = parseJsonArray(value)
+  if (!permissions.length) {
+    return '未绑定'
+  }
+  return permissions.map(item => item?.key).filter(Boolean).join('，') || `${permissions.length} 条权限`
+}
+
 function parseJsonArray(value) {
   if (!value) {
     return []
@@ -757,7 +770,7 @@ function communityToolCountLabel(item) {
   if (item.communityType === 'builtin') {
     return item.displayCategory || '内置工具'
   }
-  return `${parseJsonArray(item.linkedRequestKeys).length} 个 API · ${parseJsonArray(item.linkedDataSourceIds).length} 个数据源`
+  return `${parseJsonArray(item.linkedRequestKeys).length} 个 API · ${parseJsonArray(item.linkedDataSourceIds).length} 个数据源 · ${parseJsonArray(item.linkedRedisPermissions).length} 条 Redis 权限`
 }
 
 function rankCommunityItems(items) {
@@ -1172,7 +1185,7 @@ function emptyModel() {
   if (page.value === 'shareTokens') return { tokenName:'新建 Token', permissions:'["mcp:tools:read","mcp:tools:call"]', isActive:1 }
   if (page.value === 'requests' || page.value === 'studioApis' || page.value === 'studioApiEdit') return emptyApiModel()
   if (page.value === 'dataSources') return emptyDataSourceModel()
-  if (page.value === 'tools') return { toolName:'', toolDescription:'', inputSchema:'{"type":"object","properties":{}}', groovyScript:'return [message: params.message]', linkedRequestKeys:'[]', linkedDataSourceIds:'[]', enabled:1 }
+  if (page.value === 'tools') return { toolName:'', toolDescription:'', inputSchema:'{"type":"object","properties":{}}', groovyScript:'return [message: params.message]', linkedRequestKeys:'[]', linkedDataSourceIds:'[]', linkedRedisPermissions:'[]', enabled:1 }
   if (page.value === 'studioSkills' || page.value === 'studioSkillEdit') return emptySkillModel()
   if (page.value === 'studioPrompts' || page.value === 'studioPromptEdit') return emptyPromptModel()
   if (page.value === 'studioResources' || page.value === 'studioResourceEdit') return emptyResourceModel()
@@ -1210,6 +1223,7 @@ function emptyToolModel() {
     groovyScript: script,
     linkedRequestKeys: '[]',
     linkedDataSourceIds: '[]',
+    linkedRedisPermissions: '[]',
     enabled: 0,
     publishStatus: 0
   }
@@ -1276,6 +1290,9 @@ function openToolEditor(row) {
   model.value = row ? { ...row } : emptyToolModel()
   if (!model.value.linkedDataSourceIds) {
     model.value.linkedDataSourceIds = '[]'
+  }
+  if (!model.value.linkedRedisPermissions) {
+    model.value.linkedRedisPermissions = '[]'
   }
   lastAutoToolScript.value = row ? '' : model.value.groovyScript
   lastAutoToolSchema.value = row ? '' : model.value.inputSchema
@@ -1443,6 +1460,7 @@ function buildSaveBody() {
     body.publishStatus = Number(body.publishStatus || 0)
     body.enabled = body.publishStatus === 0 ? 0 : 1
     body.linkedDataSourceIds = body.linkedDataSourceIds || '[]'
+    body.linkedRedisPermissions = body.linkedRedisPermissions || '[]'
   }
   if (page.value === 'studioSkills' || page.value === 'studioSkillEdit') {
     body.publishStatus = Number(body.publishStatus || 0)
@@ -3605,12 +3623,15 @@ function loginSuccess() {
                   <span>MCP Tool</span>
                   <span>{{ parseJsonArray(item.linkedRequestKeys).length }} 个 API</span>
                   <span>{{ parseJsonArray(item.linkedDataSourceIds).length }} 个数据源</span>
+                  <span>{{ parseJsonArray(item.linkedRedisPermissions).length }} 条 Redis 权限</span>
                 </div>
                 <div class="tool-card-whitelist">
                   <span v-for="key in parseJsonArray(item.linkedRequestKeys)" :key="key">{{ key }}</span>
                   <span v-for="id in parseJsonArray(item.linkedDataSourceIds)" :key="`ds-${id}`">DS {{ id }}</span>
+                  <span v-for="permission in parseJsonArray(item.linkedRedisPermissions)" :key="`redis-${permission.key}`">{{ permission.key }}</span>
                   <span v-if="!parseJsonArray(item.linkedRequestKeys).length">未绑定 API</span>
                   <span v-if="!parseJsonArray(item.linkedDataSourceIds).length">未绑定数据源</span>
+                  <span v-if="!parseJsonArray(item.linkedRedisPermissions).length">未绑定 Redis</span>
                 </div>
                 <div class="api-card-foot">
                   <span class="tool-script-preview">{{ compactText(item.groovyScript, 34) }}</span>
@@ -4148,7 +4169,7 @@ function loginSuccess() {
                 <button type="button" class="api-back-btn" @click="changePage('studioTools')">← 返回列表</button>
                 <span class="api-section-kicker">Dynamic Tool</span>
                 <h2>{{ model.id ? '编辑 Tool' : '新建 Tool' }}</h2>
-                <p>Tool 创作负责包装能力：通过 inputSchema 定义入参，通过 Groovy 编排逻辑，并用 <code>runRequest.runRequest</code> 或 <code>runSql.runSql</code> 调用已保存的能力配置。</p>
+                <p>Tool 创作负责包装能力：通过 inputSchema 定义入参，通过 Groovy 编排逻辑，并使用已绑定的 API、数据源或 Redis 权限。</p>
               </div>
               <aside>
                 <span>当前工具</span>
@@ -4209,6 +4230,11 @@ function loginSuccess() {
                   max-tag-count="responsive"
                 />
                 <p v-if="!availableToolDataSources.length" class="tool-api-empty">暂无已发布数据源，请先在管理后台发布一个数据源。</p>
+                <label>
+                  <span>Redis 权限 JSON（仅管理员）</span>
+                  <textarea v-model="model.linkedRedisPermissions" class="tool-code-input" spellcheck="false" placeholder='[{"key":"bear:feishu:app:user:{userId}","commands":["HMGET"],"fields":["appId","appSecret","enabled"]}]'></textarea>
+                </label>
+                <p class="tool-api-empty">只声明脚本必需的 key、命令和字段；这里不会展示 Redis 中的实际值。</p>
               </aside>
 
               <section class="tool-script-editor">
@@ -4779,7 +4805,7 @@ function loginSuccess() {
       </section>
     </a-form>
     <a-form v-else layout="vertical" class="entity-form">
-      <template v-for="(value,key) in model" :key="key"><a-form-item v-if="!['id','tokenHash','tokenPrefix','createTime','updateTime','lastUsedTime','lastUsedIp'].includes(key)" :label="key"><a-textarea v-if="['headers','bodyTemplate','paramsDefault','inputSchema','groovyScript','linkedRequestKeys','linkedDataSourceIds','description','argsSchema'].includes(key)" v-model:value="model[key]" class="code-area" :auto-size="{minRows:2,maxRows:8}" /><a-input v-else v-model:value="model[key]" /></a-form-item></template>
+      <template v-for="(value,key) in model" :key="key"><a-form-item v-if="!['id','tokenHash','tokenPrefix','createTime','updateTime','lastUsedTime','lastUsedIp'].includes(key)" :label="key"><a-textarea v-if="['headers','bodyTemplate','paramsDefault','inputSchema','groovyScript','linkedRequestKeys','linkedDataSourceIds','linkedRedisPermissions','description','argsSchema'].includes(key)" v-model:value="model[key]" class="code-area" :auto-size="{minRows:2,maxRows:8}" /><a-input v-else v-model:value="model[key]" /></a-form-item></template>
     </a-form>
     <template #footer><a-space><a-button @click="drawer=false">取消</a-button><a-button v-if="page === 'dataSources'" :loading="dataSourceTesting" @click="testDataSourceConnection">测试连接</a-button><a-button type="primary" @click="save">保存</a-button></a-space></template>
   </a-drawer>
@@ -5107,6 +5133,10 @@ function loginSuccess() {
         <div>
           <span>数据源白名单</span>
           <b>{{ linkedDataSourceLabel(activeDynamicTool?.linkedDataSourceIds) }}</b>
+        </div>
+        <div>
+          <span>Redis 权限</span>
+          <b>{{ linkedRedisPermissionLabel(activeDynamicTool?.linkedRedisPermissions) }}</b>
         </div>
       </div>
       <p class="permission-hint detail-desc">{{ activeDynamicTool?.toolDescription || '暂无工具描述' }}</p>
