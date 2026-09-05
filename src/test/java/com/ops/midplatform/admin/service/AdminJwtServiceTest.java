@@ -8,7 +8,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class AdminJwtServiceTest {
     @Test
     void shouldCreateAndVerifyJwtWithHutool() {
-        AdminJwtService service = new AdminJwtService("ops-mid-platform-test-secret", 7200L);
+        AdminJwtService service = new AdminJwtService("ops-mid-platform-test-secret-0123456789abcdef", 7200L);
 
         String token = service.createToken(10001L, "demo-admin");
         AdminJwtService.AdminJwtUser user = service.verify(token);
