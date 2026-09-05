@@ -3021,7 +3021,7 @@ function loginSuccess() {
 <template>
   <LoginView v-if="!loggedIn" @success="loginSuccess" />
   <template v-else>
-  <a-config-provider :theme="{ token: { colorPrimary: '#8b5cf6', borderRadius: 8, fontFamily: 'Inter, PingFang SC, Microsoft YaHei, sans-serif' } }">
+  <a-config-provider :theme="{ token: { colorPrimary: '#22c55e', colorInfo: '#22c55e', colorSuccess: '#22c55e', colorLink: '#16a34a', borderRadius: 10, colorBgContainer: '#ffffff', fontFamily: 'Plus Jakarta Sans, PingFang SC, Microsoft YaHei, sans-serif' } }">
   <template v-if="isSharePage">
     <div class="share-shell">
       <nav class="hub-nav">
@@ -4414,7 +4414,7 @@ function loginSuccess() {
   <a-layout class="console-layout">
     <a-layout-sider width="260" class="console-sider">
       <div class="brand"><span class="brand-mark">B</span><span>Bear MCP<small>管理控制台</small></span></div>
-      <a-menu theme="dark" mode="inline" :selected-keys="[page]" class="console-menu" @click="({key}) => changePage(key)">
+      <a-menu theme="light" mode="inline" :selected-keys="[page]" class="console-menu" @click="({key}) => changePage(key)">
         <div class="nav-caption">概览</div>
         <a-menu-item key="dashboard"><AppstoreOutlined /><span>概览</span></a-menu-item>
         <div class="nav-caption">系统治理</div>

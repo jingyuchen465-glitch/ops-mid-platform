@@ -19,19 +19,43 @@ public final class GroovySecurityCustomizer {
 
     /**
      * 禁止调用的方法名。
+     *
+     * <p>重点封堵网络外联（openConnection/openStream/http send）、反射读取字段、
+     * 自定义类加载（loadClass/defineClass）等绕过 runRequest 受控入口的路径。</p>
      */
     private static final List<String> BLOCKED_METHODS = List.of(
             "execute", "exit", "halt", "load", "loadLibrary", "getRuntime", "exec", "start",
-            "forName", "newInstance", "getClassLoader", "getMethod", "getDeclaredMethod", "invoke"
+            "forName", "newInstance", "getClassLoader", "getClass", "getMethod", "getDeclaredMethod",
+            "invoke", "newProxyInstance",
+            "openConnection", "openStream", "getContent", "send", "newHttpClient",
+            "loadClass", "defineClass", "toURL",
+            "getDeclaredField", "getField", "setAccessible",
+            "getResource", "getResourceAsStream",
+            "getConstructor", "getDeclaredConstructor"
     );
 
     /**
      * 禁止脚本直接使用的类。
+     *
+     * <p>除命令执行/文件类外，额外封堵网络类（java.net.URL、HttpURLConnection、JDK HttpClient）、
+     * InetAddress、内部类加载器、反射/Bean 间接调用、反序列化与 JNDI/RMI 等逃逸入口。</p>
      */
     private static final List<String> BLOCKED_CLASSES = List.of(
             "java.lang.Runtime", "java.lang.ProcessBuilder", "java.lang.System", "java.lang.Thread",
             "java.io.File", "java.nio.file.Files", "java.nio.file.Paths", "java.net.Socket",
-            "groovy.lang.GroovyShell", "groovy.lang.GroovyClassLoader"
+            "groovy.lang.GroovyShell", "groovy.lang.GroovyClassLoader",
+            "java.net.URL", "java.net.URLConnection", "java.net.HttpURLConnection",
+            "java.net.http.HttpClient", "java.net.http.HttpRequest", "java.net.http.HttpResponse",
+            "java.net.URI", "java.net.InetAddress", "java.net.InetSocketAddress",
+            "java.net.DatagramSocket", "java.net.ServerSocket",
+            "java.lang.ClassLoader", "java.net.URLClassLoader",
+            "java.lang.reflect.AccessibleObject", "java.lang.reflect.Method",
+            "java.lang.reflect.Field", "java.lang.reflect.Constructor",
+            "java.beans.Expression", "java.beans.Statement",
+            "java.io.ObjectInputStream",
+            "javax.naming.InitialContext", "javax.naming.Context",
+            "javax.naming.directory.InitialDirContext",
+            "java.rmi.registry.LocateRegistry"
     );
 
     private GroovySecurityCustomizer() {

@@ -12,10 +12,15 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.springframework.stereotype.Service;
 
+import java.net.Inet4Address;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -169,6 +174,12 @@ public class RequestConfigService {
             String body = replace(config.bodyTemplate(), params);
 
             /*
+             * SSRF 防护：先校验目标地址，禁止向私网/环回/云元数据地址发起请求。
+             * 这能阻止通过用户可提交 URL 的调试接口去打内网或读取云厂商元数据。
+             */
+            assertSafeUrl(url);
+
+            /*
              * 不同请求配置可能有不同超时时间。
              * OkHttpClient 本身可复用，这里基于基础 client 派生带超时设置的新 client。
              */
@@ -219,6 +230,100 @@ public class RequestConfigService {
      */
     private boolean requiresRequestBody(String method) {
         return !"GET".equals(method) && !"HEAD".equals(method);
+    }
+
+    /**
+     * SSRF 防护：校验待请求 URL 是否指向不安全的目标地址。
+     *
+     * <p>仅允许 http/https 协议；解析域名得到的所有 IP 都必须不是
+     * 环回、私网、链路本地、云元数据等内部地址。</p>
+     */
+    private void assertSafeUrl(String url) {
+        if (url == null || url.isBlank()) {
+            throw new IllegalArgumentException("请求 URL 不能为空");
+        }
+        String lower = url.toLowerCase(Locale.ROOT);
+        if (!lower.startsWith("http://") && !lower.startsWith("https://")) {
+            throw new IllegalArgumentException("仅允许 http/https 协议，禁止请求内部服务");
+        }
+
+        String host;
+        boolean hostIsIpLiteral = false;
+        try {
+            URI uri = new URI(url);
+            host = uri.getHost();
+            if (host == null) {
+                throw new IllegalArgumentException("请求 URL 缺少主机名");
+            }
+            hostIsIpLiteral = looksLikeIpLiteral(host);
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalArgumentException("请求 URL 格式非法");
+        }
+
+        try {
+            InetAddress[] addresses = hostIsIpLiteral
+                    ? new InetAddress[]{InetAddress.getByName(host)}
+                    : InetAddress.getAllByName(host);
+            for (InetAddress address : addresses) {
+                if (isBlockedAddress(address)) {
+                    throw new IllegalArgumentException("禁止请求内网/私网地址: " + host);
+                }
+            }
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalArgumentException("无法解析请求目标主机: " + host);
+        }
+    }
+
+    private boolean looksLikeIpLiteral(String host) {
+        return host.matches("\\d{1,3}(\\.\\d{1,3}){3}") || host.contains(":");
+    }
+
+    private boolean isBlockedAddress(InetAddress address) {
+        if (address.isAnyLocalAddress()
+                || address.isLoopbackAddress()
+                || address.isLinkLocalAddress()) {
+            return true;
+        }
+        if (address instanceof Inet4Address) {
+            byte[] b = address.getAddress();
+            int first = b[0] & 0xff;
+            int second = b[1] & 0xff;
+            // 0.0.0.0/8、10.0.0.0/8
+            if (first == 0 || first == 10) {
+                return true;
+            }
+            // 100.64.0.0/10 (CGNAT)
+            if (first == 100 && (second & 0xc0) == 64) {
+                return true;
+            }
+            // 172.16.0.0/12
+            if (first == 172 && (second & 0xf0) == 16) {
+                return true;
+            }
+            // 192.168.0.0/16
+            if (first == 192 && second == 168) {
+                return true;
+            }
+            // 127.0.0.0/8 与 169.254.0.0/16 已由 isLoopback/isLinkLocal 覆盖
+            return false;
+        }
+        if (address instanceof Inet6Address) {
+            // fec0::/10 站点本地
+            byte[] v6 = address.getAddress();
+            int first = v6[0] & 0xff;
+            if (first == 0xfe && (v6[1] & 0xc0) == 0xc0) {
+                return true;
+            }
+            // fc00::/7 唯一本地
+            if ((first & 0xfe) == 0xfc) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

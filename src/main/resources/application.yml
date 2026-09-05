@@ -42,7 +42,12 @@ logging:
 
 bear:
   admin:
-    jwt-secret: ${BEAR_ADMIN_JWT_SECRET:bear-mcp-single-classroom-admin-secret-change-in-production}
+    # 管理端 JWT 签名密钥：生产必须通过环境变量 BEAR_ADMIN_JWT_SECRET 注入强随机密钥。
+    # 默认值仅用于本地开发，绝不可用于生产。
+    jwt-secret: ${BEAR_ADMIN_JWT_SECRET:dev-only-insecure-secret-key-2026-change-me-in-prod}
+    # 数据加密密钥（Token 明文 / 数据源密码 AES 加密）独立于 JWT 签名密钥。
+    # 不设置时回落到 jwt-secret，生产建议单独配置 BEAR_ADMIN_DATA_SECRET。
+    data-secret: ${BEAR_ADMIN_DATA_SECRET:}
     jwt-expire-seconds: 7200
   mcp:
     demo-token: mcp_dev_token

@@ -54,13 +54,18 @@ public class AdminTokenService {
                              McpUserPromptSelectionMapper promptSelectionMapper,
                              McpUserResourceSelectionMapper resourceSelectionMapper,
                              ObjectMapper objectMapper,
-                             @Value("${bear.admin.jwt-secret}") String secret) {
+                             @Value("${bear.admin.jwt-secret}") String secret,
+                             @Value("${bear.admin.data-secret:}") String dataSecret) {
         this.tokenMapper = tokenMapper;
         this.selectionMapper = selectionMapper;
         this.promptSelectionMapper = promptSelectionMapper;
         this.resourceSelectionMapper = resourceSelectionMapper;
         this.objectMapper = objectMapper;
-        this.tokenAes = SecureUtil.aes(aesKey(secret));
+        /*
+         * Token 明文加密使用独立的数据加密密钥，避免与 JWT 签名密钥混用。
+         * 未单独配置时回落到 jwt-secret，以保持对旧数据的兼容。
+         */
+        this.tokenAes = SecureUtil.aes(aesKey(dataSecret != null && !dataSecret.isBlank() ? dataSecret : secret));
     }
 
     public List<AdminTokenRes> list() {
