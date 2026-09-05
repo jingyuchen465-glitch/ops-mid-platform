@@ -11,7 +11,7 @@ pipeline {
         // 服务器访问 GitHub 不稳定，调低低速判死阈值并让 checkout 失败自动重试
         GIT_HTTP_LOW_SPEED_LIMIT = '1000'
         GIT_HTTP_LOW_SPEED_TIME = '60'
-        REGISTRY = 'registry.cn-hangzhou.aliyuncs.com'
+        REGISTRY = 'crpi-bgfb2r2bqr6jxrwi.cn-hangzhou.personal.cr.aliyuncs.com'
         IMAGE_NAMESPACE = 'dev-cjy'
         DEPLOY_HOST = '118.178.255.26'
         DEPLOY_USER = 'deploy'
