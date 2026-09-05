@@ -45,7 +45,9 @@ pipeline {
         stage('Build and Push Images') {
             steps {
                 script {
-                    def tag = "${env.BUILD_NUMBER}-${env.GIT_COMMIT.take(7)}"
+                    // 手动 checkout 不注入 GIT_COMMIT，直接用 git rev-parse 取提交短 SHA
+                    def shortSha = sh(script: 'git rev-parse --short=7 HEAD', returnStdout: true).trim()
+                    def tag = "${env.BUILD_NUMBER}-${shortSha}"
                     env.BACKEND_IMAGE = "${env.REGISTRY}/${env.IMAGE_NAMESPACE}/ops-mid-platform-backend:${tag}"
                     env.FRONTEND_IMAGE = "${env.REGISTRY}/${env.IMAGE_NAMESPACE}/ops-mid-platform-frontend:${tag}"
                 }
