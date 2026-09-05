@@ -17,7 +17,7 @@ pipeline {
     stages {
         stage('Test') {
             steps {
-                sh 'mvn -B test'
+                sh 'docker run --rm -v "$PWD":/workspace -w /workspace maven:3.9.9-eclipse-temurin-17 mvn -B test'
                 sh 'docker run --rm -v "$PWD/admin-web:/app" -w /app node:22-alpine npm ci'
                 sh 'docker run --rm -v "$PWD/admin-web:/app" -w /app node:22-alpine npm run build'
             }
