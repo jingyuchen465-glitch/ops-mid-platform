@@ -1,4 +1,4 @@
-package com.bear.mcp.single.admin.req;
+package com.ops.midplatform.admin.req;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;

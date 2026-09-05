@@ -1,13 +1,13 @@
-package com.bear.mcp.single.admin.controller;
+package com.ops.midplatform.admin.controller;
 
-import com.bear.mcp.single.admin.req.AdminCodeListReq;
-import com.bear.mcp.single.admin.req.AdminRoleSaveReq;
-import com.bear.mcp.single.admin.res.AdminRoleRes;
-import com.bear.mcp.single.admin.res.AdminRolePromptRes;
-import com.bear.mcp.single.admin.res.AdminRoleResourceRes;
-import com.bear.mcp.single.admin.res.AdminRoleToolRes;
-import com.bear.mcp.single.admin.service.AdminRoleService;
-import com.bear.mcp.single.common.api.ApiResponse;
+import com.ops.midplatform.admin.req.AdminCodeListReq;
+import com.ops.midplatform.admin.req.AdminRoleSaveReq;
+import com.ops.midplatform.admin.res.AdminRoleRes;
+import com.ops.midplatform.admin.res.AdminRolePromptRes;
+import com.ops.midplatform.admin.res.AdminRoleResourceRes;
+import com.ops.midplatform.admin.res.AdminRoleToolRes;
+import com.ops.midplatform.admin.service.AdminRoleService;
+import com.ops.midplatform.common.api.ApiResponse;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 

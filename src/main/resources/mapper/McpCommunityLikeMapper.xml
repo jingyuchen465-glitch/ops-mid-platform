@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.bear.mcp.single.core.mapper.McpCommunityLikeMapper">
+<mapper namespace="com.ops.midplatform.core.mapper.McpCommunityLikeMapper">
     <insert id="insertIgnore">
         INSERT IGNORE INTO mcp_community_like (target_type, target_key, user_id)
         VALUES (#{targetType}, #{targetKey}, #{userId})
@@ -28,7 +28,7 @@
           AND target_key = #{targetKey}
     </select>
 
-    <select id="countByTypes" resultType="com.bear.mcp.single.core.entity.McpCommunityLikeStatEntity">
+    <select id="countByTypes" resultType="com.ops.midplatform.core.entity.McpCommunityLikeStatEntity">
         SELECT target_type AS targetType, target_key AS targetKey, COUNT(*) AS likeCount
         FROM mcp_community_like
         WHERE target_type IN

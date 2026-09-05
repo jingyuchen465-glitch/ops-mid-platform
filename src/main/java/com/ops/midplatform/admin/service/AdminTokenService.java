@@ -1,31 +1,31 @@
-package com.bear.mcp.single.admin.service;
+package com.ops.midplatform.admin.service;
 
 import cn.hutool.crypto.SecureUtil;
 import cn.hutool.crypto.symmetric.AES;
-import com.bear.mcp.single.admin.req.AdminTokenPromptSelectionItemReq;
-import com.bear.mcp.single.admin.req.AdminTokenPromptSelectionSaveReq;
-import com.bear.mcp.single.admin.req.AdminTokenResourceSelectionItemReq;
-import com.bear.mcp.single.admin.req.AdminTokenResourceSelectionSaveReq;
-import com.bear.mcp.single.admin.req.AdminTokenSaveReq;
-import com.bear.mcp.single.admin.req.AdminTokenSelectionItemReq;
-import com.bear.mcp.single.admin.req.AdminTokenSelectionSaveReq;
-import com.bear.mcp.single.admin.res.AdminTokenCreatedRes;
-import com.bear.mcp.single.admin.res.AdminTokenPromptSelectionRes;
-import com.bear.mcp.single.admin.res.AdminTokenResourceSelectionRes;
-import com.bear.mcp.single.admin.res.AdminTokenRes;
-import com.bear.mcp.single.admin.res.AdminTokenSelectionRes;
-import com.bear.mcp.single.common.exception.BusinessException;
-import com.bear.mcp.single.share.res.ShareCursorInstallRes;
+import com.ops.midplatform.admin.req.AdminTokenPromptSelectionItemReq;
+import com.ops.midplatform.admin.req.AdminTokenPromptSelectionSaveReq;
+import com.ops.midplatform.admin.req.AdminTokenResourceSelectionItemReq;
+import com.ops.midplatform.admin.req.AdminTokenResourceSelectionSaveReq;
+import com.ops.midplatform.admin.req.AdminTokenSaveReq;
+import com.ops.midplatform.admin.req.AdminTokenSelectionItemReq;
+import com.ops.midplatform.admin.req.AdminTokenSelectionSaveReq;
+import com.ops.midplatform.admin.res.AdminTokenCreatedRes;
+import com.ops.midplatform.admin.res.AdminTokenPromptSelectionRes;
+import com.ops.midplatform.admin.res.AdminTokenResourceSelectionRes;
+import com.ops.midplatform.admin.res.AdminTokenRes;
+import com.ops.midplatform.admin.res.AdminTokenSelectionRes;
+import com.ops.midplatform.common.exception.BusinessException;
+import com.ops.midplatform.share.res.ShareCursorInstallRes;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
-import com.bear.mcp.single.core.entity.McpUserPromptSelectionEntity;
-import com.bear.mcp.single.core.entity.McpUserResourceSelectionEntity;
-import com.bear.mcp.single.core.entity.McpUserTokenEntity;
-import com.bear.mcp.single.core.entity.McpUserToolSelectionEntity;
-import com.bear.mcp.single.core.mapper.McpUserPromptSelectionMapper;
-import com.bear.mcp.single.core.mapper.McpUserResourceSelectionMapper;
-import com.bear.mcp.single.core.mapper.McpUserTokenMapper;
-import com.bear.mcp.single.core.mapper.McpUserToolSelectionMapper;
+import com.ops.midplatform.core.entity.McpUserPromptSelectionEntity;
+import com.ops.midplatform.core.entity.McpUserResourceSelectionEntity;
+import com.ops.midplatform.core.entity.McpUserTokenEntity;
+import com.ops.midplatform.core.entity.McpUserToolSelectionEntity;
+import com.ops.midplatform.core.mapper.McpUserPromptSelectionMapper;
+import com.ops.midplatform.core.mapper.McpUserResourceSelectionMapper;
+import com.ops.midplatform.core.mapper.McpUserTokenMapper;
+import com.ops.midplatform.core.mapper.McpUserToolSelectionMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -159,7 +159,7 @@ public class AdminTokenService {
         McpUserTokenEntity entity = ensureOwner(userId, tokenId);
         String rawToken = plainToken(entity);
         String mcpUrl = normalizeBaseUrl(baseUrl) + "/mcp";
-        String serverName = "bear-mcp-" + entity.getId();
+        String serverName = "ops-mid-platform-" + entity.getId();
         try {
             Map<String, Object> config = Map.of(
                     "type", "http",

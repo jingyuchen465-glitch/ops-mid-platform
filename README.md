@@ -1,134 +1,138 @@
-# Bear MCP Single
+# Ops Mid-Platform（运营中台 MCP Server）
 
-单体版 MCP Server 学习项目。当前版本保留核心链路，并把课堂演示数据落到数据库：
+生产级运营中台 MCP 服务。基于 Spring AI MCP Server 构建的统一能力网关，将数据源、动态工具、请求配置、Prompt 模板、资源与技能统一纳管，并通过 MCP 协议对外提供标准化的工具调用能力。内置管理员控制台与共享 Studio，支撑运营侧 Agent 工具链的快速接入与安全管控。
 
-- Spring AI MCP Server 暴露 `POST /mcp`
-- Bearer Token 鉴权
-- 内置 Tools 注册
-- `tools/list` 按 token 选择过滤，并注入动态工具
-- `tools/call` 拦截动态工具，执行 Groovy 脚本
-- 动态脚本通过 `runRequest` 调用白名单请求配置
-- 动态脚本通过 `runRedis` 访问绑定过的 Redis key、命令和字段
-- MyBatis 读取 Token、工具选择、动态工具和请求配置
-- 审计日志写入 `mcp_audit_log`
+## 核心能力
 
-项目使用 MySQL 保存配置和审计，使用 Redis 保存飞书应用凭据及 tenant token 缓存。
+- **MCP 网关**：基于 Spring AI MCP Server（WebMVC / STREAMABLE 协议），提供 `initialize`、`tools/list`、`tools/call`、`resources`、`prompts` 全链路，Bearer Token 鉴权 + ApiKey 校验双层入口。
+- **动态工具引擎**：Groovy 脚本即配即用，脚本运行于安全沙箱（类/方法白名单、字节码校验），支持 `runRequest`（白名单请求配置）、`runRedis`（权限受限的 Redis 操作）、`runSql`（外部数据源查询）等内置能力。
+- **请求配置白名单**：HTTP 请求模板集中管理，支持 `{{key}}` 占位符动态注入与 Header/Params/Body 编排，天然适配飞书等第三方 Open API。
+- **Redis 权限管控**：每个动态工具声明精确的 key、命令与 Hash 字段白名单，越权操作在沙箱层被拦截，防止脚本滥用。
+- **外部数据源管理**：MySQL 数据源动态注册与连接池管理，SQL 工具按用户授权范围执行，敏感结果脱敏。
+- **Prompt 模板与运行时**：Prompt 模板版本化管理与权限隔离，支持模板市场（Studio）与运行时工具联动。
+- **技能（Skill）管理**：Markdown 技能包上传、发布、安装脚本生成与下载，支持 `skills/` 目录静态技能与动态技能市场。
+- **资源管理**：资源上传预签名、下载预签名，对接火山引擎 TOS 对象存储。
+- **共享 Studio 与社区**：工具 / Prompt / 资源 / 技能 / API 的发布、调试、分享与社区点赞互动。
+- **审计与安全**：全链路操作审计日志、Token 生命周期管理、JWT 管理端认证、数据加密（Token 明文 / 数据源密码 AES 加密）、敏感值脱敏。
+- **管理员控制台**：`admin-web` 提供数据源、动态工具、请求配置、Prompt、资源、技能、角色权限、Token、审计等全量管理界面。
 
-## 启动
+## 技术栈
 
-先创建数据库并导入初始化脚本：
+| 分类 | 选型 |
+| --- | --- |
+| 语言 / 运行时 | Java 17 |
+| 框架 | Spring Boot 3.3、Spring AI 1.1（MCP Server WebMVC） |
+| 持久层 | MyBatis 3、MySQL 8、HikariCP |
+| 缓存 | Redis（Spring Data Redis） |
+| 脚本引擎 | Apache Groovy 4（安全沙箱） |
+| 安全 | Spring Security Crypto（BCrypt / JWT）、API Key 网关过滤器 |
+| 对象存储 | 火山引擎 TOS SDK |
+| HTTP 客户端 | OkHttp 4 |
+| 工具库 | Hutool |
+
+## 目录结构
+
+```
+ops-mid-platform
+├── admin-web/                      # 管理员控制台前端（Vue）
+├── docs/                           # 数据库初始化与迁移脚本、业务词表
+│   ├── mysql-init.sql              # 建库建表 + 种子数据
+│   └── mysql-migrate-*.sql         # 分功能增量迁移
+├── skills/                         # 内置技能（Markdown 技能包）
+├── src/main/java/com/ops/midplatform/
+│   ├── admin/                      # 管理端：认证、控制台、数据源、工具、Prompt、资源、角色、Token、审计
+│   ├── gateway/                    # MCP 网关过滤器（鉴权、tools/list、tools/call、resources、prompts）
+│   ├── core/                       # 核心引擎：动态工具、Groovy 沙箱、请求配置、Redis 权限、数据源、Prompt、资源、技能、审计
+│   ├── share/                      # 共享 Studio：工具/Prompt/资源/技能/API 发布与调试、社区
+│   ├── publicapi/                  # 面向外部的公开接口（技能 CLI 等）
+│   └── common/                     # 统一响应、异常、上下文
+├── src/main/resources/
+│   ├── application.yml             # 主配置（全部通过环境变量注入）
+│   ├── mapper/                     # MyBatis XML
+│   └── ops-skill/                  # 内置技能包资源
+├── setup-db.ps1                    # Windows 本地建库脚本
+└── pom.xml
+```
+
+## 快速开始
+
+### 环境依赖
+
+- JDK 17+
+- Maven 3.8+
+- MySQL 8.0+
+- Redis 6+
+
+### 1. 初始化数据库
 
 ```bash
-mysql -u root -p -e "create database if not exists bear_mcp_single default charset utf8mb4"
-mysql -u root -p bear_mcp_single < docs/mysql-init.sql
+mysql -u root -p -e "create database if not exists ops_mid_platform default charset utf8mb4"
+mysql -u root -p ops_mid_platform < docs/mysql-init.sql
 ```
 
-通过环境变量提供 MySQL、Redis、管理端 JWT 和对象存储配置。至少需要设置：
+按需执行 `docs/mysql-migrate-*.sql` 中的增量脚本（飞书工具、数据源工具、Prompt/技能/资源 Studio 等）。
+
+### 2. 配置环境变量
+
+所有连接信息与密钥均通过环境变量注入，禁止硬编码生产凭据：
 
 ```powershell
-$env:BEAR_DB_PASSWORD = '<mysql-password>'
-$env:BEAR_REDIS_HOST = '127.0.0.1'
-$env:BEAR_REDIS_PORT = '6379'
+$env:BEAR_DB_URL       = 'jdbc:mysql://<host>:3306/ops_mid_platform?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai'
+$env:BEAR_DB_USERNAME  = '<db-user>'
+$env:BEAR_DB_PASSWORD  = '<db-password>'
+$env:BEAR_REDIS_HOST   = '127.0.0.1'
+$env:BEAR_REDIS_PORT   = '6379'
 $env:BEAR_REDIS_PASSWORD = '<redis-password>'
-$env:BEAR_ADMIN_JWT_SECRET = '<random-secret>'
+$env:BEAR_ADMIN_JWT_SECRET  = '<强随机密钥，建议 64 位以上>'
+$env:BEAR_ADMIN_DATA_SECRET = '<独立数据加密密钥，建议与 JWT 密钥分离>'
 ```
 
-再启动：
+### 3. 启动
 
 ```bash
 mvn spring-boot:run
 ```
 
-默认端口：
+默认监听 `8090`，MCP 端点：
 
 ```text
 http://localhost:8090/mcp
 ```
 
-默认测试 token：
+默认开发 Token：`mcp_dev_token`（生产环境务必通过管理端重建 Token 并撤销默认值）。
 
-```text
-mcp_dev_token
-```
+## 环境变量
 
-`docs/mysql-init.sql` 会创建用户、角色、角色工具权限、Token、工具选择、动态工具、请求配置和审计等核心表，并写入 `mcp_dev_token`、`echo_dynamic` 等示例数据。项目启动不会自动重建表，因此后续调用的审计日志会保留。
+| 变量 | 默认值 | 说明 |
+| --- | --- | --- |
+| `BEAR_DB_URL` | `jdbc:mysql://127.0.0.1:3306/bear-mcp-single?...` | MySQL 连接串 |
+| `BEAR_DB_USERNAME` / `BEAR_DB_PASSWORD` | `root` / `1234` | MySQL 账号（默认值仅本地开发） |
+| `BEAR_REDIS_HOST` / `BEAR_REDIS_PORT` | `127.0.0.1` / `6379` | Redis 地址 |
+| `BEAR_REDIS_USERNAME` / `BEAR_REDIS_PASSWORD` | 空 | Redis 账号（可空） |
+| `BEAR_REDIS_DATABASE` | `0` | Redis 库号 |
+| `BEAR_ADMIN_JWT_SECRET` | 开发占位值 | 管理端 JWT 签名密钥，生产必须注入强随机值 |
+| `BEAR_ADMIN_DATA_SECRET` | 空（回落 JWT 密钥） | Token 明文 / 数据源密码 AES 加密密钥 |
+| `BEAR_TOS_ENDPOINT` / `BEAR_TOS_REGION` / `BEAR_TOS_BUCKET` | 火山 TOS 默认值 | 对象存储配置 |
+| `BEAR_TOS_ACCESS_KEY` / `BEAR_TOS_SECRET_KEY` | 空 | 对象存储访问密钥 |
 
-## 飞书动态工具
+## MCP 接入
 
-已有数据库先按顺序执行：
+Streamable HTTP 协议，接入流程：
 
-```bash
-mysql -u root -p bear_mcp_single < docs/mysql-migrate-dynamic-tool-redis.sql
-mysql -u root -p bear_mcp_single < docs/mysql-migrate-feishu-tools.sql
-```
+1. `POST /mcp` 携带 `Authorization: Bearer <token>` 发起 `initialize`；
+2. 保存响应头 `Mcp-Session-Id` 并在后续请求中携带；
+3. 通过 `tools/list` 查看当前 Token 有权调用的工具（内置工具 + 动态工具，按 Token 选择过滤）；
+4. 通过 `tools/call` 调用工具，动态工具由网关拦截并路由到 Groovy 沙箱执行。
 
-全新数据库执行 `docs/mysql-init.sql` 后，也需要再执行 `docs/mysql-migrate-feishu-tools.sql` 写入 7 个飞书请求配置和 6 个动态工具。
+## 安全设计
 
-为 MCP 用户写入飞书应用凭据。示例用户 `demo-admin` 的 `userId` 是 `10001`：
+- **双重鉴权**：MCP 网关 Bearer Token + ApiKey 校验；管理端独立 JWT 会话。
+- **Groovy 沙箱**：脚本编译期白名单与运行时安全定制器双重拦截，阻断反射逃逸与敏感类访问。
+- **敏感值脱敏**：动态脚本响应与审计日志中的敏感字段统一脱敏。
+- **Redis 权限策略**：脚本仅可访问声明白名单内的 key、命令与 Hash 字段，杜绝越权访问。
+- **数据加密**：Token 明文与数据源密码使用独立密钥 AES 加密存储。
+- **全链路审计**：MCP 调用、管理端操作、动态工具执行均落审计日志。
 
-```bash
-redis-cli HSET bear:feishu:app:user:10001 \
-  appId '<feishu-app-id>' \
-  appSecret '<feishu-app-secret>' \
-  enabled '1'
-```
+## License
 
-脚本只可访问动态工具 `linked_redis_permissions` 中声明的精确 key、命令和 Hash 字段。飞书凭据 Hash 只开放 `HMGET`；tenant token 缓存只开放 `GET` 和受 TTL、大小限制的 `SETEX`。带 Redis 权限的动态工具只能由 `ADMIN` 角色创建、调试、修改或发布。
-
-## MCP 调用示例
-
-Streamable HTTP 需要先 `initialize`，并把响应头里的 `Mcp-Session-Id` 带到后续请求。
-
-```bash
-curl -i -X POST http://localhost:8090/mcp \
-  -H 'Content-Type: application/json' \
-  -H 'Accept: application/json, text/event-stream' \
-  -H 'Authorization: Bearer mcp_dev_token' \
-  -d '{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"curl","version":"0.1"}}}'
-```
-
-查看工具列表：
-
-```bash
-curl -X POST http://localhost:8090/mcp \
-  -H 'Content-Type: application/json' \
-  -H 'Accept: application/json, text/event-stream' \
-  -H 'Authorization: Bearer mcp_dev_token' \
-  -H 'Mcp-Session-Id: <initialize 返回的会话 ID>' \
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
-```
-
-调用动态工具：
-
-```bash
-curl -X POST http://localhost:8090/mcp \
-  -H 'Content-Type: application/json' \
-  -H 'Authorization: Bearer mcp_dev_token' \
-  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"echo_dynamic","arguments":{"message":"hello mcp"}}}'
-```
-
-## 当前代码入口
-
-- `SingleMcpApplication`：启动类
-- `ApiKeyAuthFilter`：MCP Token 鉴权
-- `McpToolsListFilter`：过滤工具列表并注入动态工具
-- `McpToolsCallFilter`：拦截动态工具调用
-- `TokenService`：计算 Bearer Token 的 SHA-256 哈希，并从用户、角色、权限关系中构建鉴权上下文
-- `ToolSelectionService`：从 `mcp_user_tool_selection` 读取 token 选择
-- `DynamicToolService`：从 `mcp_dynamic_tool` 读取动态工具，做权限检查和审计入口
-- `RequestConfigService`：从 `mcp_request_config` 读取完整企业请求配置，执行 MOCK/HTTP，并应用默认参数、超时和限流
-- `GroovyScriptEngine`：Groovy 脚本执行以及 `runRequest`、`runSql`、`runRedis` 白名单
-- `RedisScriptExecutor`：执行动态工具被授权的 `HMGET`、`GET`、`SETEX`
-
-## 当前表
-
-- `mcp_user`：用户身份
-- `mcp_role`、`mcp_user_role`：角色定义和用户角色关系
-- `mcp_role_tool`：角色拥有的工具权限
-- `mcp_user_token`：Token 哈希、展示前缀、权限范围、有效期和使用记录
-- `mcp_user_tool_selection`：当前 token 选择加载哪些工具
-- `mcp_dynamic_tool`：动态工具描述、参数 schema、Groovy 脚本和白名单
-- `mcp_request_config`：`runRequest` 可调用的完整请求配置，包含协议、参数、超时、限流、发布和 SOA/Hessian 扩展字段
-- `mcp_audit_log`：工具调用审计日志
-
-数据库不保存明文 Token；鉴权时对请求中的 Bearer Token 计算 SHA-256，再查询 `mcp_user_token.token_hash`。
+未指定（私有部署 / 内部项目）。

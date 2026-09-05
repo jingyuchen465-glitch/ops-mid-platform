@@ -31,9 +31,9 @@ async function submit() {
   <main class="login-page">
     <section class="login-panel">
       <div class="login-brand">
-        <span>B</span>
+        <span>运</span>
         <div>
-          <b>Bear MCP</b>
+          <b>运营中台</b>
           <small>管理控制台</small>
         </div>
       </div>

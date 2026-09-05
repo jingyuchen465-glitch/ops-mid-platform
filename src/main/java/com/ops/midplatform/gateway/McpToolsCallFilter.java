@@ -1,11 +1,11 @@
-package com.bear.mcp.single.gateway;
+package com.ops.midplatform.gateway;
 
-import com.bear.mcp.single.core.audit.AuditLogService;
-import com.bear.mcp.single.core.dynamic.DynamicToolService;
-import com.bear.mcp.single.core.context.McpUserContext;
-import com.bear.mcp.single.core.context.McpUserContextHolder;
-import com.bear.mcp.single.core.groovy.ScriptResult;
-import com.bear.mcp.single.core.selection.ToolSelectionService;
+import com.ops.midplatform.core.audit.AuditLogService;
+import com.ops.midplatform.core.dynamic.DynamicToolService;
+import com.ops.midplatform.core.context.McpUserContext;
+import com.ops.midplatform.core.context.McpUserContextHolder;
+import com.ops.midplatform.core.groovy.ScriptResult;
+import com.ops.midplatform.core.selection.ToolSelectionService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;

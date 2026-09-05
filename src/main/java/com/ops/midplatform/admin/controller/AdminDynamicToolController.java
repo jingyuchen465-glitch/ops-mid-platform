@@ -1,8 +1,8 @@
-package com.bear.mcp.single.admin.controller;
+package com.ops.midplatform.admin.controller;
 
-import com.bear.mcp.single.admin.res.AdminDynamicToolRes;
-import com.bear.mcp.single.admin.service.AdminDynamicToolService;
-import com.bear.mcp.single.common.api.ApiResponse;
+import com.ops.midplatform.admin.res.AdminDynamicToolRes;
+import com.ops.midplatform.admin.service.AdminDynamicToolService;
+import com.ops.midplatform.common.api.ApiResponse;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

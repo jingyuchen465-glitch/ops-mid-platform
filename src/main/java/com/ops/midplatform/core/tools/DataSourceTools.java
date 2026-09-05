@@ -1,8 +1,8 @@
-package com.bear.mcp.single.core.tools;
+package com.ops.midplatform.core.tools;
 
-import com.bear.mcp.single.core.datasource.ExternalDataSourceSqlExecutor;
-import com.bear.mcp.single.core.entity.McpDataSourceEntity;
-import com.bear.mcp.single.core.mapper.McpDataSourceMapper;
+import com.ops.midplatform.core.datasource.ExternalDataSourceSqlExecutor;
+import com.ops.midplatform.core.entity.McpDataSourceEntity;
+import com.ops.midplatform.core.mapper.McpDataSourceMapper;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;

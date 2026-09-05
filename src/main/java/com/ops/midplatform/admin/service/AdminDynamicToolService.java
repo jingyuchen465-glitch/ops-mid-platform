@@ -1,8 +1,8 @@
-package com.bear.mcp.single.admin.service;
+package com.ops.midplatform.admin.service;
 
-import com.bear.mcp.single.admin.res.AdminDynamicToolRes;
-import com.bear.mcp.single.core.entity.McpDynamicToolEntity;
-import com.bear.mcp.single.core.mapper.McpDynamicToolMapper;
+import com.ops.midplatform.admin.res.AdminDynamicToolRes;
+import com.ops.midplatform.core.entity.McpDynamicToolEntity;
+import com.ops.midplatform.core.mapper.McpDynamicToolMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

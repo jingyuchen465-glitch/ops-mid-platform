@@ -1,9 +1,9 @@
-package com.bear.mcp.single.core.groovy;
+package com.ops.midplatform.core.groovy;
 
 import java.util.List;
 import java.util.Map;
 
-import com.bear.mcp.single.core.redis.RedisPermission;
+import com.ops.midplatform.core.redis.RedisPermission;
 
 /**
  * Groovy 脚本执行上下文。

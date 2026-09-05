@@ -1,12 +1,12 @@
-package com.bear.mcp.single.admin.service;
+package com.ops.midplatform.admin.service;
 
-import com.bear.mcp.single.admin.req.AdminLoginReq;
-import com.bear.mcp.single.admin.res.AdminLoginRes;
-import com.bear.mcp.single.common.exception.BusinessException;
-import com.bear.mcp.single.core.entity.McpUserEntity;
-import com.bear.mcp.single.core.entity.McpUserRoleEntity;
-import com.bear.mcp.single.core.mapper.McpUserMapper;
-import com.bear.mcp.single.core.mapper.McpUserRoleMapper;
+import com.ops.midplatform.admin.req.AdminLoginReq;
+import com.ops.midplatform.admin.res.AdminLoginRes;
+import com.ops.midplatform.common.exception.BusinessException;
+import com.ops.midplatform.core.entity.McpUserEntity;
+import com.ops.midplatform.core.entity.McpUserRoleEntity;
+import com.ops.midplatform.core.mapper.McpUserMapper;
+import com.ops.midplatform.core.mapper.McpUserRoleMapper;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 

@@ -1,13 +1,13 @@
-package com.bear.mcp.single.admin.service;
+package com.ops.midplatform.admin.service;
 
-import com.bear.mcp.single.admin.req.AdminCodeListReq;
-import com.bear.mcp.single.admin.req.AdminUserSaveReq;
-import com.bear.mcp.single.admin.res.AdminUserRoleRes;
-import com.bear.mcp.single.admin.res.AdminUserRes;
-import com.bear.mcp.single.core.entity.McpUserEntity;
-import com.bear.mcp.single.core.entity.McpUserRoleEntity;
-import com.bear.mcp.single.core.mapper.McpUserMapper;
-import com.bear.mcp.single.core.mapper.McpUserRoleMapper;
+import com.ops.midplatform.admin.req.AdminCodeListReq;
+import com.ops.midplatform.admin.req.AdminUserSaveReq;
+import com.ops.midplatform.admin.res.AdminUserRoleRes;
+import com.ops.midplatform.admin.res.AdminUserRes;
+import com.ops.midplatform.core.entity.McpUserEntity;
+import com.ops.midplatform.core.entity.McpUserRoleEntity;
+import com.ops.midplatform.core.mapper.McpUserMapper;
+import com.ops.midplatform.core.mapper.McpUserRoleMapper;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

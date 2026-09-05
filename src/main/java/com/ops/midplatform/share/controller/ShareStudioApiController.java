@@ -1,12 +1,12 @@
-package com.bear.mcp.single.share.controller;
+package com.ops.midplatform.share.controller;
 
-import com.bear.mcp.single.common.api.ApiResponse;
-import com.bear.mcp.single.share.req.ShareStudioApiDebugReq;
-import com.bear.mcp.single.share.req.ShareStudioApiSaveReq;
-import com.bear.mcp.single.share.req.ShareStudioApiTemporaryDebugReq;
-import com.bear.mcp.single.share.res.ShareStudioApiDebugRes;
-import com.bear.mcp.single.share.res.ShareStudioApiRes;
-import com.bear.mcp.single.share.service.ShareStudioApiService;
+import com.ops.midplatform.common.api.ApiResponse;
+import com.ops.midplatform.share.req.ShareStudioApiDebugReq;
+import com.ops.midplatform.share.req.ShareStudioApiSaveReq;
+import com.ops.midplatform.share.req.ShareStudioApiTemporaryDebugReq;
+import com.ops.midplatform.share.res.ShareStudioApiDebugRes;
+import com.ops.midplatform.share.res.ShareStudioApiRes;
+import com.ops.midplatform.share.service.ShareStudioApiService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;

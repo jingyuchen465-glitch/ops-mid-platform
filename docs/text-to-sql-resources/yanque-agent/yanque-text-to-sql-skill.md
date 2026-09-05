@@ -1,4 +1,4 @@
----
+﻿---
 name: yanque-text-to-sql
 description: Use this skill when the user asks YanQue business data questions that require SQL generation, metric calculation, result querying, or business term explanation.
 ---
@@ -21,7 +21,7 @@ Do not use this skill for general SQL questions unrelated to YanQue.
 
 ## Required Runtime Prompt
 
-For YanQue Text-to-SQL tasks, use Bear MCP Prompt:
+For YanQue Text-to-SQL tasks, use 运营中台 Prompt:
 
 ```text
 yanque_text_to_sql
@@ -36,7 +36,7 @@ The Prompt supplies runtime parameters and output rules:
 
 Use this Skill for the method. Use the Prompt for the current task parameters and final response format.
 
-If the MCP client does not automatically support `prompts/get` as an agent-callable action, call the Bear MCP Tool:
+If the MCP client does not automatically support `prompts/get` as an agent-callable action, call the 运营中台 Tool:
 
 ```text
 render_prompt

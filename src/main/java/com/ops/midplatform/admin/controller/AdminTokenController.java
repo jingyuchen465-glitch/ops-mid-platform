@@ -1,16 +1,16 @@
-package com.bear.mcp.single.admin.controller;
+package com.ops.midplatform.admin.controller;
 
-import com.bear.mcp.single.admin.req.AdminTokenPromptSelectionSaveReq;
-import com.bear.mcp.single.admin.req.AdminTokenResourceSelectionSaveReq;
-import com.bear.mcp.single.admin.req.AdminTokenSaveReq;
-import com.bear.mcp.single.admin.req.AdminTokenSelectionSaveReq;
-import com.bear.mcp.single.admin.res.AdminTokenCreatedRes;
-import com.bear.mcp.single.admin.res.AdminTokenPromptSelectionRes;
-import com.bear.mcp.single.admin.res.AdminTokenResourceSelectionRes;
-import com.bear.mcp.single.admin.res.AdminTokenRes;
-import com.bear.mcp.single.admin.res.AdminTokenSelectionRes;
-import com.bear.mcp.single.admin.service.AdminTokenService;
-import com.bear.mcp.single.common.api.ApiResponse;
+import com.ops.midplatform.admin.req.AdminTokenPromptSelectionSaveReq;
+import com.ops.midplatform.admin.req.AdminTokenResourceSelectionSaveReq;
+import com.ops.midplatform.admin.req.AdminTokenSaveReq;
+import com.ops.midplatform.admin.req.AdminTokenSelectionSaveReq;
+import com.ops.midplatform.admin.res.AdminTokenCreatedRes;
+import com.ops.midplatform.admin.res.AdminTokenPromptSelectionRes;
+import com.ops.midplatform.admin.res.AdminTokenResourceSelectionRes;
+import com.ops.midplatform.admin.res.AdminTokenRes;
+import com.ops.midplatform.admin.res.AdminTokenSelectionRes;
+import com.ops.midplatform.admin.service.AdminTokenService;
+import com.ops.midplatform.common.api.ApiResponse;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 

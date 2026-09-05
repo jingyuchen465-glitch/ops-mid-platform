@@ -1,14 +1,14 @@
-package com.bear.mcp.single.share.service;
+package com.ops.midplatform.share.service;
 
-import com.bear.mcp.single.common.exception.BusinessException;
-import com.bear.mcp.single.core.entity.McpResourceEntity;
-import com.bear.mcp.single.core.mapper.McpResourceMapper;
-import com.bear.mcp.single.core.storage.TosStorageService;
-import com.bear.mcp.single.share.req.ShareStudioResourcePresignReq;
-import com.bear.mcp.single.share.req.ShareStudioResourceSaveReq;
-import com.bear.mcp.single.share.res.ShareStudioResourcePresignRes;
-import com.bear.mcp.single.share.res.ShareStudioResourcePresignDownloadRes;
-import com.bear.mcp.single.share.res.ShareStudioResourceRes;
+import com.ops.midplatform.common.exception.BusinessException;
+import com.ops.midplatform.core.entity.McpResourceEntity;
+import com.ops.midplatform.core.mapper.McpResourceMapper;
+import com.ops.midplatform.core.storage.TosStorageService;
+import com.ops.midplatform.share.req.ShareStudioResourcePresignReq;
+import com.ops.midplatform.share.req.ShareStudioResourceSaveReq;
+import com.ops.midplatform.share.res.ShareStudioResourcePresignRes;
+import com.ops.midplatform.share.res.ShareStudioResourcePresignDownloadRes;
+import com.ops.midplatform.share.res.ShareStudioResourceRes;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;

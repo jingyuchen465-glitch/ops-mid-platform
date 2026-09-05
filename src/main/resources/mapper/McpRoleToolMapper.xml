@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.bear.mcp.single.core.mapper.McpRoleToolMapper">
-    <select id="findByRoleCodes" resultType="com.bear.mcp.single.core.entity.McpRoleToolEntity">
+<mapper namespace="com.ops.midplatform.core.mapper.McpRoleToolMapper">
+    <select id="findByRoleCodes" resultType="com.ops.midplatform.core.entity.McpRoleToolEntity">
         SELECT id, role_code, tool_name, create_time
         FROM mcp_role_tool
         WHERE role_code IN
@@ -10,11 +10,11 @@
         </foreach>
         ORDER BY id ASC
     </select>
-    <select id="findAll" resultType="com.bear.mcp.single.core.entity.McpRoleToolEntity">
+    <select id="findAll" resultType="com.ops.midplatform.core.entity.McpRoleToolEntity">
         SELECT id, role_code, tool_name, create_time FROM mcp_role_tool ORDER BY id DESC
     </select>
     <delete id="deleteByRoleCode">DELETE FROM mcp_role_tool WHERE role_code=#{roleCode}</delete>
-    <insert id="insert" parameterType="com.bear.mcp.single.core.entity.McpRoleToolEntity">
+    <insert id="insert" parameterType="com.ops.midplatform.core.entity.McpRoleToolEntity">
         INSERT INTO mcp_role_tool (role_code, tool_name) VALUES (#{roleCode}, #{toolName})
     </insert>
 </mapper>

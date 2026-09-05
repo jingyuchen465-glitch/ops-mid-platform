@@ -1,5 +1,5 @@
-const ADMIN_TOKEN_KEY = 'bear_mcp_admin_token'
-const UNAUTHORIZED_EVENT = 'bear-mcp-admin-unauthorized'
+const ADMIN_TOKEN_KEY = 'ops_mid_admin_token'
+const UNAUTHORIZED_EVENT = 'ops-mid-admin-unauthorized'
 
 function redirectToLogin() {
   localStorage.removeItem(ADMIN_TOKEN_KEY)

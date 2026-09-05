@@ -1,9 +1,9 @@
-package com.bear.mcp.single.admin.service;
+package com.ops.midplatform.admin.service;
 
-import com.bear.mcp.single.admin.req.AdminRequestConfigSaveReq;
-import com.bear.mcp.single.admin.res.AdminRequestConfigRes;
-import com.bear.mcp.single.core.entity.McpRequestConfigEntity;
-import com.bear.mcp.single.core.mapper.McpRequestConfigMapper;
+import com.ops.midplatform.admin.req.AdminRequestConfigSaveReq;
+import com.ops.midplatform.admin.res.AdminRequestConfigRes;
+import com.ops.midplatform.core.entity.McpRequestConfigEntity;
+import com.ops.midplatform.core.mapper.McpRequestConfigMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

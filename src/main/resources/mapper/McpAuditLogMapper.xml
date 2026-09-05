@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.bear.mcp.single.core.mapper.McpAuditLogMapper">
-    <insert id="insert" parameterType="com.bear.mcp.single.core.entity.McpAuditLogEntity">
+<mapper namespace="com.ops.midplatform.core.mapper.McpAuditLogMapper">
+    <insert id="insert" parameterType="com.ops.midplatform.core.entity.McpAuditLogEntity">
         INSERT INTO mcp_audit_log (
             create_time, user_id, user_name, tool_name, request_params,
             response_summary, status, error_message, duration_ms
@@ -11,7 +11,7 @@
         )
     </insert>
 
-    <select id="findRecent" resultType="com.bear.mcp.single.core.entity.McpAuditLogEntity">
+    <select id="findRecent" resultType="com.ops.midplatform.core.entity.McpAuditLogEntity">
         SELECT id, create_time, user_id, user_name, tool_name, request_params,
                response_summary, status, error_message, duration_ms
         FROM mcp_audit_log

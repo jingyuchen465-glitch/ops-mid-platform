@@ -117,7 +117,7 @@ const builtinTools = [
   { name: 'create_resource', description: '直接创建或更新 Markdown Resource' },
   { name: 'create_prompt', description: '直接创建或更新 MCP Prompt 模板' },
   { name: 'render_prompt', description: '渲染已授权 MCP Prompt' },
-  { name: 'create_skill', description: '直接创建或更新 Bear Skill' },
+  { name: 'create_skill', description: '直接创建或更新 Ops Skill' },
   { name: 'list_data_sources', description: '查询已发布数据源' },
   { name: 'query_data_source', description: '只读查询数据源' },
   { name: 'get_skill', description: '按 Skill ID 获取可安装的 Cursor Skill 文件' }
@@ -163,7 +163,7 @@ const isSharePage = computed(() => sharePages.includes(page.value))
 const isCommunityPage = computed(() => communityPages.includes(page.value))
 const navSections = { dashboard: '概览', users: '系统治理', roles: '系统治理', tokens: '访问控制', requests: '能力展示', dataSources: '能力展示', resources: '资源', tools: '能力展示', audits: '运行观测', shareHome: '首页', shareSkills: 'Skills 社区', shareTools: 'MCP Tools', sharePrompts: 'MCP Prompts', shareResources: 'MCP Resources', shareApis: 'API 能力', shareConfig: '我的MCP配置', shareTokens: 'Token 管理', studioHome: '首页', studioSkills: 'Skills 创作', studioTools: 'Tools 创作', studioPrompts: 'Prompts 创作', studioResources: 'Resources 创作', studioApis: 'API 创作' }
 const title = computed(() => ({ dashboard:'运行概览', users:'用户', roles:'角色与能力权限', tokens:'Token 与能力选择', requests:'请求配置', dataSources:'数据源', resources:'资源', tools:'动态工具', audits:'调用审计', shareHome:'发现优质 AI 能力', shareSkills:'Skills 社区', shareTools:'MCP Tools', sharePrompts:'MCP Prompts', shareResources:'MCP Resources', shareApis:'API 能力', shareConfig:'我的MCP配置', shareTokens:'Token 管理', studioHome:'Bear 创作空间', studioSkills:'Skills 创作', studioSkillEdit:'新建 Skill', studioTools:'Tools 创作', studioToolEdit:'新建 Tool', studioPrompts:'Prompts 创作', studioPromptEdit:'新建 Prompt', studioResources:'Resources 创作', studioResourceEdit:'新建 Resource', studioApis:'API 创作', studioApiEdit:'新建 API' })[page.value])
-const desc = computed(() => ({ dashboard:'当前数据库中的 MCP 治理状态', users:'角色是工具和 Prompt 权限上限，用户通过角色获得资格', roles:'角色决定资格上限，Tool、Prompt、Resource 都在这里授权', tokens:'每把 Token 单独选择要暴露和实际允许使用的 Tool / Prompt / Resource', requests:'展示动态工具可引用的企业请求配置；完整创作在创作空间完成', dataSources:'维护外部数据库连接配置，为后续 query_data_source 和动态 Tool runSql 提供受控数据入口', resources:'展示已创建的 MCP Resource，发布并授权后可通过 resources/list 和 resources/read 读取', tools:'这里只展示已发布的动态工具；创建与编辑在创作空间完成', audits:'保留每一次 MCP Tool / Prompt / Resource 调用的结果摘要与耗时', shareHome:'公开资源会先进入社区，被团队发现、复用，再进入 Token 配置链路。', shareSkills:'浏览已公开的 Bear Skill，Agent 可通过 get_skill 安装使用。', shareTools:'浏览已公开的 MCP Tool。能否调用仍由角色权限和 Token 工具选择决定。', sharePrompts:'浏览已公开的 MCP Prompt 模板。能否获取仍由角色权限和 Token Prompt 选择决定。', shareResources:'浏览已公开的 MCP Resource。能否读取仍由角色权限和 Token Resource 选择决定。', shareApis:'浏览已公开的 API 配置，它们是动态 Tool 编排时可复用的基础能力。', shareConfig:'选择一把 Token，配置它实际暴露的 Tool、Prompt 和 Resource，并一键安装到 Cursor。', shareTokens:'每个人可以创建多把自己的 MCP Token，用于不同客户端、项目或环境。', studioHome:'创作 Skills、Tools、Prompts、Resources、API，分享到社区', studioSkills:'上传 Markdown Skill，让 Agent 通过 get_skill 安装到 Cursor 本地', studioSkillEdit:'上传 SKILL.md 并维护 Skill ID、名称、描述和发布状态', studioTools:'把已接入的 API 配置包装成 AI Agent 可见和可调用的 MCP Tool', studioToolEdit:'编写工具描述、入参 Schema 和 Groovy 脚本，调试通过后发布上线', studioPrompts:'沉淀企业工作流模板，指导 Agent 按标准流程使用工具', studioPromptEdit:'编写 Prompt 模板、参数和建议工具，预览渲染后发布', studioResources:'上传 Markdown 资源，让 Agent 通过 resources/list 和 resources/read 读取企业知识片段', studioResourceEdit:'上传 Markdown 文件并维护 Resource URI、名称、描述和发布状态', studioApis:'创建外部 HTTP API 配置，调试通过后发布给后续动态工具使用', studioApiEdit:'配置外部 HTTP API，保存并调试真实响应' })[page.value])
+const desc = computed(() => ({ dashboard:'当前数据库中的 MCP 治理状态', users:'角色是工具和 Prompt 权限上限，用户通过角色获得资格', roles:'角色决定资格上限，Tool、Prompt、Resource 都在这里授权', tokens:'每把 Token 单独选择要暴露和实际允许使用的 Tool / Prompt / Resource', requests:'展示动态工具可引用的企业请求配置；完整创作在创作空间完成', dataSources:'维护外部数据库连接配置，为后续 query_data_source 和动态 Tool runSql 提供受控数据入口', resources:'展示已创建的 MCP Resource，发布并授权后可通过 resources/list 和 resources/read 读取', tools:'这里只展示已发布的动态工具；创建与编辑在创作空间完成', audits:'保留每一次 MCP Tool / Prompt / Resource 调用的结果摘要与耗时', shareHome:'公开资源会先进入社区，被团队发现、复用，再进入 Token 配置链路。', shareSkills:'浏览已公开的 Ops Skill，Agent 可通过 get_skill 安装使用。', shareTools:'浏览已公开的 MCP Tool。能否调用仍由角色权限和 Token 工具选择决定。', sharePrompts:'浏览已公开的 MCP Prompt 模板。能否获取仍由角色权限和 Token Prompt 选择决定。', shareResources:'浏览已公开的 MCP Resource。能否读取仍由角色权限和 Token Resource 选择决定。', shareApis:'浏览已公开的 API 配置，它们是动态 Tool 编排时可复用的基础能力。', shareConfig:'选择一把 Token，配置它实际暴露的 Tool、Prompt 和 Resource，并一键安装到 Cursor。', shareTokens:'每个人可以创建多把自己的 MCP Token，用于不同客户端、项目或环境。', studioHome:'创作 Skills、Tools、Prompts、Resources、API，分享到社区', studioSkills:'上传 Markdown Skill，让 Agent 通过 get_skill 安装到 Cursor 本地', studioSkillEdit:'上传 SKILL.md 并维护 Skill ID、名称、描述和发布状态', studioTools:'把已接入的 API 配置包装成 AI Agent 可见和可调用的 MCP Tool', studioToolEdit:'编写工具描述、入参 Schema 和 Groovy 脚本，调试通过后发布上线', studioPrompts:'沉淀企业工作流模板，指导 Agent 按标准流程使用工具', studioPromptEdit:'编写 Prompt 模板、参数和建议工具，预览渲染后发布', studioResources:'上传 Markdown 资源，让 Agent 通过 resources/list 和 resources/read 读取企业知识片段', studioResourceEdit:'上传 Markdown 文件并维护 Resource URI、名称、描述和发布状态', studioApis:'创建外部 HTTP API 配置，调试通过后发布给后续动态工具使用', studioApiEdit:'配置外部 HTTP API，保存并调试真实响应' })[page.value])
 const studioApiStats = computed(() => {
   const all = rows.value.length
   const online = rows.value.filter(item => Number(item.publishStatus) !== 0).length
@@ -2570,21 +2570,21 @@ function skillInstallBaseUrl() {
 }
 
 function skillCliInstallCommand(skillCode) {
-  return `bear-skill install ${skillCode} --base-url ${skillInstallBaseUrl()}`
+  return `ops-skill install ${skillCode} --base-url ${skillInstallBaseUrl()}`
 }
 
 function skillCodexInstallCommand(skillCode) {
-  return `bear-skill install ${skillCode} --base-url ${skillInstallBaseUrl()} --codex`
+  return `ops-skill install ${skillCode} --base-url ${skillInstallBaseUrl()} --codex`
 }
 
 function skillInstallScriptUrl() {
-  return `${skillInstallBaseUrl()}/api/public/bear-skill/install.sh`
+  return `${skillInstallBaseUrl()}/api/public/ops-skill/install.sh`
 }
 
 function buildCursorSkillInstallPrompt(skill) {
   const skillCode = skill?.skillCode || model.value.skillCode
   const cliCmd = skillCliInstallCommand(skillCode)
-  return '请先检查是否已安装 bear-skill CLI（执行 which bear-skill 或 command -v bear-skill）。\n\n'
+  return '请先检查是否已安装 ops-skill CLI（执行 which ops-skill 或 command -v ops-skill）。\n\n'
     + '若未安装，请执行以下命令安装（安装到 ~/.local/bin，无需 sudo）：\n'
     + `  curl -fsSL ${skillInstallScriptUrl()} | bash -s -- --cli-only\n\n`
     + `若已安装，则直接安装 ${skillCode} 技能：\n`
@@ -3141,7 +3141,7 @@ function loginSuccess() {
                 <div class="community-card-top">
                   <div class="community-kind">
                     <span class="community-card-icon"><DatabaseOutlined /></span>
-                    <b>Bear Skill</b>
+                    <b>Ops Skill</b>
                   </div>
                   <em>{{ item.skillCode || communityCode('SKILL', item.id) }}</em>
                 </div>
@@ -4413,7 +4413,7 @@ function loginSuccess() {
   <template v-else>
   <a-layout class="console-layout">
     <a-layout-sider width="260" class="console-sider">
-      <div class="brand"><span class="brand-mark">B</span><span>Bear MCP<small>管理控制台</small></span></div>
+      <div class="brand"><span class="brand-mark">运</span><span>运营中台<small>管理控制台</small></span></div>
       <a-menu theme="light" mode="inline" :selected-keys="[page]" class="console-menu" @click="({key}) => changePage(key)">
         <div class="nav-caption">概览</div>
         <a-menu-item key="dashboard"><AppstoreOutlined /><span>概览</span></a-menu-item>
@@ -4866,7 +4866,7 @@ function loginSuccess() {
         <div class="tool-option-title">
           <span class="tool-type-dot builtin"></span>
           基础信息
-          <small>Bear Skill</small>
+          <small>Ops Skill</small>
         </div>
         <div class="detail-grid">
           <div>
@@ -4893,7 +4893,7 @@ function loginSuccess() {
         <div class="tool-option-title">
           <span class="tool-type-dot dynamic"></span>
           安装方式
-          <small>通过 get_skill 或 bear-skill 安装</small>
+          <small>通过 get_skill 或 ops-skill 安装</small>
         </div>
         <pre class="detail-code">get_skill({ "skillCode": "{{ activeCommunityItem?.skillCode || '' }}" })
 {{ buildCodexSkillInstallCommand(activeCommunityItem || {}) }}</pre>

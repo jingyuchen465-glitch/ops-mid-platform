@@ -1,4 +1,4 @@
-package com.bear.mcp.single.share.res;
+package com.ops.midplatform.share.res;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;

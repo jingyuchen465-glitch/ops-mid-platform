@@ -1,8 +1,8 @@
-package com.bear.mcp.single.admin.controller;
+package com.ops.midplatform.admin.controller;
 
-import com.bear.mcp.single.admin.res.AdminResourceRes;
-import com.bear.mcp.single.admin.service.AdminResourceService;
-import com.bear.mcp.single.common.api.ApiResponse;
+import com.ops.midplatform.admin.res.AdminResourceRes;
+import com.ops.midplatform.admin.service.AdminResourceService;
+import com.ops.midplatform.common.api.ApiResponse;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;

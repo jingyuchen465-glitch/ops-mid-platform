@@ -1,7 +1,7 @@
-package com.bear.mcp.single.core.java;
+package com.ops.midplatform.core.java;
 
-import com.bear.mcp.single.core.auth.TokenAuthInfo;
-import com.bear.mcp.single.core.dynamic.DynamicTool;
+import com.ops.midplatform.core.auth.TokenAuthInfo;
+import com.ops.midplatform.core.dynamic.DynamicTool;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

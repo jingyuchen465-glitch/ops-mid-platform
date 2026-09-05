@@ -1,6 +1,6 @@
-package com.bear.mcp.single.core.mapper;
+package com.ops.midplatform.core.mapper;
 
-import com.bear.mcp.single.core.entity.McpRoleEntity;
+import com.ops.midplatform.core.entity.McpRoleEntity;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.Collection;

@@ -1,4 +1,4 @@
-package com.bear.mcp.single.core.redis;
+package com.ops.midplatform.core.redis;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;

@@ -1,13 +1,13 @@
-package com.bear.mcp.single.admin.service;
+package com.ops.midplatform.admin.service;
 
 import cn.hutool.crypto.SecureUtil;
 import cn.hutool.crypto.symmetric.AES;
-import com.bear.mcp.single.admin.req.AdminDataSourceSaveReq;
-import com.bear.mcp.single.admin.res.AdminDataSourceRes;
-import com.bear.mcp.single.common.exception.BusinessException;
-import com.bear.mcp.single.core.context.McpUserContextHolder;
-import com.bear.mcp.single.core.entity.McpDataSourceEntity;
-import com.bear.mcp.single.core.mapper.McpDataSourceMapper;
+import com.ops.midplatform.admin.req.AdminDataSourceSaveReq;
+import com.ops.midplatform.admin.res.AdminDataSourceRes;
+import com.ops.midplatform.common.exception.BusinessException;
+import com.ops.midplatform.core.context.McpUserContextHolder;
+import com.ops.midplatform.core.entity.McpDataSourceEntity;
+import com.ops.midplatform.core.mapper.McpDataSourceMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;

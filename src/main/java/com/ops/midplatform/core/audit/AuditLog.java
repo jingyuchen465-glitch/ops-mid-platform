@@ -1,4 +1,4 @@
-package com.bear.mcp.single.core.audit;
+package com.ops.midplatform.core.audit;
 
 import java.util.Date;
 

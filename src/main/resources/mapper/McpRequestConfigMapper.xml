@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.bear.mcp.single.core.mapper.McpRequestConfigMapper">
-    <select id="findByConfigKey" resultType="com.bear.mcp.single.core.entity.McpRequestConfigEntity">
+<mapper namespace="com.ops.midplatform.core.mapper.McpRequestConfigMapper">
+    <select id="findByConfigKey" resultType="com.ops.midplatform.core.entity.McpRequestConfigEntity">
         SELECT id, request_id, config_key, name, type, method, url, headers, body_template,
                params_default, connect_timeout_ms, read_timeout_ms, service_name, method_name,
                args_schema, creator_id, is_enabled, rate_limit_per_minute, publish_status,
@@ -10,7 +10,7 @@
         WHERE config_key = #{configKey}
         LIMIT 1
     </select>
-    <select id="findById" resultType="com.bear.mcp.single.core.entity.McpRequestConfigEntity">
+    <select id="findById" resultType="com.ops.midplatform.core.entity.McpRequestConfigEntity">
         SELECT id, request_id, config_key, name, type, method, url, headers, body_template,
                params_default, connect_timeout_ms, read_timeout_ms, service_name, method_name,
                args_schema, creator_id, is_enabled, rate_limit_per_minute, publish_status,
@@ -19,7 +19,7 @@
         WHERE id = #{id}
         LIMIT 1
     </select>
-    <select id="findByRequestId" resultType="com.bear.mcp.single.core.entity.McpRequestConfigEntity">
+    <select id="findByRequestId" resultType="com.ops.midplatform.core.entity.McpRequestConfigEntity">
         SELECT id, request_id, config_key, name, type, method, url, headers, body_template,
                params_default, connect_timeout_ms, read_timeout_ms, service_name, method_name,
                args_schema, creator_id, is_enabled, rate_limit_per_minute, publish_status,
@@ -28,10 +28,10 @@
         WHERE request_id = #{requestId}
         LIMIT 1
     </select>
-    <select id="findAll" resultType="com.bear.mcp.single.core.entity.McpRequestConfigEntity">
+    <select id="findAll" resultType="com.ops.midplatform.core.entity.McpRequestConfigEntity">
         SELECT id, request_id, config_key, name, type, method, url, headers, body_template, params_default, connect_timeout_ms, read_timeout_ms, service_name, method_name, args_schema, creator_id, is_enabled, rate_limit_per_minute, publish_status, description, category, create_time, update_time FROM mcp_request_config ORDER BY id DESC
     </select>
-    <select id="findShareStudioApis" resultType="com.bear.mcp.single.core.entity.McpRequestConfigEntity">
+    <select id="findShareStudioApis" resultType="com.ops.midplatform.core.entity.McpRequestConfigEntity">
         SELECT id, request_id, config_key, name, type, method, url, headers, body_template,
                params_default, connect_timeout_ms, read_timeout_ms, service_name, method_name,
                args_schema, creator_id, is_enabled, rate_limit_per_minute, publish_status,
@@ -41,7 +41,7 @@
           AND (creator_id = #{creatorId} OR creator_id IS NULL)
         ORDER BY id DESC
     </select>
-    <select id="findPublicApis" resultType="com.bear.mcp.single.core.entity.McpRequestConfigEntity">
+    <select id="findPublicApis" resultType="com.ops.midplatform.core.entity.McpRequestConfigEntity">
         SELECT id, request_id, config_key, name, type, method, url, headers, body_template,
                params_default, connect_timeout_ms, read_timeout_ms, service_name, method_name,
                args_schema, creator_id, is_enabled, rate_limit_per_minute, publish_status,
@@ -52,11 +52,11 @@
           AND publish_status = 2
         ORDER BY id DESC
     </select>
-    <insert id="insert" parameterType="com.bear.mcp.single.core.entity.McpRequestConfigEntity" useGeneratedKeys="true" keyProperty="id">
+    <insert id="insert" parameterType="com.ops.midplatform.core.entity.McpRequestConfigEntity" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO mcp_request_config (request_id, config_key, name, type, method, url, headers, body_template, params_default, connect_timeout_ms, read_timeout_ms, service_name, method_name, args_schema, creator_id, is_enabled, rate_limit_per_minute, publish_status, description, category)
         VALUES (#{requestId},#{configKey},#{name},#{type},#{method},#{url},#{headers},#{bodyTemplate},#{paramsDefault},#{connectTimeoutMs},#{readTimeoutMs},#{serviceName},#{methodName},#{argsSchema},#{creatorId},#{isEnabled},#{rateLimitPerMinute},#{publishStatus},#{description},#{category})
     </insert>
-    <update id="update" parameterType="com.bear.mcp.single.core.entity.McpRequestConfigEntity">
+    <update id="update" parameterType="com.ops.midplatform.core.entity.McpRequestConfigEntity">
         UPDATE mcp_request_config
         SET request_id=#{requestId},
             config_key=#{configKey},

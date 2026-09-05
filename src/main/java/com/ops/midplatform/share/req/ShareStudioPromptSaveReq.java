@@ -1,4 +1,4 @@
-package com.bear.mcp.single.share.req;
+package com.ops.midplatform.share.req;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;

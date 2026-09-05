@@ -1,19 +1,19 @@
-package com.bear.mcp.single.admin.service;
+package com.ops.midplatform.admin.service;
 
-import com.bear.mcp.single.admin.req.AdminCodeListReq;
-import com.bear.mcp.single.admin.req.AdminRoleSaveReq;
-import com.bear.mcp.single.admin.res.AdminRoleRes;
-import com.bear.mcp.single.admin.res.AdminRolePromptRes;
-import com.bear.mcp.single.admin.res.AdminRoleResourceRes;
-import com.bear.mcp.single.admin.res.AdminRoleToolRes;
-import com.bear.mcp.single.core.entity.McpRoleEntity;
-import com.bear.mcp.single.core.entity.McpRolePromptEntity;
-import com.bear.mcp.single.core.entity.McpRoleResourceEntity;
-import com.bear.mcp.single.core.entity.McpRoleToolEntity;
-import com.bear.mcp.single.core.mapper.McpRoleMapper;
-import com.bear.mcp.single.core.mapper.McpRolePromptMapper;
-import com.bear.mcp.single.core.mapper.McpRoleResourceMapper;
-import com.bear.mcp.single.core.mapper.McpRoleToolMapper;
+import com.ops.midplatform.admin.req.AdminCodeListReq;
+import com.ops.midplatform.admin.req.AdminRoleSaveReq;
+import com.ops.midplatform.admin.res.AdminRoleRes;
+import com.ops.midplatform.admin.res.AdminRolePromptRes;
+import com.ops.midplatform.admin.res.AdminRoleResourceRes;
+import com.ops.midplatform.admin.res.AdminRoleToolRes;
+import com.ops.midplatform.core.entity.McpRoleEntity;
+import com.ops.midplatform.core.entity.McpRolePromptEntity;
+import com.ops.midplatform.core.entity.McpRoleResourceEntity;
+import com.ops.midplatform.core.entity.McpRoleToolEntity;
+import com.ops.midplatform.core.mapper.McpRoleMapper;
+import com.ops.midplatform.core.mapper.McpRolePromptMapper;
+import com.ops.midplatform.core.mapper.McpRoleResourceMapper;
+import com.ops.midplatform.core.mapper.McpRoleToolMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

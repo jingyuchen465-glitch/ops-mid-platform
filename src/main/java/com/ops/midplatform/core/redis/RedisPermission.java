@@ -1,4 +1,4 @@
-package com.bear.mcp.single.core.redis;
+package com.ops.midplatform.core.redis;
 
 import java.util.List;
 

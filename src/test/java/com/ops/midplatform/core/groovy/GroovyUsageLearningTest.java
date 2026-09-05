@@ -1,4 +1,4 @@
-package com.bear.mcp.single.core.groovy;
+package com.ops.midplatform.core.groovy;
 
 import groovy.lang.Binding;
 import groovy.lang.GroovyShell;

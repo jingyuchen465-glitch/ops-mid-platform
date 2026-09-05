@@ -1,9 +1,9 @@
-package com.bear.mcp.single.core.datasource;
+package com.ops.midplatform.core.datasource;
 
 import cn.hutool.crypto.SecureUtil;
 import cn.hutool.crypto.symmetric.AES;
-import com.bear.mcp.single.core.entity.McpDataSourceEntity;
-import com.bear.mcp.single.core.mapper.McpDataSourceMapper;
+import com.ops.midplatform.core.entity.McpDataSourceEntity;
+import com.ops.midplatform.core.mapper.McpDataSourceMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zaxxer.hikari.HikariConfig;

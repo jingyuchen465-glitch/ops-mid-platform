@@ -1,25 +1,25 @@
-package com.bear.mcp.single.share.service;
+package com.ops.midplatform.share.service;
 
-import com.bear.mcp.single.core.entity.McpDynamicToolEntity;
-import com.bear.mcp.single.core.entity.McpCommunityLikeStatEntity;
-import com.bear.mcp.single.core.entity.McpPromptTemplateEntity;
-import com.bear.mcp.single.core.entity.McpRequestConfigEntity;
-import com.bear.mcp.single.core.entity.McpResourceEntity;
-import com.bear.mcp.single.core.entity.McpSkillEntity;
-import com.bear.mcp.single.core.mapper.McpCommunityLikeMapper;
-import com.bear.mcp.single.core.mapper.McpDynamicToolMapper;
-import com.bear.mcp.single.core.mapper.McpPromptTemplateMapper;
-import com.bear.mcp.single.core.mapper.McpRequestConfigMapper;
-import com.bear.mcp.single.core.mapper.McpResourceMapper;
-import com.bear.mcp.single.core.mapper.McpSkillMapper;
-import com.bear.mcp.single.core.storage.TosStorageService;
-import com.bear.mcp.single.common.exception.BusinessException;
-import com.bear.mcp.single.share.res.ShareCommunityApiRes;
-import com.bear.mcp.single.share.res.ShareCommunityLikeRes;
-import com.bear.mcp.single.share.res.ShareCommunityToolRes;
-import com.bear.mcp.single.share.res.ShareStudioPromptRes;
-import com.bear.mcp.single.share.res.ShareStudioResourceRes;
-import com.bear.mcp.single.share.res.ShareStudioSkillRes;
+import com.ops.midplatform.core.entity.McpDynamicToolEntity;
+import com.ops.midplatform.core.entity.McpCommunityLikeStatEntity;
+import com.ops.midplatform.core.entity.McpPromptTemplateEntity;
+import com.ops.midplatform.core.entity.McpRequestConfigEntity;
+import com.ops.midplatform.core.entity.McpResourceEntity;
+import com.ops.midplatform.core.entity.McpSkillEntity;
+import com.ops.midplatform.core.mapper.McpCommunityLikeMapper;
+import com.ops.midplatform.core.mapper.McpDynamicToolMapper;
+import com.ops.midplatform.core.mapper.McpPromptTemplateMapper;
+import com.ops.midplatform.core.mapper.McpRequestConfigMapper;
+import com.ops.midplatform.core.mapper.McpResourceMapper;
+import com.ops.midplatform.core.mapper.McpSkillMapper;
+import com.ops.midplatform.core.storage.TosStorageService;
+import com.ops.midplatform.common.exception.BusinessException;
+import com.ops.midplatform.share.res.ShareCommunityApiRes;
+import com.ops.midplatform.share.res.ShareCommunityLikeRes;
+import com.ops.midplatform.share.res.ShareCommunityToolRes;
+import com.ops.midplatform.share.res.ShareStudioPromptRes;
+import com.ops.midplatform.share.res.ShareStudioResourceRes;
+import com.ops.midplatform.share.res.ShareStudioSkillRes;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
@@ -135,7 +135,7 @@ public class ShareCommunityService {
         for (String beanName : applicationContext.getBeanNamesForType(Object.class, false, false)) {
             Object bean = applicationContext.getBean(beanName);
             Class<?> beanType = AopUtils.getTargetClass(bean);
-            if (beanType == null || !beanType.getPackageName().startsWith("com.bear.mcp.single")) {
+            if (beanType == null || !beanType.getPackageName().startsWith("com.ops.midplatform")) {
                 continue;
             }
 

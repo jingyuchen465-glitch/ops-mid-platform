@@ -1,7 +1,7 @@
-package com.bear.mcp.single.core.request;
+package com.ops.midplatform.core.request;
 
-import com.bear.mcp.single.core.entity.McpRequestConfigEntity;
-import com.bear.mcp.single.core.mapper.McpRequestConfigMapper;
+import com.ops.midplatform.core.entity.McpRequestConfigEntity;
+import com.ops.midplatform.core.mapper.McpRequestConfigMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.MediaType;

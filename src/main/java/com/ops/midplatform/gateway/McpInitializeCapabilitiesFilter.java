@@ -1,4 +1,4 @@
-package com.bear.mcp.single.gateway;
+package com.ops.midplatform.gateway;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

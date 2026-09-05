@@ -1,26 +1,26 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.bear.mcp.single.core.mapper.McpPromptTemplateMapper">
+<mapper namespace="com.ops.midplatform.core.mapper.McpPromptTemplateMapper">
     <sql id="BaseColumns">
         id, prompt_name, title, description, arguments_schema, template_content,
         linked_tool_names, creator_id, is_enabled AS enabled, publish_status, create_time, update_time
     </sql>
 
-    <select id="findById" resultType="com.bear.mcp.single.core.entity.McpPromptTemplateEntity">
+    <select id="findById" resultType="com.ops.midplatform.core.entity.McpPromptTemplateEntity">
         SELECT <include refid="BaseColumns" />
         FROM mcp_prompt_template
         WHERE id = #{id}
         LIMIT 1
     </select>
 
-    <select id="findByName" resultType="com.bear.mcp.single.core.entity.McpPromptTemplateEntity">
+    <select id="findByName" resultType="com.ops.midplatform.core.entity.McpPromptTemplateEntity">
         SELECT <include refid="BaseColumns" />
         FROM mcp_prompt_template
         WHERE prompt_name = #{promptName}
         LIMIT 1
     </select>
 
-    <select id="findEnabledByName" resultType="com.bear.mcp.single.core.entity.McpPromptTemplateEntity">
+    <select id="findEnabledByName" resultType="com.ops.midplatform.core.entity.McpPromptTemplateEntity">
         SELECT <include refid="BaseColumns" />
         FROM mcp_prompt_template
         WHERE prompt_name = #{promptName}
@@ -29,14 +29,14 @@
         LIMIT 1
     </select>
 
-    <select id="findShareStudioPrompts" resultType="com.bear.mcp.single.core.entity.McpPromptTemplateEntity">
+    <select id="findShareStudioPrompts" resultType="com.ops.midplatform.core.entity.McpPromptTemplateEntity">
         SELECT <include refid="BaseColumns" />
         FROM mcp_prompt_template
         WHERE creator_id = #{creatorId} OR creator_id IS NULL
         ORDER BY id DESC
     </select>
 
-    <select id="findPublished" resultType="com.bear.mcp.single.core.entity.McpPromptTemplateEntity">
+    <select id="findPublished" resultType="com.ops.midplatform.core.entity.McpPromptTemplateEntity">
         SELECT <include refid="BaseColumns" />
         FROM mcp_prompt_template
         WHERE is_enabled = 1
@@ -44,13 +44,13 @@
         ORDER BY id DESC
     </select>
 
-    <select id="findAll" resultType="com.bear.mcp.single.core.entity.McpPromptTemplateEntity">
+    <select id="findAll" resultType="com.ops.midplatform.core.entity.McpPromptTemplateEntity">
         SELECT <include refid="BaseColumns" />
         FROM mcp_prompt_template
         ORDER BY id DESC
     </select>
 
-    <insert id="insert" parameterType="com.bear.mcp.single.core.entity.McpPromptTemplateEntity" useGeneratedKeys="true" keyProperty="id">
+    <insert id="insert" parameterType="com.ops.midplatform.core.entity.McpPromptTemplateEntity" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO mcp_prompt_template (
             prompt_name, title, description, arguments_schema, template_content,
             linked_tool_names, creator_id, is_enabled, publish_status
@@ -61,7 +61,7 @@
         )
     </insert>
 
-    <update id="update" parameterType="com.bear.mcp.single.core.entity.McpPromptTemplateEntity">
+    <update id="update" parameterType="com.ops.midplatform.core.entity.McpPromptTemplateEntity">
         UPDATE mcp_prompt_template
         SET prompt_name = #{promptName},
             title = #{title},

@@ -1,14 +1,14 @@
-package com.bear.mcp.single.share.service;
+package com.ops.midplatform.share.service;
 
-import com.bear.mcp.single.common.exception.BusinessException;
-import com.bear.mcp.single.core.entity.McpRequestConfigEntity;
-import com.bear.mcp.single.core.mapper.McpRequestConfigMapper;
-import com.bear.mcp.single.core.request.RequestConfigService;
-import com.bear.mcp.single.share.req.ShareStudioApiDebugReq;
-import com.bear.mcp.single.share.req.ShareStudioApiSaveReq;
-import com.bear.mcp.single.share.req.ShareStudioApiTemporaryDebugReq;
-import com.bear.mcp.single.share.res.ShareStudioApiDebugRes;
-import com.bear.mcp.single.share.res.ShareStudioApiRes;
+import com.ops.midplatform.common.exception.BusinessException;
+import com.ops.midplatform.core.entity.McpRequestConfigEntity;
+import com.ops.midplatform.core.mapper.McpRequestConfigMapper;
+import com.ops.midplatform.core.request.RequestConfigService;
+import com.ops.midplatform.share.req.ShareStudioApiDebugReq;
+import com.ops.midplatform.share.req.ShareStudioApiSaveReq;
+import com.ops.midplatform.share.req.ShareStudioApiTemporaryDebugReq;
+import com.ops.midplatform.share.res.ShareStudioApiDebugRes;
+import com.ops.midplatform.share.res.ShareStudioApiRes;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;

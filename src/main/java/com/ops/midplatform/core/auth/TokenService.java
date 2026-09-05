@@ -1,19 +1,19 @@
-package com.bear.mcp.single.core.auth;
+package com.ops.midplatform.core.auth;
 
-import com.bear.mcp.single.core.entity.McpRoleEntity;
-import com.bear.mcp.single.core.entity.McpRolePromptEntity;
-import com.bear.mcp.single.core.entity.McpRoleResourceEntity;
-import com.bear.mcp.single.core.entity.McpRoleToolEntity;
-import com.bear.mcp.single.core.entity.McpUserEntity;
-import com.bear.mcp.single.core.entity.McpUserRoleEntity;
-import com.bear.mcp.single.core.entity.McpUserTokenEntity;
-import com.bear.mcp.single.core.mapper.McpRoleMapper;
-import com.bear.mcp.single.core.mapper.McpRolePromptMapper;
-import com.bear.mcp.single.core.mapper.McpRoleResourceMapper;
-import com.bear.mcp.single.core.mapper.McpRoleToolMapper;
-import com.bear.mcp.single.core.mapper.McpUserMapper;
-import com.bear.mcp.single.core.mapper.McpUserRoleMapper;
-import com.bear.mcp.single.core.mapper.McpUserTokenMapper;
+import com.ops.midplatform.core.entity.McpRoleEntity;
+import com.ops.midplatform.core.entity.McpRolePromptEntity;
+import com.ops.midplatform.core.entity.McpRoleResourceEntity;
+import com.ops.midplatform.core.entity.McpRoleToolEntity;
+import com.ops.midplatform.core.entity.McpUserEntity;
+import com.ops.midplatform.core.entity.McpUserRoleEntity;
+import com.ops.midplatform.core.entity.McpUserTokenEntity;
+import com.ops.midplatform.core.mapper.McpRoleMapper;
+import com.ops.midplatform.core.mapper.McpRolePromptMapper;
+import com.ops.midplatform.core.mapper.McpRoleResourceMapper;
+import com.ops.midplatform.core.mapper.McpRoleToolMapper;
+import com.ops.midplatform.core.mapper.McpUserMapper;
+import com.ops.midplatform.core.mapper.McpUserRoleMapper;
+import com.ops.midplatform.core.mapper.McpUserTokenMapper;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;

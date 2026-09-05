@@ -1,4 +1,4 @@
----
+﻿---
 title: "YanQue Text-to-SQL 表结构资源目录"
 type: text-to-sql-schema-index
 system: yanque
@@ -7,7 +7,7 @@ resourceUri: "bear://yanque/text-to-sql/schema"
 
 # YanQue Text-to-SQL 表结构资源目录
 
-本目录由 YanQue 现有 Text-to-SQL 元数据生成，用于审核后上传到 Bear MCP Resource。
+本目录由 YanQue 现有 Text-to-SQL 元数据生成，用于审核后上传到 运营中台 Resource。
 
 ## 上传建议
 

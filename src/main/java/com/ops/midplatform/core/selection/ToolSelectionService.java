@@ -1,7 +1,7 @@
-package com.bear.mcp.single.core.selection;
+package com.ops.midplatform.core.selection;
 
-import com.bear.mcp.single.core.entity.McpUserToolSelectionEntity;
-import com.bear.mcp.single.core.mapper.McpUserToolSelectionMapper;
+import com.ops.midplatform.core.entity.McpUserToolSelectionEntity;
+import com.ops.midplatform.core.mapper.McpUserToolSelectionMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

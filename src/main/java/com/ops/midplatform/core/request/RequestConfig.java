@@ -1,4 +1,4 @@
-package com.bear.mcp.single.core.request;
+package com.ops.midplatform.core.request;
 
 import java.util.Map;
 

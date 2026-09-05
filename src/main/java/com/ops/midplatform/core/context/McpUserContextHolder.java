@@ -1,4 +1,4 @@
-package com.bear.mcp.single.core.context;
+package com.ops.midplatform.core.context;
 
 /**
  * 保存当前线程内的 MCP 用户上下文。

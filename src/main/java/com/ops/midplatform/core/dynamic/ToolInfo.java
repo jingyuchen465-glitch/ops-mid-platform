@@ -1,4 +1,4 @@
-package com.bear.mcp.single.core.dynamic;
+package com.ops.midplatform.core.dynamic;
 
 /**
  * 返回给 tools/list 的工具信息。

@@ -1,11 +1,11 @@
-package com.bear.mcp.single.core.resource;
+package com.ops.midplatform.core.resource;
 
-import com.bear.mcp.single.core.context.McpUserContext;
-import com.bear.mcp.single.core.entity.McpResourceEntity;
-import com.bear.mcp.single.core.entity.McpUserResourceSelectionEntity;
-import com.bear.mcp.single.core.mapper.McpResourceMapper;
-import com.bear.mcp.single.core.mapper.McpUserResourceSelectionMapper;
-import com.bear.mcp.single.core.storage.TosStorageService;
+import com.ops.midplatform.core.context.McpUserContext;
+import com.ops.midplatform.core.entity.McpResourceEntity;
+import com.ops.midplatform.core.entity.McpUserResourceSelectionEntity;
+import com.ops.midplatform.core.mapper.McpResourceMapper;
+import com.ops.midplatform.core.mapper.McpUserResourceSelectionMapper;
+import com.ops.midplatform.core.storage.TosStorageService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

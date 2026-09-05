@@ -1,4 +1,4 @@
----
+﻿---
 promptName: yanque_text_to_sql
 title: "YanQue Text-to-SQL"
 description: "YanQue Text-to-SQL 单次任务 Prompt：接收用户问题和运行参数，生成安全只读 SQL，可选执行 query_data_source。"
@@ -9,7 +9,7 @@ argumentsSchema:
     required: true
     defaultValue: ""
   - name: datasource_id
-    description: Bear MCP 数据源 ID。execute_sql=true 时必填
+    description: 运营中台 数据源 ID。execute_sql=true 时必填
     required: false
     defaultValue: ""
   - name: max_rows

@@ -1,6 +1,6 @@
-package com.bear.mcp.single.admin.config;
+package com.ops.midplatform.admin.config;
 
-import com.bear.mcp.single.admin.interceptor.AdminJwtAuthInterceptor;
+import com.ops.midplatform.admin.interceptor.AdminJwtAuthInterceptor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;

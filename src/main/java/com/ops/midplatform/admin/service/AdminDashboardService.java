@@ -1,12 +1,12 @@
-package com.bear.mcp.single.admin.service;
+package com.ops.midplatform.admin.service;
 
-import com.bear.mcp.single.admin.res.AdminDashboardRes;
-import com.bear.mcp.single.core.mapper.McpAuditLogMapper;
-import com.bear.mcp.single.core.mapper.McpDynamicToolMapper;
-import com.bear.mcp.single.core.mapper.McpRequestConfigMapper;
-import com.bear.mcp.single.core.mapper.McpRoleMapper;
-import com.bear.mcp.single.core.mapper.McpUserMapper;
-import com.bear.mcp.single.core.mapper.McpUserTokenMapper;
+import com.ops.midplatform.admin.res.AdminDashboardRes;
+import com.ops.midplatform.core.mapper.McpAuditLogMapper;
+import com.ops.midplatform.core.mapper.McpDynamicToolMapper;
+import com.ops.midplatform.core.mapper.McpRequestConfigMapper;
+import com.ops.midplatform.core.mapper.McpRoleMapper;
+import com.ops.midplatform.core.mapper.McpUserMapper;
+import com.ops.midplatform.core.mapper.McpUserTokenMapper;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;

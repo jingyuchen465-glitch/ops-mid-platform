@@ -1,4 +1,4 @@
-package com.bear.mcp.single.common.exception;
+package com.ops.midplatform.common.exception;
 
 import lombok.Getter;
 

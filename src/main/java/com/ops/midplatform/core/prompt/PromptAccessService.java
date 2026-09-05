@@ -1,9 +1,9 @@
-package com.bear.mcp.single.core.prompt;
+package com.ops.midplatform.core.prompt;
 
-import com.bear.mcp.single.core.context.McpUserContext;
-import com.bear.mcp.single.core.entity.McpPromptTemplateEntity;
-import com.bear.mcp.single.core.entity.McpUserPromptSelectionEntity;
-import com.bear.mcp.single.core.mapper.McpUserPromptSelectionMapper;
+import com.ops.midplatform.core.context.McpUserContext;
+import com.ops.midplatform.core.entity.McpPromptTemplateEntity;
+import com.ops.midplatform.core.entity.McpUserPromptSelectionEntity;
+import com.ops.midplatform.core.mapper.McpUserPromptSelectionMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

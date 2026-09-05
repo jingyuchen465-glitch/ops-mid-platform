@@ -1,4 +1,4 @@
-package com.bear.mcp.single.publicapi.controller;
+package com.ops.midplatform.publicapi.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.core.io.ClassPathResource;
@@ -13,16 +13,16 @@ import org.springframework.web.bind.annotation.RestController;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-/** 公开 bear-skill CLI 安装资源。 */
+/** 公开 ops-skill CLI 安装资源。 */
 @RestController
-@RequestMapping("/api/public/bear-skill")
-public class PublicBearSkillController {
-    private static final String PUBLIC_PREFIX = "/api/public/bear-skill";
+@RequestMapping("/api/public/ops-skill")
+public class PublicSkillCliController {
+    private static final String PUBLIC_PREFIX = "/api/public/ops-skill";
 
     @GetMapping(value = "/install.sh", produces = "application/x-sh")
     public ResponseEntity<String> installSh(HttpServletRequest request) throws IOException {
         String content = StreamUtils.copyToString(
-                new ClassPathResource("bear-skill/install.sh").getInputStream(),
+                new ClassPathResource("ops-skill/install.sh").getInputStream(),
                 StandardCharsets.UTF_8);
         content = content.replace("{{BASE_URL}}", buildBaseUrl(request));
         return ResponseEntity.ok()
@@ -30,27 +30,27 @@ public class PublicBearSkillController {
                 .body(content);
     }
 
-    @GetMapping(value = "/bear-skill", produces = "application/x-sh")
-    public ResponseEntity<byte[]> bearSkillCli() throws IOException {
+    @GetMapping(value = "/ops-skill", produces = "application/x-sh")
+    public ResponseEntity<byte[]> opsSkillCli() throws IOException {
         byte[] content = StreamUtils.copyToByteArray(
-                new ClassPathResource("bear-skill/bear-skill").getInputStream());
+                new ClassPathResource("ops-skill/ops-skill").getInputStream());
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType("application/x-sh"))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"bear-skill\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"ops-skill\"")
                 .body(content);
     }
 
     @GetMapping(value = "/install.md", produces = "text/markdown; charset=UTF-8")
     public ResponseEntity<String> installMd(HttpServletRequest request) throws IOException {
         String baseUrl = buildBaseUrl(request);
-        String content = "# bear-skill 安装\n\n"
+        String content = "# ops-skill 安装\n\n"
                 + "```bash\n"
                 + "curl -fsSL " + baseUrl + PUBLIC_PREFIX + "/install.sh | bash -s -- --cli-only\n"
-                + "bear-skill install SKILL0000000001 --base-url " + baseUrl + "\n"
-                + "bear-skill install SKILL0000000001 --base-url " + baseUrl + " --codex\n"
+                + "ops-skill install SKILL0000000001 --base-url " + baseUrl + "\n"
+                + "ops-skill install SKILL0000000001 --base-url " + baseUrl + " --codex\n"
                 + "```\n";
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"bear-skill.md\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"ops-skill.md\"")
                 .body(content);
     }
 

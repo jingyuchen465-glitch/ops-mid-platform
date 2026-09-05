@@ -1,8 +1,8 @@
-package com.bear.mcp.single.core.skill;
+package com.ops.midplatform.core.skill;
 
-import com.bear.mcp.single.core.entity.McpSkillEntity;
-import com.bear.mcp.single.core.mapper.McpSkillMapper;
-import com.bear.mcp.single.core.storage.TosStorageService;
+import com.ops.midplatform.core.entity.McpSkillEntity;
+import com.ops.midplatform.core.mapper.McpSkillMapper;
+import com.ops.midplatform.core.storage.TosStorageService;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 

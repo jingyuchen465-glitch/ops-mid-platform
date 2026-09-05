@@ -1,12 +1,12 @@
-package com.bear.mcp.single.share.controller;
+package com.ops.midplatform.share.controller;
 
-import com.bear.mcp.single.common.api.ApiResponse;
-import com.bear.mcp.single.share.req.ShareStudioResourcePresignReq;
-import com.bear.mcp.single.share.req.ShareStudioResourceSaveReq;
-import com.bear.mcp.single.share.res.ShareStudioResourcePresignRes;
-import com.bear.mcp.single.share.res.ShareStudioResourcePresignDownloadRes;
-import com.bear.mcp.single.share.res.ShareStudioResourceRes;
-import com.bear.mcp.single.share.service.ShareStudioResourceService;
+import com.ops.midplatform.common.api.ApiResponse;
+import com.ops.midplatform.share.req.ShareStudioResourcePresignReq;
+import com.ops.midplatform.share.req.ShareStudioResourceSaveReq;
+import com.ops.midplatform.share.res.ShareStudioResourcePresignRes;
+import com.ops.midplatform.share.res.ShareStudioResourcePresignDownloadRes;
+import com.ops.midplatform.share.res.ShareStudioResourceRes;
+import com.ops.midplatform.share.service.ShareStudioResourceService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;

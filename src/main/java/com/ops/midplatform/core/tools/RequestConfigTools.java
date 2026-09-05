@@ -1,8 +1,8 @@
-package com.bear.mcp.single.core.tools;
+package com.ops.midplatform.core.tools;
 
-import com.bear.mcp.single.core.context.McpUserContextHolder;
-import com.bear.mcp.single.core.entity.McpRequestConfigEntity;
-import com.bear.mcp.single.core.mapper.McpRequestConfigMapper;
+import com.ops.midplatform.core.context.McpUserContextHolder;
+import com.ops.midplatform.core.entity.McpRequestConfigEntity;
+import com.ops.midplatform.core.mapper.McpRequestConfigMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.ai.tool.annotation.Tool;
@@ -34,7 +34,7 @@ public class RequestConfigTools {
     }
 
     @Tool(name = "create_request_config",
-            description = "创建可复用的 HTTP API 能力配置，把外部 HTTP 接口接入 Bear MCP。创建成功后，可在动态 Tool 脚本中通过 runRequest.runRequest(config_key, params) 调用。")
+            description = "创建可复用的 HTTP API 能力配置，把外部 HTTP 接口接入运营中台。创建成功后，可在动态 Tool 脚本中通过 runRequest.runRequest(config_key, params) 调用。")
     public Map<String, Object> createRequestConfig(
             @ToolParam(description = "API 能力的唯一调用 key。动态 Tool 脚本会把它作为 runRequest.runRequest 的第一个参数", required = true)
             String config_key,

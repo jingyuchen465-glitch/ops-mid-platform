@@ -1,4 +1,4 @@
-package com.bear.mcp.single.core.datasource;
+package com.ops.midplatform.core.datasource;
 
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.stereotype.Component;

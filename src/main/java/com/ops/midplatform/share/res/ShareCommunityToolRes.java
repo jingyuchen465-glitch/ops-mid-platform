@@ -1,4 +1,4 @@
-package com.bear.mcp.single.share.res;
+package com.ops.midplatform.share.res;
 
 import lombok.Data;
 

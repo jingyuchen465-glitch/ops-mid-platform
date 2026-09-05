@@ -1,6 +1,6 @@
-package com.bear.mcp.single.core.skill;
+package com.ops.midplatform.core.skill;
 
-import com.bear.mcp.single.core.entity.McpSkillEntity;
+import com.ops.midplatform.core.entity.McpSkillEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.bear.mcp.single.core.mapper.McpRoleMapper">
-    <select id="findEnabledByRoleCodes" resultType="com.bear.mcp.single.core.entity.McpRoleEntity">
+<mapper namespace="com.ops.midplatform.core.mapper.McpRoleMapper">
+    <select id="findEnabledByRoleCodes" resultType="com.ops.midplatform.core.entity.McpRoleEntity">
         SELECT id, role_code, role_name, description, is_enabled, create_time, update_time
         FROM mcp_role
         WHERE is_enabled = 1
@@ -11,13 +11,13 @@
         </foreach>
     </select>
 
-    <select id="findAll" resultType="com.bear.mcp.single.core.entity.McpRoleEntity">
+    <select id="findAll" resultType="com.ops.midplatform.core.entity.McpRoleEntity">
         SELECT id, role_code, role_name, description, is_enabled, create_time, update_time FROM mcp_role ORDER BY id DESC
     </select>
-    <insert id="insert" parameterType="com.bear.mcp.single.core.entity.McpRoleEntity" useGeneratedKeys="true" keyProperty="id">
+    <insert id="insert" parameterType="com.ops.midplatform.core.entity.McpRoleEntity" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO mcp_role (role_code, role_name, description, is_enabled) VALUES (#{roleCode}, #{roleName}, #{description}, #{isEnabled})
     </insert>
-    <update id="update" parameterType="com.bear.mcp.single.core.entity.McpRoleEntity">
+    <update id="update" parameterType="com.ops.midplatform.core.entity.McpRoleEntity">
         UPDATE mcp_role SET role_name=#{roleName}, description=#{description}, is_enabled=#{isEnabled} WHERE id=#{id}
     </update>
     <select id="countAll" resultType="int">SELECT COUNT(*) FROM mcp_role</select>

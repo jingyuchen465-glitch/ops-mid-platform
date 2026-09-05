@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.bear.mcp.single.core.mapper.McpUserTokenMapper">
-    <select id="findActiveByTokenHash" resultType="com.bear.mcp.single.core.entity.McpUserTokenEntity">
+<mapper namespace="com.ops.midplatform.core.mapper.McpUserTokenMapper">
+    <select id="findActiveByTokenHash" resultType="com.ops.midplatform.core.entity.McpUserTokenEntity">
         SELECT id, user_id, token_name, token_hash, token_encrypted, token_prefix, permissions,
                expire_time, last_used_time, last_used_ip, is_active, create_time
         FROM mcp_user_token
@@ -12,27 +12,27 @@
     <update id="updateLastUsedTime">
         UPDATE mcp_user_token SET last_used_time = #{lastUsedTime} WHERE id = #{id}
     </update>
-    <select id="findAll" resultType="com.bear.mcp.single.core.entity.McpUserTokenEntity">
+    <select id="findAll" resultType="com.ops.midplatform.core.entity.McpUserTokenEntity">
         SELECT id, user_id, token_name, token_hash, token_encrypted, token_prefix, permissions, expire_time, last_used_time, last_used_ip, is_active, create_time
         FROM mcp_user_token ORDER BY id DESC
     </select>
-    <select id="findById" resultType="com.bear.mcp.single.core.entity.McpUserTokenEntity">
+    <select id="findById" resultType="com.ops.midplatform.core.entity.McpUserTokenEntity">
         SELECT id, user_id, token_name, token_hash, token_encrypted, token_prefix, permissions, expire_time, last_used_time, last_used_ip, is_active, create_time
         FROM mcp_user_token
         WHERE id = #{id}
         LIMIT 1
     </select>
-    <select id="findByUserId" resultType="com.bear.mcp.single.core.entity.McpUserTokenEntity">
+    <select id="findByUserId" resultType="com.ops.midplatform.core.entity.McpUserTokenEntity">
         SELECT id, user_id, token_name, token_hash, token_encrypted, token_prefix, permissions, expire_time, last_used_time, last_used_ip, is_active, create_time
         FROM mcp_user_token
         WHERE user_id = #{userId}
         ORDER BY id DESC
     </select>
-    <insert id="insert" parameterType="com.bear.mcp.single.core.entity.McpUserTokenEntity" useGeneratedKeys="true" keyProperty="id">
+    <insert id="insert" parameterType="com.ops.midplatform.core.entity.McpUserTokenEntity" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO mcp_user_token (user_id, token_name, token_hash, token_encrypted, token_prefix, permissions, expire_time, is_active)
         VALUES (#{userId}, #{tokenName}, #{tokenHash}, #{tokenEncrypted}, #{tokenPrefix}, #{permissions}, #{expireTime}, #{isActive})
     </insert>
-    <update id="update" parameterType="com.bear.mcp.single.core.entity.McpUserTokenEntity">
+    <update id="update" parameterType="com.ops.midplatform.core.entity.McpUserTokenEntity">
         UPDATE mcp_user_token
         SET user_id=#{userId},
             token_name=#{tokenName},

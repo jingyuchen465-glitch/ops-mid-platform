@@ -1,4 +1,4 @@
-package com.bear.mcp.single.core.groovy;
+package com.ops.midplatform.core.groovy;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

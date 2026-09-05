@@ -1,9 +1,9 @@
-package com.bear.mcp.single.core.tools;
+package com.ops.midplatform.core.tools;
 
-import com.bear.mcp.single.core.entity.McpSkillEntity;
-import com.bear.mcp.single.core.mapper.McpSkillMapper;
-import com.bear.mcp.single.core.skill.SkillMarkdownService;
-import com.bear.mcp.single.core.storage.TosStorageService;
+import com.ops.midplatform.core.entity.McpSkillEntity;
+import com.ops.midplatform.core.mapper.McpSkillMapper;
+import com.ops.midplatform.core.skill.SkillMarkdownService;
+import com.ops.midplatform.core.storage.TosStorageService;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
@@ -30,7 +30,7 @@ public class GetSkillTool {
     }
 
     @Tool(name = "get_skill",
-            description = "按 skillCode（SKILL+10位数字）获取 Bear Skill 的完整 SKILL.md 内容，用于安装到 Cursor。本工具只返回已上线且启用的 Skill。返回 files 数组后，请将每个文件写入 .cursor/skills/{installDir}/{path}。")
+            description = "按 skillCode（SKILL+10位数字）获取 Ops Skill 的完整 SKILL.md 内容，用于安装到 Cursor。本工具只返回已上线且启用的 Skill。返回 files 数组后，请将每个文件写入 .cursor/skills/{installDir}/{path}。")
     public Map<String, Object> getSkill(
             @ToolParam(description = "Skill ID，格式为 SKILL+10位数字，如 SKILL0000000001", required = true)
             String skillCode

@@ -1,9 +1,9 @@
-package com.bear.mcp.single.admin.controller;
+package com.ops.midplatform.admin.controller;
 
-import com.bear.mcp.single.admin.req.AdminDataSourceSaveReq;
-import com.bear.mcp.single.admin.res.AdminDataSourceRes;
-import com.bear.mcp.single.admin.service.AdminDataSourceService;
-import com.bear.mcp.single.common.api.ApiResponse;
+import com.ops.midplatform.admin.req.AdminDataSourceSaveReq;
+import com.ops.midplatform.admin.res.AdminDataSourceRes;
+import com.ops.midplatform.admin.service.AdminDataSourceService;
+import com.ops.midplatform.common.api.ApiResponse;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 

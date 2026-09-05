@@ -1,6 +1,6 @@
-package com.bear.mcp.single.common.exception;
+package com.ops.midplatform.common.exception;
 
-import com.bear.mcp.single.common.api.ApiResponse;
+import com.ops.midplatform.common.api.ApiResponse;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -16,8 +16,8 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @RestControllerAdvice(basePackages = {
-        "com.bear.mcp.single.admin",
-        "com.bear.mcp.single.share"
+        "com.ops.midplatform.admin",
+        "com.ops.midplatform.share"
 })
 public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessException.class)

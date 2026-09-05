@@ -1,11 +1,11 @@
-package com.bear.mcp.single.core.tools;
+package com.ops.midplatform.core.tools;
 
-import com.bear.mcp.single.core.audit.AuditLogService;
-import com.bear.mcp.single.core.context.McpUserContext;
-import com.bear.mcp.single.core.context.McpUserContextHolder;
-import com.bear.mcp.single.core.entity.McpPromptTemplateEntity;
-import com.bear.mcp.single.core.prompt.PromptAccessService;
-import com.bear.mcp.single.core.prompt.PromptTemplateService;
+import com.ops.midplatform.core.audit.AuditLogService;
+import com.ops.midplatform.core.context.McpUserContext;
+import com.ops.midplatform.core.context.McpUserContextHolder;
+import com.ops.midplatform.core.entity.McpPromptTemplateEntity;
+import com.ops.midplatform.core.prompt.PromptAccessService;
+import com.ops.midplatform.core.prompt.PromptTemplateService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.ai.tool.annotation.Tool;

@@ -4,13 +4,13 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.bear.mcp</groupId>
-    <artifactId>bear-mcp-single</artifactId>
+    <groupId>com.ops</groupId>
+    <artifactId>ops-mid-platform</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>Bear MCP Single</name>
-    <description>Single-module MCP server learning edition</description>
+    <name>运营中台</name>
+    <description>运营中台 MCP Server，管理端与 MCP 网关</description>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -126,7 +126,7 @@
     </dependencies>
 
     <build>
-        <finalName>bear-mcp-single</finalName>
+        <finalName>ops-mid-platform</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

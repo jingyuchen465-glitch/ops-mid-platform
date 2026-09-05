@@ -1,4 +1,4 @@
-package com.bear.mcp.single.core.groovy;
+package com.ops.midplatform.core.groovy;
 
 /**
  * Groovy 脚本执行结果。

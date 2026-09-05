@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 set -e
 
 export LANG="${LANG:-en_US.UTF-8}"
@@ -10,17 +10,17 @@ SKILLS_DIR=".cursor/skills"
 
 usage() {
   cat <<EOF
-bear-skill v${VERSION}
+ops-skill v${VERSION}
 
 用法:
-  bear-skill install <skillCode> [--base-url URL] [--global] [--codex] [-C DIR]
-  bear-skill --help
-  bear-skill --version
+  ops-skill install <skillCode> [--base-url URL] [--global] [--codex] [-C DIR]
+  ops-skill --help
+  ops-skill --version
 
 示例:
-  bear-skill install SKILL0000000001 --base-url http://localhost:8090
-  bear-skill install SKILL0000000001 --global
-  bear-skill install SKILL0000000001 --codex
+  ops-skill install SKILL0000000001 --base-url http://localhost:8090
+  ops-skill install SKILL0000000001 --global
+  ops-skill install SKILL0000000001 --codex
 EOF
 }
 
@@ -63,7 +63,7 @@ while [[ $# -gt 0 ]]; do
       exit 0
       ;;
     --version|-v)
-      echo "bear-skill v${VERSION}"
+      echo "ops-skill v${VERSION}"
       exit 0
       ;;
     *)
@@ -86,7 +86,7 @@ else
 fi
 
 DOWNLOAD_URL="${BASE_URL}/api/public/skills/${SKILL_CODE}/download"
-TMP_ZIP="$(mktemp -t bear-skill-XXXXXX.zip)"
+TMP_ZIP="$(mktemp -t ops-skill-XXXXXX.zip)"
 
 echo "正在下载 Skill: $SKILL_CODE"
 echo "  来源: $DOWNLOAD_URL"

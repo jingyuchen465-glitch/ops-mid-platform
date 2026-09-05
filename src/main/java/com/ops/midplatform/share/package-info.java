@@ -7,4 +7,4 @@
  * <p>第 7 课先实现 HTTP API 创作链路：录入外部接口、填写默认参数、发送调试、
  * 保存配置、上线或公开。后续课程再把这些 API 编排成 MCP 动态工具。</p>
  */
-package com.bear.mcp.single.share;
+package com.ops.midplatform.share;

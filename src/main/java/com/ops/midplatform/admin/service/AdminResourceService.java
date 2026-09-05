@@ -1,9 +1,9 @@
-package com.bear.mcp.single.admin.service;
+package com.ops.midplatform.admin.service;
 
-import com.bear.mcp.single.admin.res.AdminResourceRes;
-import com.bear.mcp.single.common.exception.BusinessException;
-import com.bear.mcp.single.core.entity.McpResourceEntity;
-import com.bear.mcp.single.core.mapper.McpResourceMapper;
+import com.ops.midplatform.admin.res.AdminResourceRes;
+import com.ops.midplatform.common.exception.BusinessException;
+import com.ops.midplatform.core.entity.McpResourceEntity;
+import com.ops.midplatform.core.mapper.McpResourceMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

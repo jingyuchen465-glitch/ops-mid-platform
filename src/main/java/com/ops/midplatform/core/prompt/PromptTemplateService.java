@@ -1,8 +1,8 @@
-package com.bear.mcp.single.core.prompt;
+package com.ops.midplatform.core.prompt;
 
-import com.bear.mcp.single.common.exception.BusinessException;
-import com.bear.mcp.single.core.entity.McpPromptTemplateEntity;
-import com.bear.mcp.single.core.mapper.McpPromptTemplateMapper;
+import com.ops.midplatform.common.exception.BusinessException;
+import com.ops.midplatform.core.entity.McpPromptTemplateEntity;
+import com.ops.midplatform.core.mapper.McpPromptTemplateMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;

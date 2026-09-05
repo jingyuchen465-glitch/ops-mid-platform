@@ -1,4 +1,4 @@
-package com.bear.mcp.single.core.tools;
+package com.ops.midplatform.core.tools;
 
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.tool.method.MethodToolCallbackProvider;

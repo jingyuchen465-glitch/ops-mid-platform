@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: bear-mcp-single
+    name: ops-mid-platform
   datasource:
     url: ${BEAR_DB_URL:jdbc:mysql://127.0.0.1:3306/bear-mcp-single?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
     username: ${BEAR_DB_USERNAME:root}
@@ -35,8 +35,8 @@ mybatis:
 logging:
   level:
     root: INFO
-    com.bear.mcp.single: DEBUG
-    com.bear.mcp.single.core.mapper: WARN
+    com.ops.midplatform: DEBUG
+    com.ops.midplatform.core.mapper: WARN
     org.mybatis: WARN
     org.springframework.ai.mcp: INFO
 

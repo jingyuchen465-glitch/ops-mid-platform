@@ -1,8 +1,8 @@
-package com.bear.mcp.single.admin.service;
+package com.ops.midplatform.admin.service;
 
-import com.bear.mcp.single.admin.res.AdminAuditLogRes;
-import com.bear.mcp.single.core.entity.McpAuditLogEntity;
-import com.bear.mcp.single.core.mapper.McpAuditLogMapper;
+import com.ops.midplatform.admin.res.AdminAuditLogRes;
+import com.ops.midplatform.core.entity.McpAuditLogEntity;
+import com.ops.midplatform.core.mapper.McpAuditLogMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

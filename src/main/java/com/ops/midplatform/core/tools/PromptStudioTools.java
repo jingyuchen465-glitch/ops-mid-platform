@@ -1,9 +1,9 @@
-package com.bear.mcp.single.core.tools;
+package com.ops.midplatform.core.tools;
 
-import com.bear.mcp.single.core.context.McpUserContextHolder;
-import com.bear.mcp.single.core.entity.McpPromptTemplateEntity;
-import com.bear.mcp.single.core.mapper.McpPromptTemplateMapper;
-import com.bear.mcp.single.core.prompt.PromptTemplateService;
+import com.ops.midplatform.core.context.McpUserContextHolder;
+import com.ops.midplatform.core.entity.McpPromptTemplateEntity;
+import com.ops.midplatform.core.mapper.McpPromptTemplateMapper;
+import com.ops.midplatform.core.prompt.PromptTemplateService;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;

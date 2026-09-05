@@ -1,4 +1,4 @@
-package com.bear.mcp.single.common.api;
+package com.ops.midplatform.common.api;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

@@ -1,7 +1,7 @@
-package com.bear.mcp.single.core.tools;
+package com.ops.midplatform.core.tools;
 
-import com.bear.mcp.single.core.context.McpUserContext;
-import com.bear.mcp.single.core.context.McpUserContextHolder;
+import com.ops.midplatform.core.context.McpUserContext;
+import com.ops.midplatform.core.context.McpUserContextHolder;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
@@ -58,7 +58,7 @@ public class SystemTools {
     public Map<String, Object> systemInfo() {
         Runtime runtime = Runtime.getRuntime();
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("serviceName", "Bear MCP Single");
+        result.put("serviceName", "运营中台");
         result.put("version", "0.1.0");
         result.put("javaVersion", System.getProperty("java.version"));
         result.put("availableProcessors", runtime.availableProcessors());

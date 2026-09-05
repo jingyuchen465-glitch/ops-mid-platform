@@ -1,8 +1,8 @@
-package com.bear.mcp.single.core.dynamic;
+package com.ops.midplatform.core.dynamic;
 
 import java.util.List;
 
-import com.bear.mcp.single.core.redis.RedisPermission;
+import com.ops.midplatform.core.redis.RedisPermission;
 
 /**
  * 动态工具的运行时对象。

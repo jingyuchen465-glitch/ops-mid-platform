@@ -1,6 +1,6 @@
-package com.bear.mcp.single.publicapi.controller;
+package com.ops.midplatform.publicapi.controller;
 
-import com.bear.mcp.single.core.skill.SkillPackageService;
+import com.ops.midplatform.core.skill.SkillPackageService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** 公开 Skill ZIP 下载接口，供 bear-skill CLI 使用。 */
+/** 公开 Skill ZIP 下载接口，供 ops-skill CLI 使用。 */
 @RestController
 @RequestMapping("/api/public/skills")
 public class PublicSkillController {

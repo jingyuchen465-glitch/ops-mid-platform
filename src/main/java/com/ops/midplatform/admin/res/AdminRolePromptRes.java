@@ -1,4 +1,4 @@
-package com.bear.mcp.single.admin.res;
+package com.ops.midplatform.admin.res;
 
 import lombok.Data;
 

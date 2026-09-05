@@ -1,9 +1,9 @@
-package com.bear.mcp.single.core.groovy;
+package com.ops.midplatform.core.groovy;
 
-import com.bear.mcp.single.core.datasource.ExternalDataSourceSqlExecutor;
-import com.bear.mcp.single.core.redis.RedisPermission;
-import com.bear.mcp.single.core.redis.RedisScriptExecutor;
-import com.bear.mcp.single.core.request.RequestConfigService;
+import com.ops.midplatform.core.datasource.ExternalDataSourceSqlExecutor;
+import com.ops.midplatform.core.redis.RedisPermission;
+import com.ops.midplatform.core.redis.RedisScriptExecutor;
+import com.ops.midplatform.core.request.RequestConfigService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import groovy.lang.Binding;
 import groovy.lang.GroovyShell;

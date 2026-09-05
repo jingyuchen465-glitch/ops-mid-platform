@@ -1,15 +1,15 @@
-package com.bear.mcp.single.core.dynamic;
+package com.ops.midplatform.core.dynamic;
 
-import com.bear.mcp.single.core.audit.AuditLogService;
-import com.bear.mcp.single.core.context.McpUserContext;
-import com.bear.mcp.single.core.context.McpUserContextHolder;
-import com.bear.mcp.single.core.entity.McpDynamicToolEntity;
-import com.bear.mcp.single.core.groovy.GroovyScriptEngine;
-import com.bear.mcp.single.core.groovy.ScriptContext;
-import com.bear.mcp.single.core.groovy.ScriptResult;
-import com.bear.mcp.single.core.mapper.McpDynamicToolMapper;
-import com.bear.mcp.single.core.redis.RedisPermissionPolicy;
-import com.bear.mcp.single.core.selection.ToolSelectionService;
+import com.ops.midplatform.core.audit.AuditLogService;
+import com.ops.midplatform.core.context.McpUserContext;
+import com.ops.midplatform.core.context.McpUserContextHolder;
+import com.ops.midplatform.core.entity.McpDynamicToolEntity;
+import com.ops.midplatform.core.groovy.GroovyScriptEngine;
+import com.ops.midplatform.core.groovy.ScriptContext;
+import com.ops.midplatform.core.groovy.ScriptResult;
+import com.ops.midplatform.core.mapper.McpDynamicToolMapper;
+import com.ops.midplatform.core.redis.RedisPermissionPolicy;
+import com.ops.midplatform.core.selection.ToolSelectionService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;

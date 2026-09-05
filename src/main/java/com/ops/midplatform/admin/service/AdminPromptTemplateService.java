@@ -1,8 +1,8 @@
-package com.bear.mcp.single.admin.service;
+package com.ops.midplatform.admin.service;
 
-import com.bear.mcp.single.admin.res.AdminPromptTemplateRes;
-import com.bear.mcp.single.core.entity.McpPromptTemplateEntity;
-import com.bear.mcp.single.core.mapper.McpPromptTemplateMapper;
+import com.ops.midplatform.admin.res.AdminPromptTemplateRes;
+import com.ops.midplatform.core.entity.McpPromptTemplateEntity;
+import com.ops.midplatform.core.mapper.McpPromptTemplateMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

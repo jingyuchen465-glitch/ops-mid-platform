@@ -1,7 +1,7 @@
-package com.bear.mcp.single.admin.interceptor;
+package com.ops.midplatform.admin.interceptor;
 
-import com.bear.mcp.single.admin.service.AdminJwtService;
-import com.bear.mcp.single.common.exception.BusinessException;
+import com.ops.midplatform.admin.service.AdminJwtService;
+import com.ops.midplatform.common.exception.BusinessException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;

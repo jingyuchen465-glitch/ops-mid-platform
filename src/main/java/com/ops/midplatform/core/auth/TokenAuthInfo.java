@@ -1,4 +1,4 @@
-package com.bear.mcp.single.core.auth;
+package com.ops.midplatform.core.auth;
 
 import java.util.Set;
 

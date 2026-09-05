@@ -1,8 +1,8 @@
-package com.bear.mcp.single.admin.service;
+package com.ops.midplatform.admin.service;
 
 import cn.hutool.jwt.JWT;
 import cn.hutool.jwt.JWTValidator;
-import com.bear.mcp.single.common.exception.BusinessException;
+import com.ops.midplatform.common.exception.BusinessException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 

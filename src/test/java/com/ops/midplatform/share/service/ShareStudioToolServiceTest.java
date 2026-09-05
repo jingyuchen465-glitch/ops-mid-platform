@@ -1,15 +1,15 @@
-package com.bear.mcp.single.share.service;
+package com.ops.midplatform.share.service;
 
-import com.bear.mcp.single.common.exception.BusinessException;
-import com.bear.mcp.single.core.entity.McpUserRoleEntity;
-import com.bear.mcp.single.core.groovy.GroovyScriptEngine;
-import com.bear.mcp.single.core.mapper.McpDataSourceMapper;
-import com.bear.mcp.single.core.mapper.McpDynamicToolMapper;
-import com.bear.mcp.single.core.mapper.McpRequestConfigMapper;
-import com.bear.mcp.single.core.mapper.McpRoleMapper;
-import com.bear.mcp.single.core.mapper.McpUserRoleMapper;
-import com.bear.mcp.single.core.redis.RedisPermissionPolicy;
-import com.bear.mcp.single.share.req.ShareStudioToolSaveReq;
+import com.ops.midplatform.common.exception.BusinessException;
+import com.ops.midplatform.core.entity.McpUserRoleEntity;
+import com.ops.midplatform.core.groovy.GroovyScriptEngine;
+import com.ops.midplatform.core.mapper.McpDataSourceMapper;
+import com.ops.midplatform.core.mapper.McpDynamicToolMapper;
+import com.ops.midplatform.core.mapper.McpRequestConfigMapper;
+import com.ops.midplatform.core.mapper.McpRoleMapper;
+import com.ops.midplatform.core.mapper.McpUserRoleMapper;
+import com.ops.midplatform.core.redis.RedisPermissionPolicy;
+import com.ops.midplatform.share.req.ShareStudioToolSaveReq;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

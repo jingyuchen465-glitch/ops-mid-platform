@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.bear.mcp.single.core.mapper.McpUserToolSelectionMapper">
-    <select id="findEnabledByTokenId" resultType="com.bear.mcp.single.core.entity.McpUserToolSelectionEntity">
+<mapper namespace="com.ops.midplatform.core.mapper.McpUserToolSelectionMapper">
+    <select id="findEnabledByTokenId" resultType="com.ops.midplatform.core.entity.McpUserToolSelectionEntity">
         SELECT id, token_id, tool_name, tool_type, is_enabled AS enabled
         FROM mcp_user_tool_selection
         WHERE token_id = #{tokenId} AND is_enabled = 1
         ORDER BY id ASC
     </select>
-    <select id="findAll" resultType="com.bear.mcp.single.core.entity.McpUserToolSelectionEntity">
+    <select id="findAll" resultType="com.ops.midplatform.core.entity.McpUserToolSelectionEntity">
         SELECT id, token_id, tool_name, tool_type, is_enabled AS enabled FROM mcp_user_tool_selection ORDER BY id DESC
     </select>
     <delete id="deleteByTokenId">DELETE FROM mcp_user_tool_selection WHERE token_id=#{tokenId}</delete>
-    <insert id="insert" parameterType="com.bear.mcp.single.core.entity.McpUserToolSelectionEntity">
+    <insert id="insert" parameterType="com.ops.midplatform.core.entity.McpUserToolSelectionEntity">
         INSERT INTO mcp_user_tool_selection (token_id, tool_name, tool_type, is_enabled) VALUES (#{tokenId}, #{toolName}, #{toolType}, #{enabled})
     </insert>
 </mapper>

@@ -1,14 +1,14 @@
-package com.bear.mcp.single.share.controller;
+package com.ops.midplatform.share.controller;
 
-import com.bear.mcp.single.common.api.ApiResponse;
-import com.bear.mcp.single.share.req.ShareCommunityLikeReq;
-import com.bear.mcp.single.share.res.ShareCommunityApiRes;
-import com.bear.mcp.single.share.res.ShareCommunityLikeRes;
-import com.bear.mcp.single.share.res.ShareCommunityToolRes;
-import com.bear.mcp.single.share.res.ShareStudioPromptRes;
-import com.bear.mcp.single.share.res.ShareStudioResourceRes;
-import com.bear.mcp.single.share.res.ShareStudioSkillRes;
-import com.bear.mcp.single.share.service.ShareCommunityService;
+import com.ops.midplatform.common.api.ApiResponse;
+import com.ops.midplatform.share.req.ShareCommunityLikeReq;
+import com.ops.midplatform.share.res.ShareCommunityApiRes;
+import com.ops.midplatform.share.res.ShareCommunityLikeRes;
+import com.ops.midplatform.share.res.ShareCommunityToolRes;
+import com.ops.midplatform.share.res.ShareStudioPromptRes;
+import com.ops.midplatform.share.res.ShareStudioResourceRes;
+import com.ops.midplatform.share.res.ShareStudioSkillRes;
+import com.ops.midplatform.share.service.ShareCommunityService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;

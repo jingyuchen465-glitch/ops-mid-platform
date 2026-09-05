@@ -1,7 +1,7 @@
-package com.bear.mcp.single.core.audit;
+package com.ops.midplatform.core.audit;
 
-import com.bear.mcp.single.core.entity.McpAuditLogEntity;
-import com.bear.mcp.single.core.mapper.McpAuditLogMapper;
+import com.ops.midplatform.core.entity.McpAuditLogEntity;
+import com.ops.midplatform.core.mapper.McpAuditLogMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

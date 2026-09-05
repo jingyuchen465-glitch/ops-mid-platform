@@ -1,4 +1,4 @@
-package com.bear.mcp.single.core.storage;
+package com.ops.midplatform.core.storage;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

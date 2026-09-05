@@ -1,4 +1,4 @@
-package com.bear.mcp.single.core.context;
+package com.ops.midplatform.core.context;
 
 import java.util.Set;
 

@@ -1,14 +1,14 @@
-package com.bear.mcp.single.core.tools;
+package com.ops.midplatform.core.tools;
 
-import com.bear.mcp.single.core.context.McpUserContextHolder;
-import com.bear.mcp.single.core.entity.McpDataSourceEntity;
-import com.bear.mcp.single.core.entity.McpDynamicToolEntity;
-import com.bear.mcp.single.core.entity.McpRequestConfigEntity;
-import com.bear.mcp.single.core.mapper.McpDataSourceMapper;
-import com.bear.mcp.single.core.mapper.McpDynamicToolMapper;
-import com.bear.mcp.single.core.mapper.McpRequestConfigMapper;
-import com.bear.mcp.single.core.redis.RedisPermission;
-import com.bear.mcp.single.core.redis.RedisPermissionPolicy;
+import com.ops.midplatform.core.context.McpUserContextHolder;
+import com.ops.midplatform.core.entity.McpDataSourceEntity;
+import com.ops.midplatform.core.entity.McpDynamicToolEntity;
+import com.ops.midplatform.core.entity.McpRequestConfigEntity;
+import com.ops.midplatform.core.mapper.McpDataSourceMapper;
+import com.ops.midplatform.core.mapper.McpDynamicToolMapper;
+import com.ops.midplatform.core.mapper.McpRequestConfigMapper;
+import com.ops.midplatform.core.redis.RedisPermission;
+import com.ops.midplatform.core.redis.RedisPermissionPolicy;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.ai.tool.annotation.Tool;

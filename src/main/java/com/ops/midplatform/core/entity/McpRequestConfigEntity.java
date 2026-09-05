@@ -1,4 +1,4 @@
-package com.bear.mcp.single.core.entity;
+package com.ops.midplatform.core.entity;
 
 import lombok.Data;
 

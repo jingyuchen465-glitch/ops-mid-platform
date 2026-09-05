@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.bear.mcp.single.core.mapper.McpUserRoleMapper">
-    <select id="findByUserId" resultType="com.bear.mcp.single.core.entity.McpUserRoleEntity">
+<mapper namespace="com.ops.midplatform.core.mapper.McpUserRoleMapper">
+    <select id="findByUserId" resultType="com.ops.midplatform.core.entity.McpUserRoleEntity">
         SELECT id, user_id, role_code, create_time
         FROM mcp_user_role
         WHERE user_id = #{userId}
         ORDER BY id ASC
     </select>
-    <select id="findAll" resultType="com.bear.mcp.single.core.entity.McpUserRoleEntity">
+    <select id="findAll" resultType="com.ops.midplatform.core.entity.McpUserRoleEntity">
         SELECT id, user_id, role_code, create_time
         FROM mcp_user_role
         ORDER BY user_id ASC, id ASC
     </select>
     <delete id="deleteByUserId">DELETE FROM mcp_user_role WHERE user_id=#{userId}</delete>
-    <insert id="insert" parameterType="com.bear.mcp.single.core.entity.McpUserRoleEntity">
+    <insert id="insert" parameterType="com.ops.midplatform.core.entity.McpUserRoleEntity">
         INSERT INTO mcp_user_role (user_id, role_code) VALUES (#{userId}, #{roleCode})
     </insert>
 </mapper>

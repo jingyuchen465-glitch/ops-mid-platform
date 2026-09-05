@@ -1,4 +1,4 @@
-package com.bear.mcp.single.core.storage;
+package com.ops.midplatform.core.storage;
 
 import com.volcengine.tos.TOSV2;
 import com.volcengine.tos.TOSV2ClientBuilder;

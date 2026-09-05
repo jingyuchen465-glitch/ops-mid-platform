@@ -1,9 +1,9 @@
-package com.bear.mcp.single.gateway;
+package com.ops.midplatform.gateway;
 
-import com.bear.mcp.single.core.auth.TokenAuthInfo;
-import com.bear.mcp.single.core.auth.TokenService;
-import com.bear.mcp.single.core.context.McpUserContext;
-import com.bear.mcp.single.core.context.McpUserContextHolder;
+import com.ops.midplatform.core.auth.TokenAuthInfo;
+import com.ops.midplatform.core.auth.TokenService;
+import com.ops.midplatform.core.context.McpUserContext;
+import com.ops.midplatform.core.context.McpUserContextHolder;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

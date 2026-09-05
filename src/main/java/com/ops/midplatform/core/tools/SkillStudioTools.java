@@ -1,10 +1,10 @@
-package com.bear.mcp.single.core.tools;
+package com.ops.midplatform.core.tools;
 
-import com.bear.mcp.single.core.context.McpUserContextHolder;
-import com.bear.mcp.single.core.entity.McpSkillEntity;
-import com.bear.mcp.single.core.mapper.McpSkillMapper;
-import com.bear.mcp.single.core.skill.SkillMarkdownService;
-import com.bear.mcp.single.core.storage.TosStorageService;
+import com.ops.midplatform.core.context.McpUserContextHolder;
+import com.ops.midplatform.core.entity.McpSkillEntity;
+import com.ops.midplatform.core.mapper.McpSkillMapper;
+import com.ops.midplatform.core.skill.SkillMarkdownService;
+import com.ops.midplatform.core.storage.TosStorageService;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;

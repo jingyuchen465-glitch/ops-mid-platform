@@ -1,13 +1,13 @@
-package com.bear.mcp.single.share.service;
+package com.ops.midplatform.share.service;
 
-import com.bear.mcp.single.common.exception.BusinessException;
-import com.bear.mcp.single.core.entity.McpPromptTemplateEntity;
-import com.bear.mcp.single.core.mapper.McpPromptTemplateMapper;
-import com.bear.mcp.single.core.prompt.PromptTemplateService;
-import com.bear.mcp.single.share.req.ShareStudioPromptDebugReq;
-import com.bear.mcp.single.share.req.ShareStudioPromptSaveReq;
-import com.bear.mcp.single.share.res.ShareStudioPromptDebugRes;
-import com.bear.mcp.single.share.res.ShareStudioPromptRes;
+import com.ops.midplatform.common.exception.BusinessException;
+import com.ops.midplatform.core.entity.McpPromptTemplateEntity;
+import com.ops.midplatform.core.mapper.McpPromptTemplateMapper;
+import com.ops.midplatform.core.prompt.PromptTemplateService;
+import com.ops.midplatform.share.req.ShareStudioPromptDebugReq;
+import com.ops.midplatform.share.req.ShareStudioPromptSaveReq;
+import com.ops.midplatform.share.res.ShareStudioPromptDebugRes;
+import com.ops.midplatform.share.res.ShareStudioPromptRes;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
