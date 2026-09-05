@@ -3,6 +3,7 @@ FROM node:22-alpine AS build
 WORKDIR /app
 
 COPY admin-web/package*.json ./
+COPY admin-web/.npmrc ./
 RUN npm ci
 
 COPY admin-web/ ./
