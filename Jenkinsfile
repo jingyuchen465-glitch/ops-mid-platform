@@ -64,14 +64,15 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'container-registry', usernameVariable: 'REGISTRY_USER', passwordVariable: 'REGISTRY_PASSWORD')]) {
-                    sshagent(credentials: ['production-deploy-ssh']) {
-                        sh 'ssh -o StrictHostKeyChecking=accept-new "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p $DEPLOY_PATH"'
-                        sh 'scp deploy/docker-compose.yml deploy/nginx.conf docs/mysql-init.sql "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/"'
-                        sh 'printf "%s" "$REGISTRY_PASSWORD" | ssh "$DEPLOY_USER@$DEPLOY_HOST" "docker login \'$REGISTRY\' -u \'$REGISTRY_USER\' --password-stdin"'
-                        sh 'ssh "$DEPLOY_USER@$DEPLOY_HOST" "cd $DEPLOY_PATH && BACKEND_IMAGE=\'$BACKEND_IMAGE\' FRONTEND_IMAGE=\'$FRONTEND_IMAGE\' docker compose --env-file .env pull && BACKEND_IMAGE=\'$BACKEND_IMAGE\' FRONTEND_IMAGE=\'$FRONTEND_IMAGE\' docker compose --env-file .env up -d --remove-orphans && docker logout \'$REGISTRY\'"'
-                        sh 'ssh "$DEPLOY_USER@$DEPLOY_HOST" "cd $DEPLOY_PATH && docker image prune -f"'
-                    }
+                withCredentials([
+                    usernamePassword(credentialsId: 'container-registry', usernameVariable: 'REGISTRY_USER', passwordVariable: 'REGISTRY_PASSWORD'),
+                    sshUserPrivateKey(credentialsId: 'production-deploy-ssh', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')
+                ]) {
+                    sh 'ssh -i "$SSH_KEY" -o StrictHostKeyChecking=accept-new "$SSH_USER@$DEPLOY_HOST" "mkdir -p $DEPLOY_PATH"'
+                    sh 'scp -i "$SSH_KEY" deploy/docker-compose.yml deploy/nginx.conf docs/mysql-init.sql "$SSH_USER@$DEPLOY_HOST:$DEPLOY_PATH/"'
+                    sh 'printf "%s" "$REGISTRY_PASSWORD" | ssh -i "$SSH_KEY" "$SSH_USER@$DEPLOY_HOST" "docker login $REGISTRY -u $REGISTRY_USER --password-stdin"'
+                    sh 'ssh -i "$SSH_KEY" "$SSH_USER@$DEPLOY_HOST" "cd $DEPLOY_PATH && BACKEND_IMAGE=\'$BACKEND_IMAGE\' FRONTEND_IMAGE=\'$FRONTEND_IMAGE\' docker compose --env-file .env pull && BACKEND_IMAGE=\'$BACKEND_IMAGE\' FRONTEND_IMAGE=\'$FRONTEND_IMAGE\' docker compose --env-file .env up -d --remove-orphans && docker logout $REGISTRY"'
+                    sh 'ssh -i "$SSH_KEY" "$SSH_USER@$DEPLOY_HOST" "cd $DEPLOY_PATH && docker image prune -f"'
                 }
             }
         }
