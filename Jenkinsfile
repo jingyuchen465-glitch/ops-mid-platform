@@ -13,7 +13,7 @@ pipeline {
         GIT_HTTP_LOW_SPEED_TIME = '60'
         REGISTRY = 'crpi-bgfb2r2bqr6jxrw1.cn-hangzhou.personal.cr.aliyuncs.com'
         IMAGE_NAMESPACE = 'dev-cjy'
-        DEPLOY_HOST = '118.178.255.26'
+        DEPLOY_HOST = '172.17.0.1'
         DEPLOY_USER = 'deploy'
         DEPLOY_PATH = '/opt/ops-mid-platform'
     }
