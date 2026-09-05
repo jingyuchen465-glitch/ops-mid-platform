@@ -1,0 +1,70 @@
+services:
+  backend:
+    image: ${BACKEND_IMAGE:-ops-mid-platform-backend:local}
+    restart: unless-stopped
+    environment:
+      BEAR_DB_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-ops_mid_platform}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      BEAR_DB_USERNAME: ${MYSQL_USER:-ops}
+      BEAR_DB_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
+      BEAR_REDIS_HOST: redis
+      BEAR_REDIS_PORT: 6379
+      BEAR_REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      BEAR_REDIS_DATABASE: ${REDIS_DATABASE:-0}
+      BEAR_ADMIN_JWT_SECRET: ${BEAR_ADMIN_JWT_SECRET:?BEAR_ADMIN_JWT_SECRET is required}
+      BEAR_ADMIN_DATA_SECRET: ${BEAR_ADMIN_DATA_SECRET:?BEAR_ADMIN_DATA_SECRET is required}
+      BEAR_TOS_ENDPOINT: ${BEAR_TOS_ENDPOINT:-}
+      BEAR_TOS_REGION: ${BEAR_TOS_REGION:-}
+      BEAR_TOS_BUCKET: ${BEAR_TOS_BUCKET:-}
+      BEAR_TOS_ACCESS_KEY: ${BEAR_TOS_ACCESS_KEY:-}
+      BEAR_TOS_SECRET_KEY: ${BEAR_TOS_SECRET_KEY:-}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    expose:
+      - "8090"
+
+  frontend:
+    image: ${FRONTEND_IMAGE:-ops-mid-platform-frontend:local}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${HTTP_PORT:-80}:80"
+
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-ops_mid_platform}
+      MYSQL_USER: ${MYSQL_USER:-ops}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql-init.sql:/docker-entrypoint-initdb.d/001-mysql-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+
+volumes:
+  mysql_data:
+  redis_data:
