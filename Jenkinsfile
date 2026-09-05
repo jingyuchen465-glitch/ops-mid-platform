@@ -7,8 +7,8 @@ pipeline {
     }
 
     environment {
-        REGISTRY = 'registry.example.com'
-        IMAGE_NAMESPACE = 'your-org'
+        REGISTRY = 'registry.cn-hangzhou.aliyuncs.com'
+        IMAGE_NAMESPACE = 'dev-cjy'
         DEPLOY_HOST = '118.178.255.26'
         DEPLOY_USER = 'deploy'
         DEPLOY_PATH = '/opt/ops-mid-platform'
