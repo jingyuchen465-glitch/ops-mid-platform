@@ -4,9 +4,13 @@ pipeline {
     options {
         disableConcurrentBuilds()
         timestamps()
+        skipDefaultCheckout()
     }
 
     environment {
+        // 服务器访问 GitHub 不稳定，调低低速判死阈值并让 checkout 失败自动重试
+        GIT_HTTP_LOW_SPEED_LIMIT = '1000'
+        GIT_HTTP_LOW_SPEED_TIME = '60'
         REGISTRY = 'registry.cn-hangzhou.aliyuncs.com'
         IMAGE_NAMESPACE = 'dev-cjy'
         DEPLOY_HOST = '118.178.255.26'
@@ -15,6 +19,19 @@ pipeline {
     }
 
     stages {
+        stage('Checkout') {
+            steps {
+                retry(3) {
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: '*/main']],
+                        extensions: [[$class: 'CloneOption', shallow: true, depth: 1],
+                                     [$class: 'CleanBeforeCheckout']],
+                        userRemoteConfigs: [[url: 'https://github.com/jingyuchen465-glitch/ops-mid-platform.git']]
+                    ])
+                }
+            }
+        }
         stage('Test') {
             steps {
                 sh 'mvn -B test'
