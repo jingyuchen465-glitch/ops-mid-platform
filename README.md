@@ -1,5 +1,5 @@
 # Ops Mid-Platform（运营中台 MCP Server）
-
+http://118.178.255.26/
 生产级运营中台 MCP 服务。基于 Spring AI MCP Server 构建的统一能力网关，将数据源、动态工具、请求配置、Prompt 模板、资源与技能统一纳管，并通过 MCP 协议对外提供标准化的工具调用能力。内置管理员控制台与共享 Studio，支撑运营侧 Agent 工具链的快速接入与安全管控。
 
 ## 核心能力
