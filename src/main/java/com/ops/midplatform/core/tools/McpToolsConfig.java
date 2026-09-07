@@ -24,11 +24,12 @@ public class McpToolsConfig {
                                              PromptRuntimeTools promptRuntimeTools,
                                              SkillStudioTools skillStudioTools,
                                              DataSourceTools dataSourceTools,
-                                             GetSkillTool getSkillTool) {
+                                             GetSkillTool getSkillTool,
+                                             YanqueLogTools yanqueLogTools) {
         return MethodToolCallbackProvider.builder()
                 .toolObjects(systemTools, calculatorTools, requestConfigTools, dynamicStudioTools,
                         resourceStudioTools, promptStudioTools, promptRuntimeTools, skillStudioTools, dataSourceTools,
-                        getSkillTool)
+                        getSkillTool, yanqueLogTools)
                 .build();
     }
 }

@@ -51,6 +51,12 @@ bear:
     jwt-expire-seconds: 7200
   mcp:
     demo-token: mcp_dev_token
+  tls:
+    endpoint: ${BEAR_TLS_ENDPOINT:}
+    region: ${BEAR_TLS_REGION:}
+    access-key-id: ${BEAR_TLS_ACCESS_KEY_ID:}
+    access-key-secret: ${BEAR_TLS_ACCESS_KEY_SECRET:}
+    topic-id: ${BEAR_TLS_TOPIC_ID:}
   storage:
     tos:
       endpoint: ${BEAR_TOS_ENDPOINT:}
